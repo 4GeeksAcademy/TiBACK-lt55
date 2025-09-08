@@ -57,3 +57,22 @@ class Analista(db.Model):
             "email": self.email,
             "especialidad": self.especialidad
         }
+
+
+
+class Supervisor(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    area_responsable: Mapped[str] = mapped_column(String(120), nullable=False)
+    nombre: Mapped[str] = mapped_column(String(50), nullable=False)
+    apellido: Mapped[str] = mapped_column(String(50), nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "apellido": self.apellido,
+            "email": self.email,
+            "area_responsable": self.area_responsable
+        }

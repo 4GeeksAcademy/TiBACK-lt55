@@ -97,6 +97,28 @@ export default function storeReducer(store, action = {}) {
       return { ...store, analistaDetail: null, api: { loading: false, error: null } };
   
 
+       // Supervisor
+    case 'supervisores_add':
+      return { ...store, supervisores: [...store.supervisores, action.payload], api: { loading: false, error: null } };
+    case 'supervisores_upsert': {
+      const s = action.payload;
+      const exists = store.supervisores.some(x => x.id === s.id);
+      return {
+        ...store,
+        supervisores: exists ? store.supervisores.map(x => x.id === s.id ? s : x) : [...store.supervisores, s],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'supervisores_remove':
+      return { ...store, supervisores: store.supervisores.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'supervisores_set_list':
+      return { ...store, supervisores: action.payload, api: { loading: false, error: null } };
+    case 'supervisor_set_detail':
+      return { ...store, supervisorDetail: action.payload, api: { loading: false, error: null } };
+    case 'supervisor_clear_detail':
+      return { ...store, supervisorDetail: null, api: { loading: false, error: null } };  
+
+      
     default:
       throw Error('Unknown action.');
   }    
