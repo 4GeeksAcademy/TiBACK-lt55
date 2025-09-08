@@ -16,6 +16,9 @@ export const initialStore=()=>{
       // Estado global para Clientes
     clientes: [],
     clienteDetail: null,
+       // Estado global para Analistas
+    analistas: [],
+    analistaDetail: null,
     api: { loading: false, error: null }
   }
 }
@@ -71,6 +74,28 @@ export default function storeReducer(store, action = {}) {
     
     case 'cliente_clear_detail':
       return { ...store, clienteDetail: null, api: { loading: false, error: null } };
+
+     // Analista
+    case 'analistas_add':
+      return { ...store, analistas: [...store.analistas, action.payload], api: { loading: false, error: null } };
+    case 'analistas_upsert': {
+      const a = action.payload;
+      const exists = store.analistas.some(x => x.id === a.id);
+      return {
+        ...store,
+        analistas: exists ? store.analistas.map(x => x.id === a.id ? a : x) : [...store.analistas, a],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'analistas_remove':
+      return { ...store, analistas: store.analistas.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'analistas_set_list':
+      return { ...store, analistas: action.payload, api: { loading: false, error: null } };
+    case 'analista_set_detail':
+      return { ...store, analistaDetail: action.payload, api: { loading: false, error: null } };
+    case 'analista_clear_detail':
+      return { ...store, analistaDetail: null, api: { loading: false, error: null } };
+  
 
     default:
       throw Error('Unknown action.');

@@ -19,6 +19,7 @@ class User(db.Model):
         }
 
 
+
 class Cliente(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     direccion: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -38,3 +39,21 @@ class Cliente(db.Model):
             "telefono": self.telefono
         }
 
+
+
+class Analista(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    especialidad: Mapped[str] = mapped_column(String(120), nullable=False)
+    nombre: Mapped[str] = mapped_column(String(50), nullable=False)
+    apellido: Mapped[str] = mapped_column(String(50), nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "apellido": self.apellido,
+            "email": self.email,
+            "especialidad": self.especialidad
+        }
