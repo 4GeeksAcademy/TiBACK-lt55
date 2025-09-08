@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User, Cliente, Analista
+from api.models import db, User, Cliente, Analista, Supervisor
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
@@ -155,6 +155,78 @@ def delete_analista(id):
         db.session.delete(analista)
         db.session.commit()
         return jsonify({"message": "Analista eliminado"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
+
+
+
+
+
+# supervisor
+@api.route('/supervisores', methods=['GET'])
+def listar_supervisores():
+    supervisores = Supervisor.query.all()
+    return jsonify([s.serialize() for s in supervisores]), 200
+
+
+@api.route('/supervisores', methods=['POST'])
+def create_supervisor():
+    body = request.get_json(silent=True) or {}
+    required = ["area_responsable", "nombre", "apellido", "email", "contraseña_hash"]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+    try:
+        supervisor = Supervisor(**{k: body[k] for k in required})
+        db.session.add(supervisor)
+        db.session.commit()
+        return jsonify(supervisor.serialize()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Email ya existe"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+
+@api.route('/supervisores/<int:id>', methods=['GET'])
+def get_supervisor(id):
+    supervisor = db.session.get(Supervisor, id)
+    if not supervisor:
+        return jsonify({"message": "Supervisor no encontrado"}), 404
+    return jsonify(supervisor.serialize()), 200
+
+
+@api.route('/supervisores/<int:id>', methods=['PUT'])
+def update_supervisor(id):
+    body = request.get_json(silent=True) or {}
+    supervisor = db.session.get(Supervisor, id)
+    if not supervisor:
+        return jsonify({"message": "Supervisor no encontrado"}), 404
+    try:
+        for field in ["area_responsable", "nombre", "apellido", "email", "contraseña_hash"]:
+            if field in body:
+                setattr(supervisor, field, body[field])
+        db.session.commit()
+        return jsonify(supervisor.serialize()), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Email duplicado"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+
+@api.route('/supervisores/<int:id>', methods=['DELETE'])
+def delete_supervisor(id):
+    supervisor = db.session.get(Supervisor, id)
+    if not supervisor:
+        return jsonify({"message": "Supervisor no encontrado"}), 404
+    try:
+        db.session.delete(supervisor)
+        db.session.commit()
+        return jsonify({"message": "Supervisor eliminado"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
