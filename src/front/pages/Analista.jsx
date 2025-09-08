@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import { Link } from "react-router-dom";
 
 export const Analista = () => {
     const [mostrarStore, setMostrarStore] = useState(false);
@@ -40,46 +41,6 @@ export const Analista = () => {
             dispatch({ type: "analistas_add", payload: data });
             limpiarFormulario();
         }).catch(setError).finally(() => setLoading(false));
-    };
-
-    const obtenerAnalista = () => {
-        setLoading(true);
-        fetchJson(`${API}/analistas/${analistaId}`)
-            .then(({ ok, data }) => {
-                if (!ok) throw new Error(data.message);
-                dispatch({ type: "analista_set_detail", payload: data });
-                setNuevoAnalista({
-                    nombre: data.nombre,
-                    apellido: data.apellido,
-                    email: data.email,
-                    contraseña_hash: data.contraseña_hash || "",
-                    especialidad: data.especialidad
-                });
-            }).catch(setError).finally(() => setLoading(false));
-    };
-
-    const actualizarAnalista = () => {
-        setLoading(true);
-        fetchJson(`${API}/analistas/${analistaId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(nuevoAnalista)
-        }).then(({ ok, data }) => {
-            if (!ok) throw new Error(data.message);
-            dispatch({ type: "analista_set_detail", payload: data });
-            dispatch({ type: "analistas_upsert", payload: data });
-            limpiarFormulario();
-        }).catch(setError).finally(() => setLoading(false));
-    };
-
-    const eliminarAnalista = () => {
-        setLoading(true);
-        fetchJson(`${API}/analistas/${analistaId}`, { method: "DELETE" })
-            .then(({ ok, data }) => {
-                if (!ok) throw new Error(data.message);
-                dispatch({ type: "analistas_remove", payload: parseInt(analistaId) });
-                limpiarFormulario();
-            }).catch(setError).finally(() => setLoading(false));
     };
 
     const listarTodosLosAnalistas = () => {
@@ -125,24 +86,9 @@ export const Analista = () => {
                                 ))}
                             </div>
 
-                            <div className="d-flex gap-2 mt-4 flex-wrap">
+                            <div className="d-flex gap-2 mt-4 justify-content-between">
                                 <button className="btn btn-primary" onClick={crearAnalista}>
                                     <i className="fas fa-plus"></i> Crear Analista
-                                </button>
-                                <input
-                                    className="form-control w-auto"
-                                    placeholder="ID del analista"
-                                    value={analistaId}
-                                    onChange={e => setAnalistaId(e.target.value)}
-                                />
-                                <button className="btn btn-outline-secondary" onClick={obtenerAnalista}>
-                                    <i className="fas fa-search"></i> Buscar
-                                </button>
-                                <button className="btn btn-warning" onClick={actualizarAnalista}>
-                                    <i className="fas fa-edit"></i> Actualizar
-                                </button>
-                                <button className="btn btn-danger" onClick={eliminarAnalista}>
-                                    <i className="fas fa-trash"></i> Eliminar
                                 </button>
                                 <button className="btn btn-outline-info" onClick={limpiarFormulario}>
                                     <i className="fas fa-eraser"></i> Limpiar
@@ -186,6 +132,9 @@ export const Analista = () => {
                                                     <td>{analista.apellido}</td>
                                                     <td>{analista.email}</td>
                                                     <td>{analista.especialidad}</td>
+                                                    <Link to={`/analistas/${analista.id}`}>
+                                                        <button className="btn btn-primary">Ver</button>
+                                                    </Link>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -201,20 +150,6 @@ export const Analista = () => {
                             )}
                         </div>
                     </div>
-
-                    <div className="card mt-3">
-                        <div className="card-header d-flex justify-content-between align-items-center">
-                            <span>Estado del Store</span>
-                            <button className="btn btn-sm btn-outline-secondary" onClick={() => setMostrarStore(s => !s)}>
-                                {mostrarStore ? "Ocultar" : "Mostrar"}
-                            </button>
-                        </div>
-                        {mostrarStore && (
-                            <div className="card-body">
-                                <pre className="small m-0">{JSON.stringify(store, null, 2)}</pre>
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
         </div>
@@ -222,3 +157,53 @@ export const Analista = () => {
 };
 
 
+
+
+
+
+{/* <input
+    className="form-control w-auto"
+    placeholder="ID del analista"
+    value={analistaId}
+    onChange={e => setAnalistaId(e.target.value)}
+/> */}
+{/* <button className="btn btn-outline-secondary" onClick={obtenerAnalista}>
+    <i className="fas fa-search"></i> Buscar
+</button> */}
+
+
+
+
+
+
+
+
+
+
+
+
+// <Link to={"/contactEdit/" + item.id}>
+// 									<button className="btn h-25 me-4 mt-2"><i className="fa-solid fa-pen"></i></button>
+// 								</Link>
+// 							<button type="button" className="btn h-25 me-4 mt-2" data-bs-toggle="modal" data-bs-target="#exampleModal">
+// 								<i className="fa-solid fa-trash"></i>
+// 							</button>
+
+
+// 							<div className="modal fade" id="exampleModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+// 							<div className="modal-dialog">
+// 								<div className="modal-content">
+// 								<div className="modal-header">
+// 									<h1 className="modal-title fs-5" id="exampleModalLabel">Borrar contacto</h1>
+// 									<button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+// 								</div>
+// 								<div className="modal-body alert alert-danger my-0 rounded-0">
+// 									<p>¿Estás seguro de que quieres borrar este contacto?</p>
+// 								</div>
+// 								<div className="modal-footer">
+// 									<button type="button" className="btn btn-secondary h-25 me-4 mt-2" data-bs-dismiss="modal">Close</button>
+// 									<button className="btn btn-danger h-25 mx-1 mt-2" data-bs-toggle="modal" data-bs-target="#exampleModal1" onClick={() => (borrarContacto)(item.id)}>Borrar</button>
+// 								</div>
+// 								</div>
+// 							</div>
+// 							</div>
