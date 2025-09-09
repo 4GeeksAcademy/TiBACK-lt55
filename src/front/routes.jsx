@@ -10,12 +10,18 @@ import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
 import { SingleAnalista } from "./pages/SingleAnalista"
 import { Demo } from "./pages/Demo";
-import { Clientes } from "./pages/Clientes";
 import { Analista } from "./pages/Analista";
 import { Supervisor } from "./pages/Supervisor";
+
+import { Clientes } from "./pages/Clientes";
 import { AgregarCliente } from "./pages/AgregarCliente";
 import { ActualizarCliente } from "./pages/ActualizarCliente";
 import { VerCliente } from "./pages/VerCliente";
+
+import { Comentarios } from "./pages/Comentarios";
+import { AgregarComentarios } from "./pages/AgregarComentarios";
+import { ActualizarComentarios } from "./pages/ActualizarComentarios";
+import { VerComentarios } from "./pages/VerComentarios";
 
 
 export const router = createBrowserRouter(
@@ -41,6 +47,11 @@ export const router = createBrowserRouter(
         <Route path="/agregar-cliente" element={<AgregarCliente />} />
         <Route path="/actualizar-cliente/:id" element={<ActualizarCliente />} />
         <Route path="/ver-cliente/:id" element={<VerCliente />} />
+
+         <Route path="/comentarios" element={<Comentarios />} />
+         <Route path="/agregar-comentario" element={<AgregarComentarios />} />
+         <Route path="/actualizar-comentario/:id" element={<ActualizarComentarios />} />
+         <Route path="/ver-comentario/:id" element={<VerComentarios />} />
       </Route>
     )
 );

@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User, Cliente, Analista, Supervisor
+from api.models import db, User, Cliente, Analista, Supervisor, Comentarios
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
@@ -227,6 +227,74 @@ def delete_supervisor(id):
         db.session.delete(supervisor)
         db.session.commit()
         return jsonify({"message": "Supervisor eliminado"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
+
+
+
+# Comentarios
+
+@api.route('/comentarios', methods=['GET'])
+def listar_comentarios():
+    comentarios = Comentarios.query.all()
+    return jsonify([c.serialize() for c in comentarios]), 200
+
+
+@api.route('/comentarios', methods=['POST'])
+def create_comentario():
+    body = request.get_json(silent=True) or {}
+    required = ["id_gestion", "id_cliente", "id_analista", "id_supervisor", "texto", "fecha_comentario"]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+    try:
+        comentario = Comentarios(**{k: body[k] for k in required})
+        db.session.add(comentario)
+        db.session.commit()
+        return jsonify(comentario.serialize()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+@api.route('/comentarios/<int:id>', methods=['GET'])
+def get_comentario(id):
+    comentario = db.session.get(Comentarios, id)
+    if not comentario:
+        return jsonify({"message": "Comentario no encontrado"}), 404
+    return jsonify(comentario.serialize()), 200
+
+@api.route('/comentarios/<int:id>', methods=['PUT'])
+def update_comentario(id):
+    body = request.get_json(silent=True) or {}
+    comentario = db.session.get(Comentarios, id)
+    if not comentario:
+        return jsonify({"message": "Comentario no encontrado"}), 404
+    try:
+        for field in ["id_gestion", "id_cliente", "id_analista", "id_supervisor", "texto", "fecha_comentario"]:
+            if field in body:
+                setattr(comentario, field, body[field])
+        db.session.commit()
+        return jsonify(comentario.serialize()), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+@api.route('/comentarios/<int:id>', methods=['DELETE'])
+def delete_comentario(id):
+    comentario = db.session.get(Comentarios, id)
+    if not comentario:
+        return jsonify({"message": "Comentario no encontrado"}), 404
+    try:
+        db.session.delete(comentario)
+        db.session.commit()
+        return jsonify({"message": "Comentario eliminado"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500

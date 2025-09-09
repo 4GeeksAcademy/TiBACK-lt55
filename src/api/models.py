@@ -40,7 +40,6 @@ class Cliente(db.Model):
         }
 
 
-
 class Analista(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     especialidad: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -75,4 +74,26 @@ class Supervisor(db.Model):
             "apellido": self.apellido,
             "email": self.email,
             "area_responsable": self.area_responsable
+        }
+
+
+
+class Comentarios(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    id_gestion: Mapped[int] = mapped_column(nullable=False)
+    id_cliente: Mapped[int] = mapped_column(nullable=False)
+    id_analista: Mapped[int] = mapped_column(nullable=False)
+    id_supervisor: Mapped[int] = mapped_column(nullable=False)
+    texto: Mapped[str] = mapped_column(String(500), nullable=False)
+    fecha_comentario: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "id_gestion": self.id_gestion,
+            "id_cliente": self.id_cliente,
+            "id_analista": self.id_analista,
+            "id_supervisor": self.id_supervisor,
+            "texto": self.texto,
+            "fecha_comentario": self.fecha_comentario
         }
