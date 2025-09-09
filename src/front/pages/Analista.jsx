@@ -134,7 +134,7 @@ export const Analista = () => {
                                                     <td>{analista.especialidad}</td>
                                                     <Link to={`/analistas/${analista.id}`}>
                                                         <button className="btn btn-primary">Ver</button>
-                                                    </Link>
+                                                    </Link> 
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -167,9 +167,7 @@ export const Analista = () => {
     value={analistaId}
     onChange={e => setAnalistaId(e.target.value)}
 /> */}
-{/* <button className="btn btn-outline-secondary" onClick={obtenerAnalista}>
-    <i className="fas fa-search"></i> Buscar
-</button> */}
+
 
 
 

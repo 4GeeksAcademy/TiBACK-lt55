@@ -42,22 +42,6 @@ export const SingleAnalista = props => {
         }).catch(setError).finally(() => setLoading(false));
     };
 
-     const obtenerAnalista = () => {
-        setLoading(true);
-        fetchJson(`${API}/analistas/${analistaId}`)
-            .then(({ ok, data }) => {
-                if (!ok) throw new Error(data.message);
-                dispatch({ type: "analista_set_detail", payload: data });
-                setNuevoAnalista({
-                    nombre: data.nombre,
-                    apellido: data.apellido,
-                    email: data.email,
-                    contraseña_hash: data.contraseña_hash || "",
-                    especialidad: data.especialidad
-                });
-            }).catch(setError).finally(() => setLoading(false));
-    };
-
   return (
     <div className="container text-center">
       {/* Display the title of the todo element dynamically retrieved from the store using theId. */}
@@ -90,16 +74,8 @@ export const SingleAnalista = props => {
                                               </tbody>
                                           </table>
                                       </div>
-                                  ) : (
-                                      <div className="text-center py-4">
-                                          <p className="text-muted">No hay analistas registrados.</p>
-                                          <button className="btn btn-primary" onClick={listarTodosLosAnalistas}>
-                                              Cargar Analistas
-                                          </button>
-                                      </div>
-                                  )}
+                                  ) : (<div className="text-center py-4"></div>)}
                               </div>
-
                               <button className="btn btn-warning" onClick={actualizarAnalista}>
                                     <i className="fas fa-edit"></i> Actualizar
                                 </button>
