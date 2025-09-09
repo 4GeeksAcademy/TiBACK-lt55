@@ -13,14 +13,25 @@ export const initialStore=()=>{
         background: null,
       }
     ],
+
       // Estado global para Clientes
     clientes: [],
     clienteDetail: null,
-       // Estado global para Analistas
+    
+    // Estado global para Analistas
     analistas: [],
     analistaDetail: null,
+    
+    // Estado global para Supervisores
+    supervisores: [],
+    supervisorDetail: null,
+    
+    // Estado global para Comentarios
+    comentarios: [],
+    comentarioDetail: null,
     api: { loading: false, error: null }
   }
+  
 }
 
 export default function storeReducer(store, action = {}) {
@@ -40,11 +51,13 @@ export default function storeReducer(store, action = {}) {
         todos: store.todos.map((todo) => (todo.id === id ? { ...todo, background: color } : todo))
       };
     
+      
       // API helpers
     case 'api_loading':
       return { ...store, api: { ...store.api, loading: action.payload } };
     case 'api_error':
       return { ...store, api: { loading: false, error: action.payload } };
+
 
     // Cliente
     case 'clientes_add':
@@ -74,6 +87,7 @@ export default function storeReducer(store, action = {}) {
     
     case 'cliente_clear_detail':
       return { ...store, clienteDetail: null, api: { loading: false, error: null } };
+
 
      // Analista
     case 'analistas_add':
@@ -118,7 +132,29 @@ export default function storeReducer(store, action = {}) {
     case 'supervisor_clear_detail':
       return { ...store, supervisorDetail: null, api: { loading: false, error: null } };  
 
-      
+
+      // Comentarios
+    case 'comentarios_add':
+      return { ...store, comentarios: [...store.comentarios, action.payload], api: { loading: false, error: null } };
+    case 'comentarios_upsert': {
+      const c = action.payload;
+      const exists = store.comentarios.some(x => x.id === c.id);
+      return {
+        ...store,
+        comentarios: exists ? store.comentarios.map(x => x.id === c.id ? c : x) : [...store.comentarios, c],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'comentarios_remove':
+      return { ...store, comentarios: store.comentarios.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'comentarios_set_list':
+      return { ...store, comentarios: action.payload, api: { loading: false, error: null } };
+    case 'comentario_set_detail':
+      return { ...store, comentarioDetail: action.payload, api: { loading: false, error: null } };
+    case 'comentario_clear_detail':
+      return { ...store, comentarioDetail: null, api: { loading: false, error: null } };
+    
+
     default:
       throw Error('Unknown action.');
   }    
