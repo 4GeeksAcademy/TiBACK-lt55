@@ -175,7 +175,7 @@ export const Supervisor = () => {
             )}
 
 
-              {/* Modal para ver detalles del supervisor */}
+              {/* Modal para ver detalles del supervisor LISTO*/}
             {showViewModal && supervisorToView && (
                 <div className="modal fade show d-block" tabIndex="-1" role="dialog">
                     <div className="modal-dialog modal-lg" role="document">
