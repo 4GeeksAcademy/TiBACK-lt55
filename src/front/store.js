@@ -29,6 +29,11 @@ export const initialStore=()=>{
     // Estado global para Comentarios
     comentarios: [],
     comentarioDetail: null,
+
+        // Estado global para Asignaciones
+    asignaciones: [],
+    asignacionDetail: null,
+
     api: { loading: false, error: null }
   }
   
@@ -154,6 +159,28 @@ export default function storeReducer(store, action = {}) {
     case 'comentario_clear_detail':
       return { ...store, comentarioDetail: null, api: { loading: false, error: null } };
     
+
+    // Asignaciones
+    case 'asignaciones_add':
+      return { ...store, asignaciones: [...store.asignaciones, action.payload], api: { loading: false, error: null } };
+    case 'asignaciones_upsert': {
+      const a = action.payload;
+      const exists = store.asignaciones.some(x => x.id === a.id);
+      return {
+        ...store,
+        asignaciones: exists ? store.asignaciones.map(x => x.id === a.id ? a : x) : [...store.asignaciones, a],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'asignaciones_remove':
+      return { ...store, asignaciones: store.asignaciones.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'asignaciones_set_list':
+      return { ...store, asignaciones: action.payload, api: { loading: false, error: null } };
+    case 'asignacion_set_detail':
+      return { ...store, asignacionDetail: action.payload, api: { loading: false, error: null } };
+    case 'asignacion_clear_detail':
+      return { ...store, asignacionDetail: null, api: { loading: false, error: null } };
+  
 
     default:
       throw Error('Unknown action.');
