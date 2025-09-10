@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User, Cliente, Analista, Supervisor, Comentarios
+from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
@@ -295,6 +295,75 @@ def delete_comentario(id):
         db.session.delete(comentario)
         db.session.commit()
         return jsonify({"message": "Comentario eliminado"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
+
+
+
+
+# Asignacion
+
+@api.route('/asignaciones', methods=['GET'])
+def listar_asignaciones():
+    asignaciones = Asignacion.query.all()
+    return jsonify([a.serialize() for a in asignaciones]), 200
+
+
+@api.route('/asignaciones', methods=['POST'])
+def create_asignacion():
+    body = request.get_json(silent=True) or {}
+    required = ["id_ticket", "id_supervisor", "id_analista", "fecha_asignacion"]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+    try:
+        asignacion = Asignacion(**{k: body[k] for k in required})
+        db.session.add(asignacion)
+        db.session.commit()
+        return jsonify(asignacion.serialize()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+@api.route('/asignaciones/<int:id>', methods=['GET'])
+def get_asignacion(id):
+    asignacion = db.session.get(Asignacion, id)
+    if not asignacion:
+        return jsonify({"message": "Asignación no encontrada"}), 404
+    return jsonify(asignacion.serialize()), 200
+
+@api.route('/asignaciones/<int:id>', methods=['PUT'])
+def update_asignacion(id):
+    body = request.get_json(silent=True) or {}
+    asignacion = db.session.get(Asignacion, id)
+    if not asignacion:
+        return jsonify({"message": "Asignación no encontrada"}), 404
+    try:
+        for field in ["id_ticket", "id_supervisor", "id_analista", "fecha_asignacion"]:
+            if field in body:
+                setattr(asignacion, field, body[field])
+        db.session.commit()
+        return jsonify(asignacion.serialize()), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+@api.route('/asignaciones/<int:id>', methods=['DELETE'])
+def delete_asignacion(id):
+    asignacion = db.session.get(Asignacion, id)
+    if not asignacion:
+        return jsonify({"message": "Asignación no encontrada"}), 404
+    try:
+        db.session.delete(asignacion)
+        db.session.commit()
+        return jsonify({"message": "Asignación eliminada"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500

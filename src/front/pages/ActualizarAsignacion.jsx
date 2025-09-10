@@ -2,19 +2,17 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
-export const ActualizarComentarios = () => {
+export const ActualizarAsignacion = () => {
     const { store, dispatch } = useGlobalReducer();
     const navigate = useNavigate();
     const { id } = useParams();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
-    const [comentario, setComentario] = useState({
-        id_gestion: "",
-        id_cliente: "",
-        id_analista: "",
+    const [asignacion, setAsignacion] = useState({
+        id_ticket: "",
         id_supervisor: "",
-        texto: "",
-        fecha_comentario: ""
+        id_analista: "",
+        fecha_asignacion: ""
     });
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
@@ -25,59 +23,54 @@ export const ActualizarComentarios = () => {
             .then(res => res.json().then(data => ({ ok: res.ok, data })))
             .catch(err => ({ ok: false, data: { message: err.message } }));
 
-    const cargarComentario = () => {
+    const cargarAsignacion = () => {
         setLoading(true);
-        fetchJson(`${API}/comentarios/${id}`)
+        fetchJson(`${API}/asignaciones/${id}`)
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
-                setComentario({
-                    id_gestion: data.id_gestion.toString(),
-                    id_cliente: data.id_cliente.toString(),
-                    id_analista: data.id_analista.toString(),
+                setAsignacion({
+                    id_ticket: data.id_ticket.toString(),
                     id_supervisor: data.id_supervisor.toString(),
-                    texto: data.texto,
-                    fecha_comentario: data.fecha_comentario
+                    id_analista: data.id_analista.toString(),
+                    fecha_asignacion: data.fecha_asignacion
                 });
             }).catch(setError).finally(() => setLoading(false));
     };
 
-    const actualizarComentario = () => {
-
-        if (!comentario.id_gestion || !comentario.id_cliente || !comentario.id_analista || !comentario.id_supervisor || !comentario.texto) {
-            setError("Los campos ID Gestión, ID Cliente, ID Analista, ID Supervisor y Texto son obligatorios");
+    const actualizarAsignacion = () => {
+        
+        if (!asignacion.id_ticket || !asignacion.id_supervisor || !asignacion.id_analista) {
+            setError("Los campos ID Ticket, ID Supervisor e ID Analista son obligatorios");
             return;
         }
 
-        // Convertir strings a números para los IDs por ahora ya que 3 de ellos son Llaves Foraneas
-        const comentarioData = {
-            ...comentario,
-            id_gestion: parseInt(comentario.id_gestion),
-            id_cliente: parseInt(comentario.id_cliente),
-            id_analista: parseInt(comentario.id_analista),
-            id_supervisor: parseInt(comentario.id_supervisor)
+        
+        const asignacionData = {
+            ...asignacion,
+            id_ticket: parseInt(asignacion.id_ticket),
+            id_supervisor: parseInt(asignacion.id_supervisor),
+            id_analista: parseInt(asignacion.id_analista)
         };
 
         setLoading(true);
-        fetchJson(`${API}/comentarios/${id}`, {
+        fetchJson(`${API}/asignaciones/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(comentarioData)
+            body: JSON.stringify(asignacionData)
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
-            dispatch({ type: "comentarios_upsert", payload: data });
-            navigate('/'); // Volver al home
+            dispatch({ type: "asignaciones_upsert", payload: data });
+            navigate('/asignaciones'); // Volver a la lista de asignaciones
         }).catch(setError).finally(() => setLoading(false));
     };
 
-    //Cancelar puede apuntar a home o a comentarios para futuros casos 
     const cancelar = () => {
-        navigate('/');
-        //navigate('/comentarios');
+        navigate('/asignaciones');
     };
 
     useEffect(() => {
         if (id) {
-            cargarComentario();
+            cargarAsignacion();
         }
     }, [id]);
 
@@ -88,8 +81,8 @@ export const ActualizarComentarios = () => {
                     <div className="card">
                         <div className="card-header">
                             <h4 className="mb-0">
-                                <i className="fas fa-comment-edit me-2"></i>
-                                Actualizar Comentario
+                                <i className="fas fa-user-edit me-2"></i>
+                                Actualizar Asignación
                             </h4>
                         </div>
                         <div className="card-body">
@@ -98,42 +91,20 @@ export const ActualizarComentarios = () => {
                             )}
                             {store.api.loading && (
                                 <div className="alert alert-info py-2">
-                                    {comentario.texto ? 'Actualizando comentario...' : 'Cargando comentario...'}
+                                    {asignacion.id_ticket ? 'Actualizando asignación...' : 'Cargando asignación...'}
                                 </div>
                             )}
 
-                            <form onSubmit={(e) => { e.preventDefault(); actualizarComentario(); }}>
+                            <form onSubmit={(e) => { e.preventDefault(); actualizarAsignacion(); }}>
                                 <div className="row g-3">
                                     <div className="col-md-6">
-                                        <label className="form-label">ID Gestión *</label>
+                                        <label className="form-label">ID Ticket *</label>
                                         <input
                                             type="number"
                                             className="form-control"
-                                            placeholder="Ingrese el ID de gestión"
-                                            value={comentario.id_gestion}
-                                            onChange={e => setComentario(s => ({ ...s, id_gestion: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label">ID Cliente *</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            placeholder="Ingrese el ID del cliente"
-                                            value={comentario.id_cliente}
-                                            onChange={e => setComentario(s => ({ ...s, id_cliente: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label">ID Analista *</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            placeholder="Ingrese el ID del analista"
-                                            value={comentario.id_analista}
-                                            onChange={e => setComentario(s => ({ ...s, id_analista: e.target.value }))}
+                                            placeholder="Ingrese el ID del ticket"
+                                            value={asignacion.id_ticket}
+                                            onChange={e => setAsignacion(s => ({ ...s, id_ticket: e.target.value }))}
                                             required
                                         />
                                     </div>
@@ -143,29 +114,29 @@ export const ActualizarComentarios = () => {
                                             type="number"
                                             className="form-control"
                                             placeholder="Ingrese el ID del supervisor"
-                                            value={comentario.id_supervisor}
-                                            onChange={e => setComentario(s => ({ ...s, id_supervisor: e.target.value }))}
+                                            value={asignacion.id_supervisor}
+                                            onChange={e => setAsignacion(s => ({ ...s, id_supervisor: e.target.value }))}
                                             required
                                         />
                                     </div>
-                                    <div className="col-12">
-                                        <label className="form-label">Texto del Comentario *</label>
-                                        <textarea
+                                    <div className="col-md-6">
+                                        <label className="form-label">ID Analista *</label>
+                                        <input
+                                            type="number"
                                             className="form-control"
-                                            placeholder="Ingrese el texto del comentario"
-                                            value={comentario.texto}
-                                            onChange={e => setComentario(s => ({ ...s, texto: e.target.value }))}
-                                            rows="4"
+                                            placeholder="Ingrese el ID del analista"
+                                            value={asignacion.id_analista}
+                                            onChange={e => setAsignacion(s => ({ ...s, id_analista: e.target.value }))}
                                             required
                                         />
                                     </div>
-                                    <div className="col-12">
-                                        <label className="form-label">Fecha del Comentario</label>
+                                    <div className="col-md-6">
+                                        <label className="form-label">Fecha de Asignación</label>
                                         <input
                                             type="date"
                                             className="form-control"
-                                            value={comentario.fecha_comentario}
-                                            onChange={e => setComentario(s => ({ ...s, fecha_comentario: e.target.value }))}
+                                            value={asignacion.fecha_asignacion}
+                                            onChange={e => setAsignacion(s => ({ ...s, fecha_asignacion: e.target.value }))}
                                         />
                                     </div>
                                 </div>
@@ -186,7 +157,7 @@ export const ActualizarComentarios = () => {
                                         disabled={store.api.loading}
                                     >
                                         <i className="fas fa-save me-1"></i>
-                                        {store.api.loading ? 'Actualizando...' : 'Actualizar Comentario'}
+                                        {store.api.loading ? 'Actualizando...' : 'Actualizar Asignación'}
                                     </button>
                                 </div>
                             </form>

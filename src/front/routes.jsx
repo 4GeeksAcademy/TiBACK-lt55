@@ -23,6 +23,10 @@ import { AgregarComentarios } from "./pages/AgregarComentarios";
 import { ActualizarComentarios } from "./pages/ActualizarComentarios";
 import { VerComentarios } from "./pages/VerComentarios";
 
+import { Asignacion } from "./pages/Asignacion";
+import { AgregarAsignacion } from "./pages/AgregarAsignacion";
+import { ActualizarAsignacion } from "./pages/ActualizarAsignacion";
+import { VerAsignacion } from "./pages/VerAsignacion";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -52,6 +56,12 @@ export const router = createBrowserRouter(
          <Route path="/agregar-comentario" element={<AgregarComentarios />} />
          <Route path="/actualizar-comentario/:id" element={<ActualizarComentarios />} />
          <Route path="/ver-comentario/:id" element={<VerComentarios />} />
+
+          <Route path="/asignaciones" element={<Asignacion />} />
+          <Route path="/agregar-asignacion" element={<AgregarAsignacion />} />
+          <Route path="/agregar-asignacion" element={<AgregarAsignacion />} />
+          <Route path="/actualizar-asignacion/:id" element={<ActualizarAsignacion />} />
+          <Route path="/ver-asignacion/:id" element={<VerAsignacion />} />
       </Route>
     )
 );

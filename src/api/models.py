@@ -97,3 +97,21 @@ class Comentarios(db.Model):
             "texto": self.texto,
             "fecha_comentario": self.fecha_comentario
         }
+
+
+
+class Asignacion(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    id_ticket: Mapped[int] = mapped_column(nullable=False)
+    id_supervisor: Mapped[int] = mapped_column(nullable=False)
+    id_analista: Mapped[int] = mapped_column(nullable=False)
+    fecha_asignacion: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "id_ticket": self.id_ticket,
+            "id_supervisor": self.id_supervisor,
+            "id_analista": self.id_analista,
+            "fecha_asignacion": self.fecha_asignacion
+        }
