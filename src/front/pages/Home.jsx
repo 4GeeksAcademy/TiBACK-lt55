@@ -7,6 +7,9 @@ import { Supervisor } from "./Supervisor";
 
 export const Home = () => (
 	<div className="container py-4">
+		<h1 className="display-5 mb-4 mt-5">Supervisores</h1>
+		<Supervisor/>
+		
 		<h1 className="display-5 mb-4">Gestión de Clientes</h1>
 		<ClientesManager />
 
@@ -18,9 +21,6 @@ export const Home = () => (
 
 		<h1 className="display-5 mb-4 mt-5">Gestión de Administradores</h1>
 		<ManagerAdministrador />
-
-		<h1 className="display-5 mb-4 mt-5">Supervisores</h1>
-		<Supervisor/>
 	</div>
 		
 ); 
