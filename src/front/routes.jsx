@@ -28,6 +28,11 @@ import { AgregarAsignacion } from "./pages/AgregarAsignacion";
 import { ActualizarAsignacion } from "./pages/ActualizarAsignacion";
 import { VerAsignacion } from "./pages/VerAsignacion";
 
+import { Administrador } from "./pages/Administrador";
+import { AgregarAdministrador } from "./pages/AgregarAdministrador";
+import { ActualizarAdministrador } from "./pages/ActualizarAdministrador";
+import { VerAdministrador } from "./pages/VerAdministrador";
+
 export const router = createBrowserRouter(
     createRoutesFromElements(
     // CreateRoutesFromElements function allows you to build route elements declaratively.
@@ -62,6 +67,11 @@ export const router = createBrowserRouter(
           <Route path="/agregar-asignacion" element={<AgregarAsignacion />} />
           <Route path="/actualizar-asignacion/:id" element={<ActualizarAsignacion />} />
           <Route path="/ver-asignacion/:id" element={<VerAsignacion />} />
+
+          <Route path="/administradores" element={<Administrador />} />
+          <Route path="/agregar-administrador" element={<AgregarAdministrador />} />
+          <Route path="/actualizar-administrador/:id" element={<ActualizarAdministrador />} />
+          <Route path="/ver-administrador/:id" element={<VerAdministrador />} />
       </Route>
     )
 );
