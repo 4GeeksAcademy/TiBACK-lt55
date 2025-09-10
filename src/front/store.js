@@ -1,18 +1,7 @@
 export const initialStore=()=>{
   return{
     message: null,
-    todos: [
-      {
-        id: 1,
-        title: "Make the bed",
-        background: null,
-      },
-      {
-        id: 2,
-        title: "Do my homework",
-        background: null,
-      }
-    ],
+    todos: [],
 
       // Estado global para Clientes
     clientes: [],
@@ -33,6 +22,10 @@ export const initialStore=()=>{
         // Estado global para Asignaciones
     asignaciones: [],
     asignacionDetail: null,
+
+        // Estado global para Administradores
+    administradores: [],
+    administradorDetail: null,
 
     api: { loading: false, error: null }
   }
@@ -181,6 +174,28 @@ export default function storeReducer(store, action = {}) {
     case 'asignacion_clear_detail':
       return { ...store, asignacionDetail: null, api: { loading: false, error: null } };
   
+
+      // Administradores
+    case 'administradores_add':
+      return { ...store, administradores: [...store.administradores, action.payload], api: { loading: false, error: null } };
+    case 'administradores_upsert': {
+      const a = action.payload;
+      const exists = store.administradores.some(x => x.id === a.id);
+      return {
+        ...store,
+        administradores: exists ? store.administradores.map(x => x.id === a.id ? a : x) : [...store.administradores, a],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'administradores_remove':
+      return { ...store, administradores: store.administradores.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'administradores_set_list':
+      return { ...store, administradores: action.payload, api: { loading: false, error: null } };
+    case 'administrador_set_detail':
+      return { ...store, administradorDetail: action.payload, api: { loading: false, error: null } };
+    case 'administrador_clear_detail':
+      return { ...store, administradorDetail: null, api: { loading: false, error: null } };
+ 
 
     default:
       throw Error('Unknown action.');
