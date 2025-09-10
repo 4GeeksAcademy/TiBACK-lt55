@@ -8,11 +8,30 @@ import {
 import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
+import { SingleAnalista } from "./pages/SingleAnalista"
 import { Demo } from "./pages/Demo";
-import { Clientes } from "./pages/Clientes";
 import { Analista } from "./pages/Analista";
 import { Supervisor } from "./pages/Supervisor";
 
+import { Clientes } from "./pages/Clientes";
+import { AgregarCliente } from "./pages/AgregarCliente";
+import { ActualizarCliente } from "./pages/ActualizarCliente";
+import { VerCliente } from "./pages/VerCliente";
+
+import { Comentarios } from "./pages/Comentarios";
+import { AgregarComentarios } from "./pages/AgregarComentarios";
+import { ActualizarComentarios } from "./pages/ActualizarComentarios";
+import { VerComentarios } from "./pages/VerComentarios";
+
+import { Asignacion } from "./pages/Asignacion";
+import { AgregarAsignacion } from "./pages/AgregarAsignacion";
+import { ActualizarAsignacion } from "./pages/ActualizarAsignacion";
+import { VerAsignacion } from "./pages/VerAsignacion";
+
+import { Administrador } from "./pages/Administrador";
+import { AgregarAdministrador } from "./pages/AgregarAdministrador";
+import { ActualizarAdministrador } from "./pages/ActualizarAdministrador";
+import { VerAdministrador } from "./pages/VerAdministrador";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -25,13 +44,34 @@ export const router = createBrowserRouter(
     // Root Route: All navigation will start from here.
     <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
 
-      {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
-      <Route path="/" element={<Home />} />
-      <Route path="/single/:theId" element={<Single />} />  {/* Dynamic route for single items */}
-      <Route path="/demo" element={<Demo />} />
-      <Route path="/clientes" element={<Clientes />} />
-      <Route path="/analistas" element={<Analista />} />
-      <Route path="/supervisores" element={<Supervisor />} />
-    </Route>
-  )
+        {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
+        <Route path= "/" element={<Home />} />
+        <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
+        <Route path="/analistas/:analista_id" element={ <SingleAnalista />} />
+        <Route path="/demo" element={<Demo />} />
+        <Route path="/analistas" element={<Analista />} />
+        <Route path="/supervisores" element={<Supervisor />} />
+        
+        <Route path="/clientes" element={<Clientes />} />
+        <Route path="/agregar-cliente" element={<AgregarCliente />} />
+        <Route path="/actualizar-cliente/:id" element={<ActualizarCliente />} />
+        <Route path="/ver-cliente/:id" element={<VerCliente />} />
+
+         <Route path="/comentarios" element={<Comentarios />} />
+         <Route path="/agregar-comentario" element={<AgregarComentarios />} />
+         <Route path="/actualizar-comentario/:id" element={<ActualizarComentarios />} />
+         <Route path="/ver-comentario/:id" element={<VerComentarios />} />
+
+          <Route path="/asignaciones" element={<Asignacion />} />
+          <Route path="/agregar-asignacion" element={<AgregarAsignacion />} />
+          <Route path="/agregar-asignacion" element={<AgregarAsignacion />} />
+          <Route path="/actualizar-asignacion/:id" element={<ActualizarAsignacion />} />
+          <Route path="/ver-asignacion/:id" element={<VerAsignacion />} />
+
+          <Route path="/administradores" element={<Administrador />} />
+          <Route path="/agregar-administrador" element={<AgregarAdministrador />} />
+          <Route path="/actualizar-administrador/:id" element={<ActualizarAdministrador />} />
+          <Route path="/ver-administrador/:id" element={<VerAdministrador />} />
+      </Route>
+    )
 );
