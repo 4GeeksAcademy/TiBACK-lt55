@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador
+from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
@@ -434,6 +434,79 @@ def delete_administrador(id):
         db.session.delete(administrador)
         db.session.commit()
         return jsonify({"message": "Administrador eliminado"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
+
+
+
+
+# Tickets
+
+@api.route('/tickets', methods=['GET'])
+def listar_tickets():
+    tickets = Ticket.query.all()
+    return jsonify([t.serialize() for t in tickets]), 200
+
+
+@api.route('/tickets', methods=['POST'])
+def create_ticket():
+    body = request.get_json(silent=True) or {}
+    required = ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion", "prioridad"]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+    try:
+        ticket = Ticket(**{k: body[k] for k in required})
+        db.session.add(ticket)
+        db.session.commit()
+        return jsonify(ticket.serialize()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+
+@api.route('/tickets/<int:id>', methods=['GET'])
+def get_ticket(id):
+    ticket = db.session.get(Ticket, id)
+    if not ticket:
+        return jsonify({"message": "Ticket no encontrado"}), 404
+    return jsonify(ticket.serialize()), 200
+
+
+@api.route('/tickets/<int:id>', methods=['PUT'])
+def update_ticket(id):
+    body = request.get_json(silent=True) or {}
+    ticket = db.session.get(Ticket, id)
+    if not ticket:
+        return jsonify({"message": "Ticket no encontrado"}), 404
+    try:
+        for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion", 
+                     "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion"]:
+            if field in body:
+                setattr(ticket, field, body[field])
+        db.session.commit()
+        return jsonify(ticket.serialize()), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+
+@api.route('/tickets/<int:id>', methods=['DELETE'])
+def delete_ticket(id):
+    ticket = db.session.get(Ticket, id)
+    if not ticket:
+        return jsonify({"message": "Ticket no encontrado"}), 404
+    try:
+        db.session.delete(ticket)
+        db.session.commit()
+        return jsonify({"message": "Ticket eliminado"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500

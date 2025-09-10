@@ -27,6 +27,11 @@ export const initialStore = () => {
     administradores: [],
     administradorDetail: null,
 
+      // Estado global para Tickets
+    tickets: [],
+    ticketDetail: null,
+
+
     api: { loading: false, error: null }
   };
   
@@ -241,6 +246,29 @@ export default function storeReducer(store, action = {}) {
     case 'administrador_clear_detail':
       return { ...store, administradorDetail: null, api: { loading: false, error: null } };
  
+
+  
+    // Tickets
+    case 'tickets_add':
+      return { ...store, tickets: [...store.tickets, action.payload], api: { loading: false, error: null } };
+    case 'tickets_upsert': {
+      const t = action.payload;
+      const exists = store.tickets.some(x => x.id === t.id);
+      return {
+        ...store,
+        tickets: exists ? store.tickets.map(x => x.id === t.id ? t : x) : [...store.tickets, t],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'tickets_remove':
+      return { ...store, tickets: store.tickets.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'tickets_set_list':
+      return { ...store, tickets: action.payload, api: { loading: false, error: null } };
+    case 'ticket_set_detail':
+      return { ...store, ticketDetail: action.payload, api: { loading: false, error: null } };
+    case 'ticket_clear_detail':
+      return { ...store, ticketDetail: null, api: { loading: false, error: null } };
+      
 
     default:
       throw Error("Unknown action.");

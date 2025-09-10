@@ -33,6 +33,8 @@ import { AgregarAdministrador } from "./pages/AgregarAdministrador";
 import { ActualizarAdministrador } from "./pages/ActualizarAdministrador";
 import { VerAdministrador } from "./pages/VerAdministrador";
 
+import { Ticket } from "./pages/Ticket";
+
 export const router = createBrowserRouter(
   createRoutesFromElements(
     // CreateRoutesFromElements function allows you to build route elements declaratively.
@@ -46,12 +48,15 @@ export const router = createBrowserRouter(
 
         {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
         <Route path= "/" element={<Home />} />
+        <Route path="/demo" element={<Demo />} />
+      
         <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
         <Route path="/analistas/:analista_id" element={ <SingleAnalista />} />
-        <Route path="/demo" element={<Demo />} />
         <Route path="/analistas" element={<Analista />} />
-        <Route path="/supervisores" element={<Supervisor />} />
         
+        <Route path="/supervisores" element={<Supervisor />} />
+        <Route path="/tickets" element={<Ticket />} />
+
         <Route path="/clientes" element={<Clientes />} />
         <Route path="/agregar-cliente" element={<AgregarCliente />} />
         <Route path="/actualizar-cliente/:id" element={<ActualizarCliente />} />
