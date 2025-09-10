@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
-
+//Listo
 export const Supervisor = () => {
     const { store, dispatch } = useGlobalReducer();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
