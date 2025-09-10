@@ -12,6 +12,9 @@ export const Supervisor = () => {
     const [showModal, setShowModal] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
 
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [supervisorToView, setSupervisorToView] = useState(null);
+
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
 
@@ -77,6 +80,17 @@ export const Supervisor = () => {
     const cerrarModal = () => {
         setShowModal(false);
         limpiarFormulario();
+    };
+
+    
+    const abrirModalVer = (supervisor) => {
+        setSupervisorToView(supervisor);
+        setShowViewModal(true);
+    };
+
+    const cerrarModalVer = () => {
+        setShowViewModal(false);
+        setSupervisorToView(null);
     };
 
     const eliminarSupervisor = (id) => {
@@ -160,6 +174,62 @@ export const Supervisor = () => {
                 </div>
             )}
 
+
+              {/* Modal para ver detalles del supervisor */}
+            {showViewModal && supervisorToView && (
+                <div className="modal fade show d-block" tabIndex="-1" role="dialog">
+                    <div className="modal-dialog modal-lg" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Detalles del Supervisor</h5>
+                                <button type="button" className="btn-close" onClick={cerrarModalVer}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="row g-3">
+                                    <div className="col-12">
+                                        <h6 className="text-primary mb-3">
+                                            <i className="fas fa-user"></i> Información Personal
+                                        </h6>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label fw-bold">ID:</label>
+                                        <p className="form-control-plaintext bg-light p-2 rounded">{supervisorToView.id}</p>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label fw-bold">Nombre:</label>
+                                        <p className="form-control-plaintext bg-light p-2 rounded">{supervisorToView.nombre}</p>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label fw-bold">Apellido:</label>
+                                        <p className="form-control-plaintext bg-light p-2 rounded">{supervisorToView.apellido}</p>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label fw-bold">Email:</label>
+                                        <p className="form-control-plaintext bg-light p-2 rounded">{supervisorToView.email}</p>
+                                    </div>
+                                    <div className="col-12">
+                                        <label className="form-label fw-bold">Área Responsable:</label>
+                                        <p className="form-control-plaintext bg-light p-2 rounded">{supervisorToView.area_responsable}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={cerrarModalVer}>
+                                    <i className="fas fa-times"></i> Cerrar
+                                </button>
+                                <button className="btn btn-warning" onClick={() => {
+                                    cerrarModalVer();
+                                    abrirModalEditar(supervisorToView);
+                                }}>
+                                    <i className="fas fa-edit"></i> Editar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
             <div className="card">
                 <div className="card-header d-flex justify-content-between align-items-center">
                     <h5 className="mb-0">Lista de Supervisores</h5>
@@ -187,10 +257,13 @@ export const Supervisor = () => {
                                             <td>{supervisor.email}</td>
                                             <td>{supervisor.area_responsable}</td>
                                             <td>
-                                                <button className="btn btn-warning mx-1" onClick={() => abrirModalEditar(supervisor)}>
-                                                    <i className="fas fa-edit"></i> 
+                                                <button className="btn btn-info mx-1" onClick={() => abrirModalVer(supervisor)} title="Ver Supervisor">
+                                                    <i className="fas fa-eye"></i>
                                                 </button>
-                                                <button className="btn btn-danger mx-1" onClick={() => eliminarSupervisor(supervisor.id)}>
+                                                <button className="btn btn-warning mx-1" onClick={() => abrirModalEditar(supervisor)} title="Editar Supervisor">
+                                                    <i className="fas fa-edit"></i>
+                                                </button>
+                                                <button className="btn btn-danger mx-1" onClick={() => eliminarSupervisor(supervisor.id)} title="Eliminar Supervisor">
                                                     <i className="fas fa-trash"></i>
                                                 </button>
                                             </td>
