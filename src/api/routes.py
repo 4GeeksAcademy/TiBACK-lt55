@@ -32,7 +32,8 @@ def listar_clientes():
 @api.route('/clientes', methods=['POST'])
 def create_cliente():
     body = request.get_json(silent=True) or {}
-    required = ["direccion", "telefono", "nombre", "apellido", "email", "contraseña_hash"]
+    required = ["direccion", "telefono", "nombre",
+                "apellido", "email", "contraseña_hash"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
@@ -48,12 +49,14 @@ def create_cliente():
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/clientes/<int:id>', methods=['GET'])
 def get_cliente(id):
     cliente = db.session.get(Cliente, id)
     if not cliente:
         return jsonify({"message": "Cliente no encontrado"}), 404
     return jsonify(cliente.serialize()), 200
+
 
 @api.route('/clientes/<int:id>', methods=['PUT'])
 def update_cliente(id):
@@ -74,6 +77,7 @@ def update_cliente(id):
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/clientes/<int:id>', methods=['DELETE'])
 def delete_cliente(id):
     cliente = db.session.get(Cliente, id)
@@ -88,9 +92,7 @@ def delete_cliente(id):
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
 
 
-
-
-#analista
+# analista
 
 @api.route('/analistas', methods=['GET'])
 def listar_analistas():
@@ -101,7 +103,8 @@ def listar_analistas():
 @api.route('/analistas', methods=['POST'])
 def create_analista():
     body = request.get_json(silent=True) or {}
-    required = ["especialidad", "nombre", "apellido", "email", "contraseña_hash"]
+    required = ["especialidad", "nombre",
+                "apellido", "email", "contraseña_hash"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
@@ -160,9 +163,6 @@ def delete_analista(id):
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
 
 
-
-
-
 # supervisor
 @api.route('/supervisores', methods=['GET'])
 def listar_supervisores():
@@ -173,7 +173,8 @@ def listar_supervisores():
 @api.route('/supervisores', methods=['POST'])
 def create_supervisor():
     body = request.get_json(silent=True) or {}
-    required = ["area_responsable", "nombre", "apellido", "email", "contraseña_hash"]
+    required = ["area_responsable", "nombre",
+                "apellido", "email", "contraseña_hash"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
