@@ -54,12 +54,12 @@ export const ActualizarAnalista = () => {
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "analistas_upsert", payload: data });
-            navigate('/'); // Volver al home después de actualizar
+            navigate('/analistas'); 
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/');
+        navigate('/analistas');
     };
 
     useEffect(() => {

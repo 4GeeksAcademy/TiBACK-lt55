@@ -65,14 +65,13 @@ export const ActualizarComentarios = () => {
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "comentarios_upsert", payload: data });
-            navigate('/'); // Volver al home
+            navigate('/comentarios'); // Volver al home
         }).catch(setError).finally(() => setLoading(false));
     };
 
     //Cancelar puede apuntar a home o a comentarios para futuros casos 
     const cancelar = () => {
-        navigate('/');
-        //navigate('/comentarios');
+        navigate('/comentarios');
     };
 
     useEffect(() => {
