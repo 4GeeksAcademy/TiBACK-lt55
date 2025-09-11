@@ -10,16 +10,10 @@ import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
 import { Analistas } from "./pages/Analistas"
 import { Demo } from "./pages/Demo";
-<<<<<<< HEAD
-import { Clientes } from "./pages/Clientes";
-import { Supervisor } from "./pages/Supervisor";
-
-=======
 import { Analista } from "./pages/Analista";
 import { Supervisor } from "./pages/Supervisor";
 
 import { Clientes } from "./pages/Clientes";
->>>>>>> develop
 import { AgregarCliente } from "./pages/AgregarCliente";
 import { ActualizarCliente } from "./pages/ActualizarCliente";
 import { VerCliente } from "./pages/VerCliente";
