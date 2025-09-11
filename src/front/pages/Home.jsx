@@ -5,6 +5,7 @@ import { ManagerAsignacion } from "../components/ManagerAsignacion";
 import { ManagerAdministrador } from "../components/ManagerAdministrador";
 import { Supervisor } from "./Supervisor";
 import { Ticket } from "./Ticket";
+import { AnalistasManager } from "../components/AnalistasManager";
 
 export const Home = () => (
 	<div className="container py-4">
@@ -16,6 +17,9 @@ export const Home = () => (
 
 		<h1 className="display-5 mb-4">Gestión de Clientes</h1>
 		<ClientesManager />
+
+		<h1 className="display-5 mb-4">Gestión de Analistas</h1>
+		<AnalistasManager />
 
 		<h1 className="display-5 mb-4 mt-5">Gestión de Comentarios</h1>
 		<ComentariosManager />
