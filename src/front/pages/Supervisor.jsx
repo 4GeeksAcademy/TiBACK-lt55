@@ -38,7 +38,9 @@ export const Supervisor = () => {
     };
 
     useEffect(() => {
-        listarTodosLosSupervisores();
+          if (!store.supervisores || store.supervisores.length === 0) {
+                listarTodosLosSupervisores();
+          }
     }, []);
 
     return (

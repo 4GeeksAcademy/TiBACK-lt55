@@ -1,17 +1,39 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const ActualizarTicket = () => {
+    const { store, dispatch } = useGlobalReducer();
     const { id } = useParams();
     const navigate = useNavigate();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
     const [ticket, setTicket] = useState(null);
 
+     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
+    const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
+
+    const fetchJson = (url, options = {}) =>
+        fetch(url, options)
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
+
+    const cargarTicket = () => {
+        setLoading(true);
+        fetchJson(`${API}/tickets/${id}`)
+            .then(({ ok, data }) => {
+                if (!ok) throw new Error(data.message);
+                setTicket(data);
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+    };
+
     useEffect(() => {
-        fetch(`${API}/tickets/${id}`)
-            .then(res => res.json())
-            .then(setTicket)
-            .catch(console.error);
+         if (id && (!store.ticketDetail || store.ticketDetail.id !== parseInt(id))) {
+            cargarTicket();
+        } else if (store.ticketDetail && store.ticketDetail.id === parseInt(id)) {
+            setTicket(store.ticketDetail);
+        }
     }, [id]);
 
     const controlCambio = (e) => {
@@ -21,17 +43,24 @@ export const ActualizarTicket = () => {
 
     const manejarEnvio = (e) => {
         e.preventDefault();
-        fetch(`${API}/tickets/${id}`, {
+         setLoading(true);
+        fetchJson(`${API}/tickets/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(ticket)
         })
-            .then(res => res.json())
-            .then(() => navigate(`/ver-ticket/${id}`))
-            .catch(console.error);
+             .then(({ ok, data }) => {
+                if (!ok) throw new Error(data.message);
+                dispatch({ type: "tickets_upsert", payload: data });
+                navigate(`/tickets`);
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
     };
 
-    if (!ticket) return <div className="container py-4">Cargando...</div>;
+      if (store.api.loading) return <div className="alert alert-info">Cargando...</div>;
+    if (store.api.error) return <div className="alert alert-danger">{store.api.error}</div>;
+    if (!ticket) return <div className="alert alert-warning">Ticket no encontrado.</div>;
 
     return (
         <div className="container py-4">

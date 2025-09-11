@@ -40,7 +40,9 @@ export const Ticket = () => {
     };
 
     useEffect(() => {
-        listarTodosLosTickets();
+          if (!store.tickets || store.tickets.length === 0) {
+            listarTodosLosTickets();
+          }
     }, []);
 
     const getEstadoBadgeClass = (estado) => {
@@ -76,7 +78,7 @@ export const Ticket = () => {
             <div className="d-flex justify-content-end mb-3">
                 <button
                     className="btn btn-primary"
-                    onClick={() => navigate("/crear-ticket")}
+                    onClick={() => navigate("/tickets/nuevo")}
                 >
                     <i className="fas fa-plus"></i> Nuevo Ticket
                 </button>

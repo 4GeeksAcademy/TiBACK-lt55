@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const AgregarSupervisor = () => {
-    const { dispatch } = useGlobalReducer();
+    const { store, dispatch } = useGlobalReducer();
     const navigate = useNavigate();
 
     const API = import.meta.env.VITE_BACKEND_URL + "/api";

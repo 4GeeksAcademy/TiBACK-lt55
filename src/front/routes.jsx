@@ -40,7 +40,7 @@ import { VerAdministrador } from "./pages/VerAdministrador";
 import { Ticket } from "./pages/Ticket";
 import { VerTicket } from "./pages/VerTicket";
 import { ActualizarTicket } from "./pages/ActualizarTicket";
-
+import AgregarTicket from "./pages/AgregarTicket";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -67,6 +67,7 @@ export const router = createBrowserRouter(
       <Route path="/supervisor/:supervisorid" element={<VerSupervisor />} />
 
       <Route path="/tickets" element={<Ticket />} />
+       <Route path="/tickets/nuevo" element={<AgregarTicket />} />
       <Route path="/ver-ticket/:id" element={<VerTicket />} />
       <Route path="/actualizar-ticket/:id" element={<ActualizarTicket />} />
 

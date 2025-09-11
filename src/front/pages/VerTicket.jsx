@@ -1,17 +1,36 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const VerTicket = () => {
+    const { store, dispatch } = useGlobalReducer();
     const { id } = useParams();
     const navigate = useNavigate();
-    const [ticket, setTicket] = useState(null);
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
+    const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
+    const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
+
+    const fetchJson = (url, options = {}) =>
+        fetch(url, options)
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
+
+    const cargarTicket = () => {
+        setLoading(true);
+        fetchJson(`${API}/tickets/${id}`)
+            .then(({ ok, data }) => {
+                if (!ok) throw new Error(data.message);
+                dispatch({ type: "ticket_set_detail", payload: data });
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+    };
+
     useEffect(() => {
-        fetch(`${API}/tickets/${id}`)
-            .then((res) => res.json())
-            .then(setTicket)
-            .catch(console.error);
+        if (id && (!store.ticketDetail || store.ticketDetail.id !== parseInt(id))) {
+            cargarTicket();
+        }
     }, [id]);
 
     const getEstadoClase = (estado) => {
@@ -42,7 +61,11 @@ export const VerTicket = () => {
         }
     };
 
-    if (!ticket) return <div className="container py-4">Cargando...</div>;
+    const ticket = store.ticketDetail;
+
+    if (store.api.loading) return <div className="alert alert-info">Cargando...</div>;
+    if (store.api.error) return <div className="alert alert-danger">{store.api.error}</div>;
+    if (!ticket) return <div className="alert alert-warning">Ticket no encontrado.</div>;
 
     return (
         <div className="container py-4">
@@ -64,10 +87,14 @@ export const VerTicket = () => {
                     <p><strong>Comentario:</strong> {ticket.comentario || "Sin comentarios"}</p>
                 </div>
             </div>
-            <button className="btn btn-secondary me-2" onClick={() => navigate(-1)}>Volver</button>
-            <button className="btn btn-warning" onClick={() => navigate(`/actualizar-ticket/${ticket.id}`)}>
-                <i className="fas fa-edit"></i> Editar
-            </button>
+            <div className="mt-3">
+                <button className="btn btn-secondary me-2" onClick={() => navigate("/tickets")}>
+                    <i className="fas fa-arrow-left"></i> Volver
+                </button>
+                <button className="btn btn-warning" onClick={() => navigate(`/actualizar-ticket/${ticket.id}`)}>
+                    <i className="fas fa-edit"></i> Editar
+                </button>
+            </div>
         </div>
     );
 };

@@ -27,7 +27,9 @@ const VerSupervisor = () => {
     };
 
     useEffect(() => {
-        cargarSupervisor();
+           if (supervisorid && (!store.supervisorDetail || store.supervisorDetail.id !== parseInt(supervisorid))) {
+                cargarSupervisor();
+           }
     }, [supervisorid]);
 
     const supervisor = store.supervisorDetail;
