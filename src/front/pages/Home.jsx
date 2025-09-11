@@ -15,6 +15,9 @@ export const Home = () => (
 		<h1 className="display-5 mb-4 mt-5">Gestión de Tickets</h1>
 		<Ticket />
 
+		{/* <h1 className="display-5 mb-4 mt-5">Gestión de Gestiones XD</h1>
+		<ComentariosManager /> */}
+
 		<h1 className="display-5 mb-4">Gestión de Clientes</h1>
 		<ClientesManager />
 

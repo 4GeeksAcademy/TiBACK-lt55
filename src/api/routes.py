@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket
+from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
@@ -507,6 +507,72 @@ def delete_ticket(id):
         db.session.delete(ticket)
         db.session.commit()
         return jsonify({"message": "Ticket eliminado"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
+
+
+# Gestión
+
+@api.route('/gestion', methods=['GET'])
+def obtener_gestiones():
+    gestiones = Ticket.query.all()
+    return jsonify([t.serialize() for t in gestiones]), 200
+
+@api.route('/gestion', methods=['POST'])
+def crear_gestion():
+    body = request.get_json(silent=True) or {}
+    required = ["id_ticket", "fecha_cambio", "Nota_de_caso",]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+    try:
+        gestion = Gestion(**{k: body[k] for k in required})
+        db.session.add(gestion)
+        db.session.commit()
+        return jsonify(gestion.serialize()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+    
+@api.route('/gestion/<int:id>', methods=['GET'])
+def ver_gestion(id):
+    gestion = db.session.get(Gestion, id)
+    if not gestion:
+        return jsonify({"message": "Gestión no existe"}), 404
+    return jsonify(gestion.serialize()), 200
+
+@api.route('/gestion/<int:id>', methods=['PUT'])
+def actualizar_gestion(id):
+    body = request.get_json(silent=True) or {}
+    gestion = db.session.get(Gestion, id)
+    if not gestion:
+        return jsonify({"message": "Gestión no existe"}), 404
+    try:
+        for field in ["id_ticket", "fecha_cambio", "Nota_de_caso",]:
+            if field in body:
+                setattr(gestion, field, body[field])
+        db.session.commit()
+        return jsonify(gestion.serialize()), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+@api.route('/gestion/<int:id>', methods=['DELETE'])
+def eliminar_gestion(id):
+    gestion = db.session.get(Gestion, id)
+    if not gestion:
+        return jsonify({"message": "Gestión no existe"}), 404
+    try:
+        db.session.delete(gestion)
+        db.session.commit()
+        return jsonify({"message": "Gestion eliminada"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500

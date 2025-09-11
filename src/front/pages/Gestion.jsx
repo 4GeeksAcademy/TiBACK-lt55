@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
-export const Analistas = () => {
+export const Gestion = () => {
   const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
   const API = import.meta.env.VITE_BACKEND_URL + "/api";
@@ -15,41 +15,41 @@ export const Analistas = () => {
       .then(res => res.json().then(data => ({ ok: res.ok, data })))
       .catch(err => ({ ok: false, data: { message: err.message } }));
 
-  const listarTodosLosAnalistas = () => {
+  const listarTodasLasGestiones = () => {
     setLoading(true);
-    fetchJson(`${API}/analistas`)
+    fetchJson(`${API}/gestiones`)
       .then(({ ok, data }) => {
         if (!ok) throw new Error(data.message);
-        dispatch({ type: "analistas_set_list", payload: data });
+        dispatch({ type: "gestiones_set_list", payload: data });
       })
       .catch(setError)
       .finally(() => setLoading(false));
   };
 
-  const eliminarAnalista = (id) => {
-    if (!window.confirm("¿Estás seguro de que quieres eliminar este analista?")) return;
+  const eliminarGestion = (id) => {
+    if (!window.confirm("¿Estás seguro de que quieres eliminar esta gestión?")) return;
 
     setLoading(true);
-    fetchJson(`${API}/analistas/${id}`, { method: "DELETE" })
+    fetchJson(`${API}/gestion/${id}`, { method: "DELETE" })
       .then(({ ok, data }) => {
         if (!ok) throw new Error(data.message);
-        dispatch({ type: "analistas_remove", payload: id });
+        dispatch({ type: "gestiones_remove", payload: id });
       }).catch(setError).finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    listarTodosLosAnalistas();
+    listarTodasLasGestiones();
   }, []);
 
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0">Lista de Analistas</h2>
+        <h2 className="mb-0">Lista de Gestiones</h2>
         <button
           className="btn btn-primary"
-          onClick={() => navigate('/agregar-analista')}
+          onClick={() => navigate('/agregar-gestion')}
         >
-          <i className="fas fa-plus"></i> Agregar Analista
+          <i className="fas fa-plus"></i> Agregar Gestión
         </button>
       </div>
 
@@ -64,37 +64,35 @@ export const Analistas = () => {
         <div className="col-12">
           <div className="card">
             <div className="card-header d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Analistas Registrados</h5>
-              <button className="btn btn-outline-primary" onClick={listarTodosLosAnalistas}>
+              <h5 className="mb-0">Gestiones Cargadas</h5>
+              <button className="btn btn-outline-primary" onClick={listarTodasLasGestiones}>
                 <i className="fas fa-refresh"></i> Actualizar Lista
               </button>
             </div>
             <div className="card-body">
-              {Array.isArray(store.analistas) && store.analistas.length > 0 ? (
+              {Array.isArray(store.gestiones) && store.gestiones.length > 0 ? (
                 <div className="table-responsive">
                   <table className="table table-striped">
                     <thead>
                       <tr>
-                        <th>Nombre</th>
-                        <th>Apellido</th>
-                        <th>Email</th>
-                        <th>Especialidad</th>
+                        <th>Ticket</th>
+                        <th>Fecha del cambio</th>
+                        <th>Nota del caso</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {store.analistas.map((analista) => (
-                        <tr key={analista.id}>
-                          <td>{analista.nombre}</td>
-                          <td>{analista.apellido}</td>
-                          <td>{analista.email}</td>
-                          <td>{analista.especialidad}</td>
+                      {store.gestiones.map((gestion) => (
+                        <tr key={gestion.id}>
+                          <td>{gestion.id_ticket}</td>
+                          <td>{gestion.fecha_cambio}</td>
+                          <td>{gestion.Nota_de_caso}</td>
                           <td>
                             <div className="btn-group" role="group">
                               <button
                                 className="btn btn-warning btn-sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  navigate(`/actualizar-analista/${analista.id}`);
+                                  navigate(`/actualizar-gestion/${gestion.id}`);
                                 }}
                               >
                                 <i className="fas fa-edit"></i>
@@ -103,7 +101,7 @@ export const Analistas = () => {
                                 className="btn btn-danger btn-sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  eliminarAnalista(analista.id);
+                                  eliminarGestion(gestion.id);
                                 }}
                               >
                                 <i className="fas fa-trash"></i>
@@ -111,7 +109,7 @@ export const Analistas = () => {
                             </div>
                             <button
                                 className="btn btn-info btn-sm ms-4"
-                                onClick={() => navigate(`/ver-analista/${analista.id}`)}>                                
+                                onClick={() => navigate(`/ver-gestion/${gestion.id}`)}>                                
                                 <i class="fa-solid fa-eye"> ver</i>
                               </button>
                           </td>
@@ -122,9 +120,9 @@ export const Analistas = () => {
                 </div>
               ) : (
                 <div className="text-center py-4">
-                  <p className="text-muted">No hay analistas registrados.</p>
-                  <button className="btn btn-primary" onClick={listarTodosLosAnalistas}>
-                    Cargar Analistas
+                  <p className="text-muted">No hay gestiones realizadas.</p>
+                  <button className="btn btn-primary" onClick={listarTodasLasGestiones}>
+                    Cargar Gestiones
                   </button>
                 </div>
               )}
