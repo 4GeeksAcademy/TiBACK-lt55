@@ -8,10 +8,13 @@ import {
 import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
-import { Analistas } from "./pages/Analistas"
 import { Demo } from "./pages/Demo";
-import { Analista } from "./pages/Analista";
 import { Supervisor } from "./pages/Supervisor";
+
+import { Analistas } from "./pages/Analistas"
+import { ActualizarAnalista } from "./pages/ActualizarAnalista";
+import { AgregarAnalista } from "./pages/AgregarAnalista"
+import { VerAnalista } from "./pages/VerAnalista";
 
 import { Clientes } from "./pages/Clientes";
 import { AgregarCliente } from "./pages/AgregarCliente";
@@ -51,8 +54,11 @@ export const router = createBrowserRouter(
         <Route path="/demo" element={<Demo />} />
       
         <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
-        <Route path="/analistas/:analista_id" element={ <SingleAnalista />} />
-        <Route path="/analistas" element={<Analista />} />
+
+        <Route path="/analistas" element={<Analistas />} />
+        <Route path="/agregar-analista" element={<AgregarAnalista />} />
+        <Route path="/actualizar-analista/:id" element={<ActualizarAnalista />} />
+        <Route path="/ver-analista/:id" element={<VerAnalista />} />
         
         <Route path="/supervisores" element={<Supervisor />} />
         <Route path="/tickets" element={<Ticket />} />

@@ -12,12 +12,6 @@ export const Navbar = () => {
 					<Link to="/demo">
 						<button className="btn btn-primary mx-4">Check the Context in action</button>
 					</Link>
-					<Link to="/analistas">
-						<button className="btn btn-outline-primary mx-4">Analista</button>
-					</Link>
-					{/* <Link to="/supervisores">
-							<button className="btn btn-outline-primary  ">Supervisores</button>
-					</Link> */}
 				</div>
 			</div>
 		</nav>
