@@ -35,7 +35,7 @@ export const VerAsignacion = () => {
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 dispatch({ type: "asignaciones_remove", payload: parseInt(id) });
-                navigate('/asignaciones'); // Volver a la lista de asignaciones
+                navigate('/asignaciones'); 
             }).catch(setError).finally(() => setLoading(false));
     };
 

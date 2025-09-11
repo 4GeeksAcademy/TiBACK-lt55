@@ -60,12 +60,12 @@ export const AgregarComentarios = () => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "comentarios_add", payload: data });
             limpiarFormulario();
-            navigate('/'); // Volver al home
+            navigate('/comentarios'); 
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/');
+        navigate('/comentarios');
     };
 
     return (

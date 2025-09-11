@@ -36,7 +36,7 @@ const AgregarSupervisor = () => {
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 dispatch({ type: "supervisores_add", payload: data });
-                navigate("/");
+                navigate("/supervisores");
             })
             .catch(setError)
             .finally(() => setLoading(false));

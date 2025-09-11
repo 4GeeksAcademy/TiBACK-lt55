@@ -51,12 +51,12 @@ export const AgregarCliente = () => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "clientes_add", payload: data });
             limpiarFormulario();
-            navigate('/'); // Volver al home después de crear
+            navigate('/clientes'); 
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/');
+        navigate('/clientes');
     };
 
     return (

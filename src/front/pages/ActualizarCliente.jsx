@@ -56,12 +56,12 @@ export const ActualizarCliente = () => {
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "clientes_upsert", payload: data });
-            navigate('/'); // Volver al home después de actualizar
+            navigate('/clientes'); // Volver al home después de actualizar
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/');
+        navigate('/clientes');
     };
 
     useEffect(() => {
