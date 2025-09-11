@@ -35,14 +35,12 @@ export const VerComentarios = () => {
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 dispatch({ type: "comentarios_remove", payload: parseInt(id) });
-                navigate('/comentarios'); // Volver a la lista de comentarios
+                navigate('/comentarios'); 
             }).catch(setError).finally(() => setLoading(false));
     };
 
-    //Volver puede apuntar a home o a comentarios para futuros casos
     const volver = () => {
-        navigate('/');
-        //navigate('/comentarios');
+        navigate('/comentarios');
     };
 
     const editar = () => {

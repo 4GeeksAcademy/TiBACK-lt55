@@ -35,12 +35,12 @@ export const VerCliente = () => {
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 dispatch({ type: "clientes_remove", payload: parseInt(id) });
-                navigate('/'); // Volver al home después de eliminar
+                navigate('/clientes'); // Volver al home después de eliminar
             }).catch(setError).finally(() => setLoading(false));
     };
 
     const volver = () => {
-        navigate('/');
+        navigate('/clientes');
     };
 
     const editar = () => {

@@ -50,12 +50,12 @@ export const AgregarAnalista = () => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "analistas_add", payload: data });
             limpiarFormulario();
-            navigate('/'); // Volver al home después de crear
+            navigate('/analistas'); 
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/');
+        navigate('/analistas');
     };
 
     return (

@@ -35,12 +35,12 @@ export const VerAnalista = () => {
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 dispatch({ type: "analistas_remove", payload: parseInt(id) });
-                navigate('/'); // Volver al home después de eliminar
+                navigate('/analistas');
             }).catch(setError).finally(() => setLoading(false));
     };
 
     const volver = () => {
-        navigate('/');
+        navigate('/analistas');
     };
 
     const editar = () => {
