@@ -1,19 +1,19 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
-export const AgregarCliente = () => {
+export const ActualizarAnalista = () => {
     const { store, dispatch } = useGlobalReducer();
     const navigate = useNavigate();
+    const { id } = useParams();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
-    const [nuevoCliente, setNuevoCliente] = useState({
+    const [analista, setAnalista] = useState({
         nombre: "",
         apellido: "",
         email: "",
         contraseña_hash: "",
-        direccion: "",
-        telefono: ""
+        especialidad: "",
     });
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
@@ -24,40 +24,49 @@ export const AgregarCliente = () => {
             .then(res => res.json().then(data => ({ ok: res.ok, data })))
             .catch(err => ({ ok: false, data: { message: err.message } }));
 
-    const limpiarFormulario = () => {
-        setNuevoCliente({
-            nombre: "",
-            apellido: "",
-            email: "",
-            contraseña_hash: "",
-            direccion: "",
-            telefono: "" 
-        });
+    const cargarAnalista = () => {
+        setLoading(true);
+        fetchJson(`${API}/analistas/${id}`)
+            .then(({ ok, data }) => {
+                if (!ok) throw new Error(data.message);
+                setAnalista({
+                    nombre: data.nombre,
+                    apellido: data.apellido,
+                    email: data.email,
+                    especialidad: data.especialidad,
+                    contraseña_hash: data.contraseña_hash || "",
+                });
+            }).catch(setError).finally(() => setLoading(false));
     };
 
-    const crearCliente = () => {
+    const actualizarAnalista = () => {
         // Validación básica
-        if (!nuevoCliente.nombre || !nuevoCliente.apellido || !nuevoCliente.email) {
+        if (!analista.nombre || !analista.apellido || !analista.email || !analista.especialidad) {
             setError("Los campos nombre, apellido y email son obligatorios");
             return;
         }
 
         setLoading(true);
-        fetchJson(`${API}/clientes`, {
-            method: "POST",
+        fetchJson(`${API}/analistas/${id}`, {
+            method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(nuevoCliente)
+            body: JSON.stringify(analista)
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
-            dispatch({ type: "clientes_add", payload: data });
-            limpiarFormulario();
-            navigate('/'); // Volver al home después de crear
+            dispatch({ type: "analistas_upsert", payload: data });
+            navigate('/'); // Volver al home después de actualizar
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
         navigate('/');
     };
+
+    useEffect(() => {
+        if (id) {
+            cargarAnalista();
+        }
+    }, [id]);
 
     return (
         <div className="container py-4">
@@ -66,8 +75,8 @@ export const AgregarCliente = () => {
                     <div className="card">
                         <div className="card-header">
                             <h4 className="mb-0">
-                                <i className="fas fa-user-plus me-2"></i>
-                                Agregar Nuevo Cliente
+                                <i className="fas fa-user-edit me-2"></i>
+                                Actualizar Analista
                             </h4>
                         </div>
                         <div className="card-body">
@@ -75,10 +84,12 @@ export const AgregarCliente = () => {
                                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
                             )}
                             {store.api.loading && (
-                                <div className="alert alert-info py-2">Guardando cliente...</div>
+                                <div className="alert alert-info py-2">
+                                    {analista.nombre ? 'Actualizando analista...' : 'Cargando analista...'}
+                                </div>
                             )}
 
-                            <form onSubmit={(e) => { e.preventDefault(); crearCliente(); }}>
+                            <form onSubmit={(e) => { e.preventDefault(); actualizarAnalista(); }}>
                                 <div className="row g-3">
                                     <div className="col-md-6">
                                         <label className="form-label">Nombre *</label>
@@ -86,8 +97,8 @@ export const AgregarCliente = () => {
                                             type="text"
                                             className="form-control"
                                             placeholder="Ingrese el nombre"
-                                            value={nuevoCliente.nombre}
-                                            onChange={e => setNuevoCliente(s => ({ ...s, nombre: e.target.value }))}
+                                            value={analista.nombre}
+                                            onChange={e => setAnalista(s => ({ ...s, nombre: e.target.value }))}
                                             required
                                         />
                                     </div>
@@ -97,8 +108,19 @@ export const AgregarCliente = () => {
                                             type="text"
                                             className="form-control"
                                             placeholder="Ingrese el apellido"
-                                            value={nuevoCliente.apellido}
-                                            onChange={e => setNuevoCliente(s => ({ ...s, apellido: e.target.value }))}
+                                            value={analista.apellido}
+                                            onChange={e => setAnalista(s => ({ ...s, apellido: e.target.value }))}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label">especialidad *</label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="Ingrese la especialidad"
+                                            value={analista.especialidad}
+                                            onChange={e => setAnalista(s => ({ ...s, especialidad: e.target.value }))}
                                             required
                                         />
                                     </div>
@@ -108,8 +130,8 @@ export const AgregarCliente = () => {
                                             type="email"
                                             className="form-control"
                                             placeholder="Ingrese el email"
-                                            value={nuevoCliente.email}
-                                            onChange={e => setNuevoCliente(s => ({ ...s, email: e.target.value }))}
+                                            value={analista.email}
+                                            onChange={e => setAnalista(s => ({ ...s, email: e.target.value }))}
                                             required
                                         />
                                     </div>
@@ -118,29 +140,9 @@ export const AgregarCliente = () => {
                                         <input
                                             type="password"
                                             className="form-control"
-                                            placeholder="Ingrese la contraseña"
-                                            value={nuevoCliente.contraseña_hash}
-                                            onChange={e => setNuevoCliente(s => ({ ...s, contraseña_hash: e.target.value }))}
-                                        />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label">Teléfono</label>
-                                        <input
-                                            type="tel"
-                                            className="form-control"
-                                            placeholder="Ingrese el teléfono"
-                                            value={nuevoCliente.telefono}
-                                            onChange={e => setNuevoCliente(s => ({ ...s, telefono: e.target.value }))}
-                                        />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label">Dirección</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder="Ingrese la dirección"
-                                            value={nuevoCliente.direccion}
-                                            onChange={e => setNuevoCliente(s => ({ ...s, direccion: e.target.value }))}
+                                            placeholder="Ingrese la nueva contraseña (dejar vacío para mantener la actual)"
+                                            value={analista.contraseña_hash}
+                                            onChange={e => setAnalista(s => ({ ...s, contraseña_hash: e.target.value }))}
                                         />
                                     </div>
                                 </div>
@@ -157,11 +159,11 @@ export const AgregarCliente = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="btn btn-primary"
+                                        className="btn btn-warning"
                                         disabled={store.api.loading}
                                     >
                                         <i className="fas fa-save me-1"></i>
-                                        {store.api.loading ? 'Guardando...' : 'Guardar Cliente'}
+                                        {store.api.loading ? 'Actualizando...' : 'Actualizar Analista'}
                                     </button>
                                 </div>
                             </form>
