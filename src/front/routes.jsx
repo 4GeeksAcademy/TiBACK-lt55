@@ -8,14 +8,18 @@ import {
 import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
-import { SingleAnalista } from "./pages/SingleAnalista"
+import { Analistas } from "./pages/Analistas"
 import { Demo } from "./pages/Demo";
 import { Clientes } from "./pages/Clientes";
-import { Analista } from "./pages/Analista";
 import { Supervisor } from "./pages/Supervisor";
+
 import { AgregarCliente } from "./pages/AgregarCliente";
 import { ActualizarCliente } from "./pages/ActualizarCliente";
 import { VerCliente } from "./pages/VerCliente";
+
+import { AgregarAnalista } from "./pages/AgregarAnalista";
+import { ActualizarAnalista } from "./pages/ActualizarAnalista";
+import { VerAnalista } from "./pages/VerAnalista";
 
 
 export const router = createBrowserRouter(
@@ -32,10 +36,15 @@ export const router = createBrowserRouter(
         {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
         <Route path= "/" element={<Home />} />
         <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
-        <Route path="/analistas/:analista_id" element={ <SingleAnalista />} />
         <Route path="/demo" element={<Demo />} />
-        <Route path="/analistas" element={<Analista />} />
         <Route path="/supervisores" element={<Supervisor />} />
+
+
+        <Route path="/analistas" element={<Analistas />} />
+        <Route path="/agregar-analista" element={<AgregarAnalista />} />
+        <Route path="/actualizar-analista/:id" element={<ActualizarAnalista />} />
+        <Route path="/ver-analista/:id" element={<VerAnalista />} />
+
         
         <Route path="/clientes" element={<Clientes />} />
         <Route path="/agregar-cliente" element={<AgregarCliente />} />
