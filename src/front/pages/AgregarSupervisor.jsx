@@ -46,13 +46,20 @@ const AgregarSupervisor = () => {
         <div className="container py-4">
             <h2 className="mb-3">Agregar Nuevo Supervisor</h2>
 
+                {store?.api?.error && (
+                <div className="alert alert-danger py-2">{String(store.api.error)}</div>
+            )}
+            {store?.api?.loading && (
+                <div className="alert alert-info py-2">Cargando...</div>
+            )}
+
             <form onSubmit={manejarEnvio}>
                 <div className="row g-3">
                     {["nombre", "apellido", "email", "contraseña_hash", "area_responsable"].map((field, i) => (
                         <div key={i} className={`col-${field === "area_responsable" ? "12" : "6"}`}>
                             <label className="form-label">{field.charAt(0).toUpperCase() + field.slice(1)}</label>
                             <input
-                                type="text"
+                                type={field === "email" ? "email" : field === "contraseña_hash" ? "password" : "text"}
                                 className="form-control"
                                 placeholder={`Ingrese ${field}`}
                                 value={nuevoSupervisor[field]}

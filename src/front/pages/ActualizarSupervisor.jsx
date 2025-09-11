@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const ActualizarSupervisor = () => {
-    const { supedtid } = useParams();
+     const { supervisorid } = useParams();
     const navigate = useNavigate();
     const { store, dispatch } = useGlobalReducer();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
@@ -26,7 +26,7 @@ const ActualizarSupervisor = () => {
 
     const cargarSupervisor = () => {
         setLoading(true);
-        fetchJson(`${API}/supervisores/${supedtid}`)
+        fetchJson(`${API}/supervisores/${supervisorid}`)
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 dispatch({ type: "supervisor_set_detail", payload: data });
@@ -38,7 +38,7 @@ const ActualizarSupervisor = () => {
 
     const actualizarSupervisor = () => {
         setLoading(true);
-        fetchJson(`${API}/supervisores/${supedtid}`, {
+        fetchJson(`${API}/supervisores/${supervisorid}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(supervisor)
@@ -46,7 +46,7 @@ const ActualizarSupervisor = () => {
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 dispatch({ type: "supervisores_upsert", payload: data });
-                navigate(`/supervisor/${supedtid}`);
+                navigate(`/supervisor/${supervisorid}`);
             })
             .catch(setError)
             .finally(() => setLoading(false));
@@ -54,7 +54,7 @@ const ActualizarSupervisor = () => {
 
     useEffect(() => {
         cargarSupervisor();
-    }, [supedtid]);
+    }, [supervisorid]);
 
     const controlCambio = (e) => {
         const { name, value } = e.target;
@@ -70,16 +70,17 @@ const ActualizarSupervisor = () => {
 
             <div className="card">
                 <div className="card-body">
-                    <supervisor onSubmit={(e) => { e.preventDefault(); actualizarSupervisor(); }}>
+                   <form onSubmit={(e) => { e.preventDefault(); actualizarSupervisor(); }}>
                         {["nombre", "apellido", "email", "contraseña_hash", "area_responsable"].map((field, idx) => (
                             <div className="mb-3" key={idx}>
-                                <label className="supervisor-label text-capitalize">{field.replace("_", " ")}</label>
+                                <label className="form-label text-capitalize">{field.replace("_", " ")}</label>
                                 <input
-                                    type="text"
-                                    className="supervisor-control"
+                                       type={field === "email" ? "email" : field === "contraseña_hash" ? "password" : "text"}
+                                    className="form-control"
                                     name={field}
                                     value={supervisor[field] || ""}
                                     onChange={controlCambio}
+                                    required
                                 />
                             </div>
                         ))}
@@ -88,7 +89,7 @@ const ActualizarSupervisor = () => {
                                 <i className="fas fa-save"></i> Guardar Cambios
                             </button>
                         </div>
-                    </supervisor>
+                     </form>
                 </div>
             </div>
         </div>

@@ -62,9 +62,9 @@ export const router = createBrowserRouter(
       <Route path="/analistas" element={<Analista />} />
 
       <Route path="/supervisores" element={<Supervisor />} />
-      <Route path="/supervisor/:supervisorid" element={<VerSupervisor />} />
-      <Route path="/supervisor/:supedtid/editar" element={<ActualizarSupervisor />} />
       <Route path="/supervisores/nuevo" element={<AgregarSupervisor />} />
+      <Route path="/supervisor/:supervisorid/editar" element={<ActualizarSupervisor />} />
+      <Route path="/supervisor/:supervisorid" element={<VerSupervisor />} />
 
       <Route path="/tickets" element={<Ticket />} />
       <Route path="/ver-ticket/:id" element={<VerTicket />} />
