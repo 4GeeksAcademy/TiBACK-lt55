@@ -85,29 +85,32 @@ export const Clientes = () => {
                     </thead>
                     <tbody>
                       {store.clientes.map((cliente) => (
-                        <tr ke
-                       y={cliente.id} style={{ cursor: 'pointer' }}>   <td onClick={() => navigate(`/ver-cliente/${cliente.id}`)}>{cliente.nombre}</td>
-                          <td onClick={() => navigate(`/ver-cliente/${cliente.id}`)}>{cliente.apellido}</td>
-                          <td onClick={() => navigate(`/ver-cliente/${cliente.id}`)}>{cliente.email}</td>
-                          <td onClick={() => navigate(`/ver-cliente/${cliente.id}`)}>{cliente.telefono}</td>
-                          <td onClick={() => navigate(`/ver-cliente/${cliente.id}`)}>{cliente.direccion}</td>
+                        <tr key={cliente.id}>
+                          <td>{cliente.nombre}</td>
+                          <td>{cliente.apellido}</td>
+                          <td>{cliente.email}</td>
+                          <td>{cliente.telefono}</td>
+                          <td>{cliente.direccion}</td>
                           <td>
-                            <div className="btn-group" role="group">
+                            <div className="d-flex gap-2" role="group">
                               <button
-                                className="btn btn-warning btn-sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/actualizar-cliente/${cliente.id}`);
-                                }}
+                                className="btn btn-warning"
+                                onClick={() => navigate(`/actualizar-cliente/${cliente.id}`)}
+                                title="Actualizar Cliente"
                               >
                                 <i className="fas fa-edit"></i>
                               </button>
                               <button
-                                className="btn btn-danger btn-sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  eliminarCliente(cliente.id);
-                                }}
+                                className="btn btn-info"
+                                onClick={() => navigate(`/ver-cliente/${cliente.id}`)}
+                                title="Ver Cliente"
+                              >
+                                <i className="fas fa-eye"></i>
+                              </button>
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => eliminarCliente(cliente.id)}
+                                title="Eliminar Cliente"
                               >
                                 <i className="fas fa-trash"></i>
                               </button>

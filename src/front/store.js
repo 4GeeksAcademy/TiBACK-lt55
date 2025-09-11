@@ -1,112 +1,174 @@
-export const initialStore=()=>{
-  return{
+export const initialStore = () => {
+  return {
     message: null,
-    todos: [
-      {
-        id: 1,
-        title: "Make the bed",
-        background: null,
-      },
-      {
-        id: 2,
-        title: "Do my homework",
-        background: null,
-      }
-    ],
+    todos: [],
+
       // Estado global para Clientes
     clientes: [],
     clienteDetail: null,
-       // Estado global para Analistas
+    
+    // Estado global para Analistas
     analistas: [],
     analistaDetail: null,
+    
+    // Estado global para Supervisores
+    supervisores: [],
+    supervisorDetail: null,
+    
+    // Estado global para Comentarios
+    comentarios: [],
+    comentarioDetail: null,
+
+        // Estado global para Asignaciones
+    asignaciones: [],
+    asignacionDetail: null,
+
+        // Estado global para Administradores
+    administradores: [],
+    administradorDetail: null,
+
+      // Estado global para Tickets
+    tickets: [],
+    ticketDetail: null,
+
+
     api: { loading: false, error: null }
-  }
-}
+  };
+  
+};
 
 export default function storeReducer(store, action = {}) {
-  switch(action.type){
-    case 'set_hello':
+  switch (action.type) {
+    case "set_hello":
       return {
         ...store,
-        message: action.payload
+        message: action.payload,
       };
-      
-    case 'add_task':
 
-      const { id,  color } = action.payload
+    case "add_task":
+      const { id, color } = action.payload;
 
       return {
         ...store,
-        todos: store.todos.map((todo) => (todo.id === id ? { ...todo, background: color } : todo))
+        todos: store.todos.map((todo) =>
+          todo.id === id ? { ...todo, background: color } : todo
+        ),
       };
     
+      
       // API helpers
     case 'api_loading':
       return { ...store, api: { ...store.api, loading: action.payload } };
-    case 'api_error':
+    case "api_error":
       return { ...store, api: { loading: false, error: action.payload } };
 
+
     // Cliente
-    case 'clientes_add':
-      return { ...store, clientes: [...store.clientes, action.payload], api: { loading: false, error: null } };
-    
-    case 'clientes_upsert': {
-      const c = action.payload;
-      const exists = store.clientes.some(x => x.id === c.id);
+    case "clientes_add":
       return {
         ...store,
-        clientes: exists ? store.clientes.map(x => x.id === c.id ? c : x) : [...store.clientes, c],
-        api: { loading: false, error: null }
+        clientes: [...store.clientes, action.payload],
+        api: { loading: false, error: null },
+      };
+
+    case "clientes_upsert": {
+      const c = action.payload;
+      const exists = store.clientes.some((x) => x.id === c.id);
+      return {
+        ...store,
+        clientes: exists
+          ? store.clientes.map((x) => (x.id === c.id ? c : x))
+          : [...store.clientes, c],
+        api: { loading: false, error: null },
       };
     }
 
-    case 'clientes_remove':
+    case "clientes_remove":
+      return {
+        ...store,
+        clientes: store.clientes.filter((x) => x.id !== action.payload),
+        api: { loading: false, error: null },
+      };
 
-      return { ...store, clientes: store.clientes.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
-   
-    case 'clientes_set_list':
+    case "clientes_set_list":
+      return {
+        ...store,
+        clientes: action.payload,
+        api: { loading: false, error: null },
+      };
 
-      return { ...store, clientes: action.payload, api: { loading: false, error: null } };
-  
-    case 'cliente_set_detail':
-      
-      return { ...store, clienteDetail: action.payload, api: { loading: false, error: null } };
-    
-    case 'cliente_clear_detail':
-      return { ...store, clienteDetail: null, api: { loading: false, error: null } };
+    case "cliente_set_detail":
+      return {
+        ...store,
+        clienteDetail: action.payload,
+        api: { loading: false, error: null },
+      };
+
+    case "cliente_clear_detail":
+      return {
+        ...store,
+        clienteDetail: null,
+        api: { loading: false, error: null },
+      };
+
 
      // Analista
     case 'analistas_add':
       return { ...store, analistas: [...store.analistas, action.payload], api: { loading: false, error: null } };
     case 'analistas_upsert': {
       const a = action.payload;
-      const exists = store.analistas.some(x => x.id === a.id);
+      const exists = store.analistas.some((x) => x.id === a.id);
       return {
         ...store,
-        analistas: exists ? store.analistas.map(x => x.id === a.id ? a : x) : [...store.analistas, a],
-        api: { loading: false, error: null }
+        analistas: exists
+          ? store.analistas.map((x) => (x.id === a.id ? a : x))
+          : [...store.analistas, a],
+        api: { loading: false, error: null },
       };
     }
-    case 'analistas_remove':
-      return { ...store, analistas: store.analistas.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
-    case 'analistas_set_list':
-      return { ...store, analistas: action.payload, api: { loading: false, error: null } };
-    case 'analista_set_detail':
-      return { ...store, analistaDetail: action.payload, api: { loading: false, error: null } };
-    case 'analista_clear_detail':
-      return { ...store, analistaDetail: null, api: { loading: false, error: null } };
-  
-
-       // Supervisor
-    case 'supervisores_add':
-      return { ...store, supervisores: [...store.supervisores, action.payload], api: { loading: false, error: null } };
-    case 'supervisores_upsert': {
-      const s = action.payload;
-      const exists = store.supervisores.some(x => x.id === s.id);
+    case "analistas_remove":
       return {
         ...store,
-        supervisores: exists ? store.supervisores.map(x => x.id === s.id ? s : x) : [...store.supervisores, s],
-        api: { loading: false, error: null }
+        analistas: store.analistas.filter((x) => x.id !== action.payload),
+        api: { loading: false, error: null },
+      };
+    case "analistas_set_list":
+      return {
+        ...store,
+        analistas: action.payload,
+        api: { loading: false, error: null },
+      };
+    case "analista_set_detail":
+      return {
+        ...store,
+        analistaDetail: action.payload,
+        api: { loading: false, error: null },
+      };
+    case "analista_clear_detail":
+      return {
+        ...store,
+        analistaDetail: null,
+        api: { loading: false, error: null },
+      };
+
+    // ___________________________________________________________________________________________________________
+
+    case "supervisores_add":
+      return {
+        ...store,
+        supervisores: [...store.supervisores, action.payload],
+        api: { loading: false, error: null },
+      };
+
+    case "supervisores_upsert": {
+      const s = action.payload;
+      const exists = store.supervisores.some((x) => x.id === s.id);
+      return {
+        ...store,
+        supervisores: exists
+          ? store.supervisores.map((x) => (x.id === s.id ? s : x))
+          : [...store.supervisores, s],
+        api: { loading: false, error: null },
       };
     }
     case 'supervisores_remove':
@@ -118,8 +180,97 @@ export default function storeReducer(store, action = {}) {
     case 'supervisor_clear_detail':
       return { ...store, supervisorDetail: null, api: { loading: false, error: null } };  
 
+
+      // Comentarios
+    case 'comentarios_add':
+      return { ...store, comentarios: [...store.comentarios, action.payload], api: { loading: false, error: null } };
+    case 'comentarios_upsert': {
+      const c = action.payload;
+      const exists = store.comentarios.some(x => x.id === c.id);
+      return {
+        ...store,
+        comentarios: exists ? store.comentarios.map(x => x.id === c.id ? c : x) : [...store.comentarios, c],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'comentarios_remove':
+      return { ...store, comentarios: store.comentarios.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'comentarios_set_list':
+      return { ...store, comentarios: action.payload, api: { loading: false, error: null } };
+    case 'comentario_set_detail':
+      return { ...store, comentarioDetail: action.payload, api: { loading: false, error: null } };
+    case 'comentario_clear_detail':
+      return { ...store, comentarioDetail: null, api: { loading: false, error: null } };
+    
+
+    // Asignaciones
+    case 'asignaciones_add':
+      return { ...store, asignaciones: [...store.asignaciones, action.payload], api: { loading: false, error: null } };
+    case 'asignaciones_upsert': {
+      const a = action.payload;
+      const exists = store.asignaciones.some(x => x.id === a.id);
+      return {
+        ...store,
+        asignaciones: exists ? store.asignaciones.map(x => x.id === a.id ? a : x) : [...store.asignaciones, a],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'asignaciones_remove':
+      return { ...store, asignaciones: store.asignaciones.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'asignaciones_set_list':
+      return { ...store, asignaciones: action.payload, api: { loading: false, error: null } };
+    case 'asignacion_set_detail':
+      return { ...store, asignacionDetail: action.payload, api: { loading: false, error: null } };
+    case 'asignacion_clear_detail':
+      return { ...store, asignacionDetail: null, api: { loading: false, error: null } };
+  
+
+      // Administradores
+    case 'administradores_add':
+      return { ...store, administradores: [...store.administradores, action.payload], api: { loading: false, error: null } };
+    case 'administradores_upsert': {
+      const a = action.payload;
+      const exists = store.administradores.some(x => x.id === a.id);
+      return {
+        ...store,
+        administradores: exists ? store.administradores.map(x => x.id === a.id ? a : x) : [...store.administradores, a],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'administradores_remove':
+      return { ...store, administradores: store.administradores.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'administradores_set_list':
+      return { ...store, administradores: action.payload, api: { loading: false, error: null } };
+    case 'administrador_set_detail':
+      return { ...store, administradorDetail: action.payload, api: { loading: false, error: null } };
+    case 'administrador_clear_detail':
+      return { ...store, administradorDetail: null, api: { loading: false, error: null } };
+ 
+
+  
+    // Tickets
+    case 'tickets_add':
+      return { ...store, tickets: [...store.tickets, action.payload], api: { loading: false, error: null } };
+    case 'tickets_upsert': {
+      const t = action.payload;
+      const exists = store.tickets.some(x => x.id === t.id);
+      return {
+        ...store,
+        tickets: exists ? store.tickets.map(x => x.id === t.id ? t : x) : [...store.tickets, t],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'tickets_remove':
+      return { ...store, tickets: store.tickets.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'tickets_set_list':
+      return { ...store, tickets: action.payload, api: { loading: false, error: null } };
+    case 'ticket_set_detail':
+      return { ...store, ticketDetail: action.payload, api: { loading: false, error: null } };
+    case 'ticket_clear_detail':
+      return { ...store, ticketDetail: null, api: { loading: false, error: null } };
       
+
     default:
-      throw Error('Unknown action.');
-  }    
+      throw Error("Unknown action.");
+  }
 }

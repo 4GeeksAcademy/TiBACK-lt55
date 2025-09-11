@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
-export const VerCliente = () => {
+export const VerAdministrador = () => {
     const { store, dispatch } = useGlobalReducer();
     const navigate = useNavigate();
     const { id } = useParams();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
-    const [cliente, setCliente] = useState(null);
+    const [administrador, setAdministrador] = useState(null);
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
@@ -18,51 +18,51 @@ export const VerCliente = () => {
             .then(res => res.json().then(data => ({ ok: res.ok, data })))
             .catch(err => ({ ok: false, data: { message: err.message } }));
 
-    const cargarCliente = () => {
+    const cargarAdministrador = () => {
         setLoading(true);
-        fetchJson(`${API}/clientes/${id}`)
+        fetchJson(`${API}/administradores/${id}`)
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
-                setCliente(data);
+                setAdministrador(data);
             }).catch(setError).finally(() => setLoading(false));
     };
 
-    const eliminarCliente = () => {
-        if (!window.confirm("¿Estás seguro de que quieres eliminar este cliente?")) return;
+    const eliminarAdministrador = () => {
+        if (!window.confirm("¿Estás seguro de que quieres eliminar este administrador?")) return;
 
         setLoading(true);
-        fetchJson(`${API}/clientes/${id}`, { method: "DELETE" })
+        fetchJson(`${API}/administradores/${id}`, { method: "DELETE" })
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
-                dispatch({ type: "clientes_remove", payload: parseInt(id) });
-                navigate('/'); // Volver al home después de eliminar
+                dispatch({ type: "administradores_remove", payload: parseInt(id) });
+                navigate('/administradores'); // Volver a la lista de administradores
             }).catch(setError).finally(() => setLoading(false));
     };
 
     const volver = () => {
-        navigate('/');
+        navigate('/administradores');
     };
 
     const editar = () => {
-        navigate(`/actualizar-cliente/${id}`);
+        navigate(`/actualizar-administrador/${id}`);
     };
 
     useEffect(() => {
         if (id) {
-            cargarCliente();
+            cargarAdministrador();
         }
     }, [id]);
 
-    if (!cliente && !store.api.loading) {
+    if (!administrador && !store.api.loading) {
         return (
             <div className="container py-4">
                 <div className="row justify-content-center">
                     <div className="col-12 col-md-8 col-lg-6">
                         <div className="card">
                             <div className="card-body text-center">
-                                <h5>Cliente no encontrado</h5>
+                                <h5>Administrador no encontrado</h5>
                                 <button className="btn btn-primary" onClick={volver}>
-                                    Volver al inicio
+                                    Volver a la lista
                                 </button>
                             </div>
                         </div>
@@ -79,8 +79,8 @@ export const VerCliente = () => {
                     <div className="card">
                         <div className="card-header">
                             <h4 className="mb-0">
-                                <i className="fas fa-user me-2"></i>
-                                Detalles del Cliente
+                                <i className="fas fa-user-shield me-2"></i>
+                                Detalles del Administrador
                             </h4>
                         </div>
                         <div className="card-body">
@@ -88,38 +88,26 @@ export const VerCliente = () => {
                                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
                             )}
                             {store.api.loading && (
-                                <div className="alert alert-info py-2">Cargando cliente...</div>
+                                <div className="alert alert-info py-2">Cargando administrador...</div>
                             )}
 
-                            {cliente && (
+                            {administrador && (
                                 <div className="row g-3">
                                     <div className="col-md-6">
-                                        <label className="form-label fw-bold">Nombre:</label>
-                                        <p className="form-control-plaintext">{cliente.nombre}</p>
+                                        <label className="form-label fw-bold">ID:</label>
+                                        <p className="form-control-plaintext">{administrador.id}</p>
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label fw-bold">Apellido:</label>
-                                        <p className="form-control-plaintext">{cliente.apellido}</p>
-                                    </div>
-                                    <div className="col-12">
                                         <label className="form-label fw-bold">Email:</label>
                                         <p className="form-control-plaintext">
-                                            
-                                                {cliente.email}
-                                             
+                                                {administrador.email}
                                         </p>
                                     </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label fw-bold">Teléfono:</label>
-                                        <p className="form-control-plaintext">    
-                                                    {cliente.telefono}
-                                        </p>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label fw-bold">Dirección:</label>
-                                        <p className="form-control-plaintext">
-                                            {cliente.direccion || <span className="text-muted">No especificada</span>}
-                                        </p>
+                                    <div className="col-12">
+                                        <label className="form-label fw-bold">Permisos Especiales:</label>
+                                        <div className="form-control-plaintext border p-3 bg-light rounded">
+                                            {administrador.permisos_especiales}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -145,7 +133,7 @@ export const VerCliente = () => {
                                     </button>
                                     <button
                                         className="btn btn-danger"
-                                        onClick={eliminarCliente}
+                                        onClick={eliminarAdministrador}
                                         disabled={store.api.loading}
                                     >
                                         <i className="fas fa-trash me-1"></i>
