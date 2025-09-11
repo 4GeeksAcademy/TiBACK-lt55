@@ -14,12 +14,12 @@ export const ActualizarTicket = () => {
             .catch(console.error);
     }, [id]);
 
-    const handleChange = (e) => {
+    const controlCambio = (e) => {
         const { name, value } = e.target;
         setTicket((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const manejarEnvio = (e) => {
         e.preventDefault();
         fetch(`${API}/tickets/${id}`, {
             method: "PUT",
@@ -36,14 +36,14 @@ export const ActualizarTicket = () => {
     return (
         <div className="container py-4">
             <h2>Editar Ticket #{ticket.id}</h2>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={manejarEnvio}>
                 <div className="mb-3">
                     <label className="form-label">Título</label>
                     <input
                         className="form-control"
                         name="titulo"
                         value={ticket.titulo}
-                        onChange={handleChange}
+                        onChange={controlCambio}
                     />
                 </div>
                 <div className="mb-3">
@@ -53,7 +53,7 @@ export const ActualizarTicket = () => {
                         name="descripcion"
                         rows="3"
                         value={ticket.descripcion}
-                        onChange={handleChange}
+                        onChange={controlCambio}
                     />
                 </div>
                 <button className="btn btn-primary me-2" type="submit">Actualizar</button>

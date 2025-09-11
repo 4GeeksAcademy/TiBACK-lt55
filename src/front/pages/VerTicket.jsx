@@ -14,7 +14,7 @@ export const VerTicket = () => {
             .catch(console.error);
     }, [id]);
 
-    const getEstadoBadgeClass = (estado) => {
+    const getEstadoClase = (estado) => {
         switch (estado?.toLowerCase()) {
             case "abierto":
                 return "badge bg-success";
@@ -29,7 +29,7 @@ export const VerTicket = () => {
         }
     };
 
-    const getPrioridadBadgeClass = (prioridad) => {
+    const getPrioridadClase = (prioridad) => {
         switch (prioridad?.toLowerCase()) {
             case "alta":
                 return "badge bg-danger";
@@ -51,8 +51,8 @@ export const VerTicket = () => {
             <div className="row">
                 <div className="col-md-6">
                     <p><strong>ID Cliente:</strong> {ticket.id_cliente}</p>
-                    <p><strong>Estado:</strong> <span className={getEstadoBadgeClass(ticket.estado)}>{ticket.estado}</span></p>
-                    <p><strong>Prioridad:</strong> <span className={getPrioridadBadgeClass(ticket.prioridad)}>{ticket.prioridad}</span></p>
+                    <p><strong>Estado:</strong> <span className={getEstadoClase(ticket.estado)}>{ticket.estado}</span></p>
+                    <p><strong>Prioridad:</strong> <span className={getPrioridadClase(ticket.prioridad)}>{ticket.prioridad}</span></p>
                 </div>
                 <div className="col-md-6">
                     <p><strong>Título:</strong> {ticket.titulo}</p>

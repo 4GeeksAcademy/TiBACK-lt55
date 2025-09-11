@@ -8,7 +8,7 @@ const ActualizarSupervisor = () => {
     const { store, dispatch } = useGlobalReducer();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
-    const [form, setForm] = useState({
+    const [supervisor, setSupervisor] = useState({
         nombre: "",
         apellido: "",
         email: "",
@@ -30,7 +30,7 @@ const ActualizarSupervisor = () => {
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 dispatch({ type: "supervisor_set_detail", payload: data });
-                setForm(data);
+                setSupervisor(data);
             })
             .catch(setError)
             .finally(() => setLoading(false));
@@ -41,7 +41,7 @@ const ActualizarSupervisor = () => {
         fetchJson(`${API}/supervisores/${supedtid}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(form)
+            body: JSON.stringify(supervisor)
         })
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
@@ -56,9 +56,9 @@ const ActualizarSupervisor = () => {
         cargarSupervisor();
     }, [supedtid]);
 
-    const handleChange = (e) => {
+    const controlCambio = (e) => {
         const { name, value } = e.target;
-        setForm(f => ({ ...f, [name]: value }));
+        setSupervisor(f => ({ ...f, [name]: value }));
     };
 
     return (
@@ -70,16 +70,16 @@ const ActualizarSupervisor = () => {
 
             <div className="card">
                 <div className="card-body">
-                    <form onSubmit={(e) => { e.preventDefault(); actualizarSupervisor(); }}>
+                    <supervisor onSubmit={(e) => { e.preventDefault(); actualizarSupervisor(); }}>
                         {["nombre", "apellido", "email", "contraseña_hash", "area_responsable"].map((field, idx) => (
                             <div className="mb-3" key={idx}>
-                                <label className="form-label text-capitalize">{field.replace("_", " ")}</label>
+                                <label className="supervisor-label text-capitalize">{field.replace("_", " ")}</label>
                                 <input
                                     type="text"
-                                    className="form-control"
+                                    className="supervisor-control"
                                     name={field}
-                                    value={form[field] || ""}
-                                    onChange={handleChange}
+                                    value={supervisor[field] || ""}
+                                    onChange={controlCambio}
                                 />
                             </div>
                         ))}
@@ -88,7 +88,7 @@ const ActualizarSupervisor = () => {
                                 <i className="fas fa-save"></i> Guardar Cambios
                             </button>
                         </div>
-                    </form>
+                    </supervisor>
                 </div>
             </div>
         </div>

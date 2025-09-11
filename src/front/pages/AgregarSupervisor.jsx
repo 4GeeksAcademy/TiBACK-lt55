@@ -24,7 +24,7 @@ const AgregarSupervisor = () => {
             .then(res => res.json().then(data => ({ ok: res.ok, data })))
             .catch(err => ({ ok: false, data: { message: err.message } }));
 
-    const handleSubmit = (e) => {
+    const manejarEnvio = (e) => {
         e.preventDefault();
         setLoading(true);
 
@@ -46,7 +46,7 @@ const AgregarSupervisor = () => {
         <div className="container py-4">
             <h2 className="mb-3">Agregar Nuevo Supervisor</h2>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={manejarEnvio}>
                 <div className="row g-3">
                     {["nombre", "apellido", "email", "contraseña_hash", "area_responsable"].map((field, i) => (
                         <div key={i} className={`col-${field === "area_responsable" ? "12" : "6"}`}>
