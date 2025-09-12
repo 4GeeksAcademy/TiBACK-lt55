@@ -43,7 +43,7 @@ import { VerAdministrador } from "./pages/VerAdministrador";
 import { Ticket } from "./pages/Ticket";
 import { VerTicket } from "./pages/VerTicket";
 import { ActualizarTicket } from "./pages/ActualizarTicket";
-import { AgregarTicket } from "./pages/AgregarTicket";
+import  AgregarTicket  from "./pages/AgregarTicket";
 
 import { Gestion } from "./pages/Gestion";
 import { VerGestion } from "./pages/VerGestion";

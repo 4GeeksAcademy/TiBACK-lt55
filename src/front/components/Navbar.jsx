@@ -22,9 +22,11 @@ export const Navbar = () => {
 						<button className="btn btn-outline-secondary">Supervisores</button>
 					</Link>
 					<Link to="/administradores">
-						<button className="btn btn-outline-secondary me-4">Administradores</button>
+						<button className="btn btn-outline-secondary me-5">Administradores</button>
 					</Link>
-
+					<Link to="/gestiones">
+						<button className="btn btn-outline-secondary">Gestiones</button>
+					</Link>
 					<Link to="/tickets">
 					<button className="btn btn-outline-secondary">Tickets</button>
 					</Link>
