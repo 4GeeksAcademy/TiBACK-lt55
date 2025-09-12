@@ -4,6 +4,10 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
 from api.utils import generate_sitemap, APIException
+from api.jwt_utils import (
+    generate_access_token, generate_refresh_token, verify_token, 
+    require_auth, require_role, refresh_access_token, get_user_from_token
+)
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
 
@@ -463,11 +467,13 @@ def create_ticket():
     if auth_header and auth_header.startswith('Bearer '):
         # Crear ticket autenticado (desde panel de cliente)
         try:
+             # Verificar token JWT
             token = auth_header.split(' ')[1]
-            if not token.startswith('cliente_'):
-                return jsonify({"message": "Token inválido"}), 401
+            payload = verify_token(token, 'access')
+            if not payload or payload['role'] != 'cliente':
+                return jsonify({"message": "Token inválido o acceso denegado"}), 401
             
-            cliente_id = int(token.split('_')[1])
+            cliente_id = payload['user_id']
             
             # Validar campos requeridos para cliente autenticado
             required = ["titulo", "descripcion", "prioridad"]
@@ -495,7 +501,7 @@ def create_ticket():
             return jsonify({"message": f"Error al crear ticket: {str(e)}"}), 500
     
     else:
-        
+
         # Crear ticket sin autenticación (desde panel admin)
 
         required = ["id_cliente", "estado", "titulo",
@@ -634,10 +640,11 @@ def eliminar_gestion(id):
 
 
 #cliente
+ 
 
 @api.route('/register', methods=['POST'])
 def register():
-    """Registrar nuevo cliente"""
+    """Registrar nuevo cliente con JWT"""
     body = request.get_json(silent=True) or {}
     required = ["nombre", "apellido", "email", "password", "direccion", "telefono"]
     missing = [k for k in required if not body.get(k)]
@@ -663,9 +670,9 @@ def register():
         db.session.add(cliente)
         db.session.commit()
         
-        # Generar tokens simples (en producción usar JWT)
-        access_token = f"cliente_{cliente.id}_{cliente.email}"
-        refresh_token = f"refresh_{cliente.id}_{cliente.email}"
+        # Generar tokens JWT seguros
+        access_token = generate_access_token(cliente.id, cliente.email, 'cliente')
+        refresh_token = generate_refresh_token(cliente.id, cliente.email, 'cliente')
         
         return jsonify({
             "message": "Cliente registrado exitosamente",
@@ -682,7 +689,7 @@ def register():
 
 @api.route('/login', methods=['POST'])
 def login():
-    """Iniciar sesión"""
+    """Iniciar sesión con JWT"""
     body = request.get_json(silent=True) or {}
     email = body.get('email')
     password = body.get('password')
@@ -700,9 +707,9 @@ def login():
         if cliente.contraseña_hash != password:
             return jsonify({"message": "Credenciales inválidas"}), 401
         
-        # Generar tokens simples
-        access_token = f"cliente_{cliente.id}_{cliente.email}"
-        refresh_token = f"refresh_{cliente.id}_{cliente.email}"
+        # Generar tokens JWT seguros
+        access_token = generate_access_token(cliente.id, cliente.email, 'cliente')
+        refresh_token = generate_refresh_token(cliente.id, cliente.email, 'cliente')
         
         return jsonify({
             "message": "Login exitoso",
@@ -718,7 +725,7 @@ def login():
 
 @api.route('/refresh', methods=['POST'])
 def refresh_token():
-    """Refrescar token de acceso"""
+    """Refrescar token de acceso con JWT"""
     body = request.get_json(silent=True) or {}
     refresh_token = body.get('refreshToken')
     
@@ -726,28 +733,15 @@ def refresh_token():
         return jsonify({"message": "Refresh token requerido"}), 400
     
     try:
-        # Verificar formato del refresh token
-        if not refresh_token.startswith('refresh_'):
-            return jsonify({"message": "Token inválido"}), 401
+        # Usar la función JWT para refrescar tokens
+        new_tokens = refresh_access_token(refresh_token)
         
-        # Extraer ID del cliente del token
-        parts = refresh_token.split('_')
-        if len(parts) < 3:
-            return jsonify({"message": "Token inválido"}), 401
-        
-        cliente_id = parts[1]
-        cliente = Cliente.query.get(int(cliente_id))
-        
-        if not cliente:
-            return jsonify({"message": "Cliente no encontrado"}), 401
-        
-        # Generar nuevo access token
-        access_token = f"cliente_{cliente.id}_{cliente.email}"
-        new_refresh_token = f"refresh_{cliente.id}_{cliente.email}"
+        if not new_tokens:
+            return jsonify({"message": "Refresh token inválido o expirado"}), 401
         
         return jsonify({
-            "accessToken": access_token,
-            "refreshToken": new_refresh_token
+            "accessToken": new_tokens['access_token'],
+            "refreshToken": new_tokens['refresh_token']
         }), 200
         
     except Exception as e:
@@ -755,23 +749,17 @@ def refresh_token():
 
 
 @api.route('/tickets/cliente', methods=['GET'])
+@require_auth
 def get_cliente_tickets():
-    """Obtener tickets del cliente autenticado"""
-    # En producción, validar JWT token
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({"message": "Token de autorización requerido"}), 401
-    
+    """Obtener tickets del cliente autenticado con JWT"""
     try:
-        # Extraer cliente ID del token (implementación simple)
-        token = auth_header.split(' ')[1]
-        if not token.startswith('cliente_'):
-            return jsonify({"message": "Token inválido"}), 401
-        
-        cliente_id = int(token.split('_')[1])
+        # Obtener usuario del token JWT
+        user = get_user_from_token()
+        if not user or user['role'] != 'cliente':
+            return jsonify({"message": "Acceso denegado"}), 403
         
         # Obtener tickets del cliente
-        tickets = Ticket.query.filter_by(id_cliente=cliente_id).all()
+        tickets = Ticket.query.filter_by(id_cliente=user['id']).all()
         
         return jsonify([t.serialize() for t in tickets]), 200
         

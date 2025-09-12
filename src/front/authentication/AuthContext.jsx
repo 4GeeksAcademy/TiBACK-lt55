@@ -233,6 +233,25 @@ export function AuthProvider({ children }) {
         }
     };
 
+      // Función para verificar si el token está próximo a expirar
+    const isTokenExpiringSoon = () => {
+        try {
+            const token = localStorage.getItem('accessToken');
+            if (!token) return true;
+
+            // Decodificar JWT para verificar expiración
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const now = Date.now() / 1000;
+            const timeUntilExpiry = payload.exp - now;
+
+            // Si expira en menos de 5 minutos, necesita refrescarse
+            return timeUntilExpiry < 300;
+        } catch (error) {
+            console.error('Error checking token expiry:', error);
+            return true;
+        }
+    };
+
     // Función para verificar roles
     const hasRole = (allowedRoles) => {
         if (!Array.isArray(allowedRoles)) {
@@ -247,7 +266,8 @@ export function AuthProvider({ children }) {
         register,
         logout,
         refresh,
-        hasRole
+        hasRole,
+        isTokenExpiringSoon
     };
 
     return (

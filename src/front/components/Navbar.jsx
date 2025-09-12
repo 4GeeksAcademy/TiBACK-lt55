@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../authentication/useAuth";
 
 export const Navbar = () => {
+	const { isAuthenticated, role } = useAuth();
 
 	return (
 		<nav className="navbar navbar-light bg-light">
@@ -9,9 +11,28 @@ export const Navbar = () => {
 
 				<div className="d-flex  gap-4 ">
 
-					<Link to="/">
+					{/* <Link to="/">
 						<span className="navbar-brand mb-0 h1 ">TiBACK</span>
 					</Link>
+
+					{isAuthenticated && (
+						<Link to={`/${role}`}>
+							<button className="btn btn-primary">Dashboard</button>
+						</Link>
+					)} */}
+					<div className="d-flex flex-column align-items-center">
+						<Link to="/">
+							<span className="navbar-brand mb-0 h1">TiBACK</span>
+						</Link>
+
+						{isAuthenticated && (
+							<Link to={`/${role}`}>
+							<button className="btn btn-primary mt-2 ">Dashboard</button>
+							</Link>
+						)}
+					</div>
+
+
 
 					<Link to="/clientes">
 						<button className="btn btn-outline-secondary">Clientes</button>

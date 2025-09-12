@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './useAuth';
 
 export function ProtectedRoute({ children, allowedRoles = [] }) {
-    const { isAuthenticated, role, hasRole, isLoading, refresh } = useAuth();
+    const { isAuthenticated, role, hasRole, isLoading, refresh, isTokenExpiringSoon } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -39,18 +39,39 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
                 return;
             }
 
-             // Verificar si el token existe y es válido
+            // Verificar si el token existe y es válido
             const token = localStorage.getItem('accessToken');
             if (token) {
-                // Verificar que el token tenga el formato correcto
-                if (!token.startsWith('cliente_')) {
-                    console.error('Token inválido:', token);
+                try {
+                    // Verificar que sea un JWT válido
+                    const parts = token.split('.');
+                    if (parts.length !== 3) {
+                        console.error('Token JWT inválido:', token);
+                        navigate('/auth');
+                        return;
+                    }
+
+                    // Decodificar payload para verificar estructura
+                    const payload = JSON.parse(atob(parts[1]));
+                    if (!payload.user_id || !payload.role) {
+                        console.error('Token JWT malformado:', payload);
+                        navigate('/auth');
+                        return;
+                    }
+
+                    // Verificar si el token está próximo a expirar y refrescarlo
+                    if (isTokenExpiringSoon()) {
+                        const refreshed = await refresh();
+                        if (!refreshed) {
+                            navigate('/auth');
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error verificando token JWT:', error);
                     navigate('/auth');
                     return;
                 }
-
-                // Para tokens simples, no necesitamos verificar expiración
-                // En producción con JWT real, aquí se verificaría la expiración
             } else {
                 navigate('/auth');
                 return;
