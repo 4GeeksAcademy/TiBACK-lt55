@@ -50,6 +50,10 @@ import { VerGestion } from "./pages/VerGestion";
 import { AgregarGestion } from "./pages/AgregarGestion"
 import { ActualizarGestion } from "./pages/ActualizarGestion";
 
+import { AuthForm } from "./authentication/AuthForm";
+import { ProtectedRoute } from "./authentication/ProtectedRoute";
+import { ClientePage } from "./protectedViewsRol/cliente/ClientePage";
+
 export const router = createBrowserRouter(
   createRoutesFromElements(
 
@@ -59,6 +63,15 @@ export const router = createBrowserRouter(
       <Route path="/" element={<Home />} />
       <Route path="/demo" element={<Demo />} />
 
+         {/* rutas de autenticacion */}
+      <Route path="/auth" element={<AuthForm />} />
+
+      {/* rutas protegidas para diferentes roles */}
+      <Route path="/cliente" element={
+        <ProtectedRoute allowedRoles={["cliente"]}>
+          <ClientePage />
+        </ProtectedRoute>
+      } />
 
 
       <Route path="/analistas" element={<Analistas />} />

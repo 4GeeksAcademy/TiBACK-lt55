@@ -11,5 +11,12 @@ export const Home = () => (
 			<Link to="/supervisores" className="btn btn-warning btn-lg mx-4">Supervisores</Link>
 			<Link to="/administradores" className="btn btn-danger btn-lg mx-4">Administradores</Link>
 		</div>
+
+		<div className="mt-4">
+			<Link to="/auth" className="btn btn-outline-primary btn-lg">
+				<i className="fas fa-user"></i> Acceso Cliente
+			</Link>
+		</div>
+		
 	</div>
 ); 

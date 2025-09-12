@@ -456,22 +456,64 @@ def listar_tickets():
 @api.route('/tickets', methods=['POST'])
 def create_ticket():
     body = request.get_json(silent=True) or {}
-    required = ["id_cliente", "estado", "titulo",
-                "descripcion", "fecha_creacion", "prioridad"]
-    missing = [k for k in required if not body.get(k)]
-    if missing:
-        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
-    try:
-        ticket = Ticket(**{k: body[k] for k in required})
-        db.session.add(ticket)
-        db.session.commit()
-        return jsonify(ticket.serialize()), 201
-    except IntegrityError:
-        db.session.rollback()
-        return jsonify({"message": "Error de integridad en la base de datos"}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+     # Verificar si hay token de autenticación
+    
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        # Crear ticket autenticado (desde panel de cliente)
+        try:
+            token = auth_header.split(' ')[1]
+            if not token.startswith('cliente_'):
+                return jsonify({"message": "Token inválido"}), 401
+            
+            cliente_id = int(token.split('_')[1])
+            
+            # Validar campos requeridos para cliente autenticado
+            required = ["titulo", "descripcion", "prioridad"]
+            missing = [k for k in required if not body.get(k)]
+            if missing:
+                return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+            
+            # Crear ticket con datos del cliente autenticado
+            from datetime import datetime
+            ticket = Ticket(
+                id_cliente=cliente_id,
+                estado="abierto",
+                titulo=body['titulo'],
+                descripcion=body['descripcion'],
+                fecha_creacion=datetime.now().isoformat(),
+                prioridad=body['prioridad']
+            )
+            
+            db.session.add(ticket)
+            db.session.commit()
+            return jsonify(ticket.serialize()), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"message": f"Error al crear ticket: {str(e)}"}), 500
+    
+    else:
+        
+        # Crear ticket sin autenticación (desde panel admin)
+
+        required = ["id_cliente", "estado", "titulo",
+                    "descripcion", "fecha_creacion", "prioridad"]
+        missing = [k for k in required if not body.get(k)]
+        if missing:
+            return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+        try:
+            ticket = Ticket(**{k: body[k] for k in required})
+            db.session.add(ticket)
+            db.session.commit()
+            return jsonify(ticket.serialize()), 201
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({"message": "Error de integridad en la base de datos"}), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
 
 @api.route('/tickets/<int:id>', methods=['GET'])
@@ -585,3 +627,153 @@ def eliminar_gestion(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
+
+
+
+# RUTAS DE AUTENTICACION
+
+
+#cliente
+
+@api.route('/register', methods=['POST'])
+def register():
+    """Registrar nuevo cliente"""
+    body = request.get_json(silent=True) or {}
+    required = ["nombre", "apellido", "email", "password", "direccion", "telefono"]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+    
+    try:
+        # Verificar si el email ya existe
+        existing_cliente = Cliente.query.filter_by(email=body['email']).first()
+        if existing_cliente:
+            return jsonify({"message": "Email ya registrado"}), 400
+        
+        # Crear nuevo cliente
+        cliente = Cliente(
+            nombre=body['nombre'],
+            apellido=body['apellido'],
+            email=body['email'],
+            contraseña_hash=body['password'],  # En producción, hashear la contraseña
+            direccion=body['direccion'],
+            telefono=body['telefono']
+        )
+        
+        db.session.add(cliente)
+        db.session.commit()
+        
+        # Generar tokens simples (en producción usar JWT)
+        access_token = f"cliente_{cliente.id}_{cliente.email}"
+        refresh_token = f"refresh_{cliente.id}_{cliente.email}"
+        
+        return jsonify({
+            "message": "Cliente registrado exitosamente",
+            "accessToken": access_token,
+            "refreshToken": refresh_token,
+            "user": cliente.serialize(),
+            "role": "cliente"
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al registrar: {str(e)}"}), 500
+
+
+@api.route('/login', methods=['POST'])
+def login():
+    """Iniciar sesión"""
+    body = request.get_json(silent=True) or {}
+    email = body.get('email')
+    password = body.get('password')
+    
+    if not email or not password:
+        return jsonify({"message": "Email y contraseña requeridos"}), 400
+    
+    try:
+        # Buscar cliente por email
+        cliente = Cliente.query.filter_by(email=email).first()
+        if not cliente:
+            return jsonify({"message": "Credenciales inválidas"}), 401
+        
+        # Verificar contraseña (en producción, verificar hash)
+        if cliente.contraseña_hash != password:
+            return jsonify({"message": "Credenciales inválidas"}), 401
+        
+        # Generar tokens simples
+        access_token = f"cliente_{cliente.id}_{cliente.email}"
+        refresh_token = f"refresh_{cliente.id}_{cliente.email}"
+        
+        return jsonify({
+            "message": "Login exitoso",
+            "accessToken": access_token,
+            "refreshToken": refresh_token,
+            "user": cliente.serialize(),
+            "role": "cliente"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error en login: {str(e)}"}), 500
+
+
+@api.route('/refresh', methods=['POST'])
+def refresh_token():
+    """Refrescar token de acceso"""
+    body = request.get_json(silent=True) or {}
+    refresh_token = body.get('refreshToken')
+    
+    if not refresh_token:
+        return jsonify({"message": "Refresh token requerido"}), 400
+    
+    try:
+        # Verificar formato del refresh token
+        if not refresh_token.startswith('refresh_'):
+            return jsonify({"message": "Token inválido"}), 401
+        
+        # Extraer ID del cliente del token
+        parts = refresh_token.split('_')
+        if len(parts) < 3:
+            return jsonify({"message": "Token inválido"}), 401
+        
+        cliente_id = parts[1]
+        cliente = Cliente.query.get(int(cliente_id))
+        
+        if not cliente:
+            return jsonify({"message": "Cliente no encontrado"}), 401
+        
+        # Generar nuevo access token
+        access_token = f"cliente_{cliente.id}_{cliente.email}"
+        new_refresh_token = f"refresh_{cliente.id}_{cliente.email}"
+        
+        return jsonify({
+            "accessToken": access_token,
+            "refreshToken": new_refresh_token
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error al refrescar token: {str(e)}"}), 500
+
+
+@api.route('/tickets/cliente', methods=['GET'])
+def get_cliente_tickets():
+    """Obtener tickets del cliente autenticado"""
+    # En producción, validar JWT token
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"message": "Token de autorización requerido"}), 401
+    
+    try:
+        # Extraer cliente ID del token (implementación simple)
+        token = auth_header.split(' ')[1]
+        if not token.startswith('cliente_'):
+            return jsonify({"message": "Token inválido"}), 401
+        
+        cliente_id = int(token.split('_')[1])
+        
+        # Obtener tickets del cliente
+        tickets = Ticket.query.filter_by(id_cliente=cliente_id).all()
+        
+        return jsonify([t.serialize() for t in tickets]), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener tickets: {str(e)}"}), 500
