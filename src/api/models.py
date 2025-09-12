@@ -159,3 +159,18 @@ class Ticket(db.Model):
             "comentario": self.comentario,
             "fecha_evaluacion": self.fecha_evaluacion
         }
+
+class Gestion(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    id_ticket: Mapped[int] = mapped_column(nullable=False)
+    fecha_cambio: Mapped[str] = mapped_column(String(50), nullable=False)
+    Nota_de_caso: Mapped[str] = mapped_column(String(200), nullable=False)
+
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "id_ticket": self.id_ticket,
+            "fecha_cambio": self.fecha_cambio,
+            "Nota_de_caso": self.Nota_de_caso,
+        }

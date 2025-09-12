@@ -1,19 +1,16 @@
-// Import necessary hooks and components from react-router-dom and other libraries.
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
-export const AgregarAnalista = () => {
-    const { store, dispatch } = useGlobalReducer(); 
+export const AgregarGestion = () => {
+    const { store, dispatch } = useGlobalReducer();
     const navigate = useNavigate();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
-    const [nuevoAnalista, setNuevoAnalista] = useState({
-        nombre: "",
-        apellido: "",
-        email: "",
-        contraseña_hash: "",
-        especialidad: "",
+    const [nuevaGestion, setNuevaGestion] = useState({
+        id_ticket: "",
+        fecha_cambio: "",
+        Nota_de_caso: "",
     });
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
@@ -25,37 +22,35 @@ export const AgregarAnalista = () => {
             .catch(err => ({ ok: false, data: { message: err.message } }));
 
     const limpiarFormulario = () => {
-        setNuevoAnalista({
-            nombre: "",
-            apellido: "",
-            email: "",
-            contraseña_hash: "",
-            especialidad: "",
+        setNuevaGestion({
+            id_ticket: "",
+            fecha_cambio: "",
+            Nota_de_caso: "",
         });
     };
 
-    const crearAnalista = () => {
+    const crearGestion = () => {
         // Validación básica
-        if (!nuevoAnalista.nombre || !nuevoAnalista.apellido || !nuevoAnalista.email || !nuevoAnalista.especialidad) {
-            setError("Los campos nombre, apellido, especialidad e email son obligatorios");
+        if (!nuevaGestion.id_ticket || !nuevaGestion.fecha_cambio || !nuevaGestion.Nota_de_caso) {
+            setError("Los campos Ticket, Fecha de cambio y la nota del caso son obligatorios");
             return;
         }
 
         setLoading(true);
-        fetchJson(`${API}/analistas`, {
+        fetchJson(`${API}/gestiones`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(nuevoAnalista)
+            body: JSON.stringify(nuevaGestion)
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
-            dispatch({ type: "analistas_add", payload: data });
+            dispatch({ type: "gestiones_add", payload: data });
             limpiarFormulario();
-            navigate('/analistas'); 
+            navigate('/gestiones'); // Volver al home después de crear
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/analistas');
+        navigate('/gestiones');
     };
 
     return (
@@ -66,7 +61,7 @@ export const AgregarAnalista = () => {
                         <div className="card-header">
                             <h4 className="mb-0">
                                 <i className="fas fa-user-plus me-2"></i>
-                                Agregar Nuevo Analista
+                                Agregar Nueva Gestión
                             </h4>
                         </div>
                         <div className="card-body">
@@ -74,62 +69,42 @@ export const AgregarAnalista = () => {
                                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
                             )}
                             {store.api.loading && (
-                                <div className="alert alert-info py-2">Guardando analista...</div>
+                                <div className="alert alert-info py-2">Guardando Gestion...</div>
                             )}
 
-                            <form onSubmit={(e) => { e.preventDefault(); crearAnalista(); }}>
+                            <form onSubmit={(e) => { e.preventDefault(); crearGestion(); }}>
                                 <div className="row g-3">
                                     <div className="col-md-6">
-                                        <label className="form-label">Nombre *</label>
+                                        <label className="form-label">Ticket *</label>
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Ingrese el nombre"
-                                            value={nuevoAnalista.nombre}
-                                            onChange={e => setNuevoAnalista(s => ({ ...s, nombre: e.target.value }))}
+                                            placeholder="Ingrese el ticket"
+                                            value={nuevaGestion.id_ticket}
+                                            onChange={e => setNuevaGestion(s => ({ ...s, id_ticket: e.target.value }))}
                                             required
                                         />
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label">Apellido *</label>
+                                        <label className="form-label">Fecha *</label>
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Ingrese el apellido"
-                                            value={nuevoAnalista.apellido}
-                                            onChange={e => setNuevoAnalista(s => ({ ...s, apellido: e.target.value }))}
+                                            placeholder="Ingrese la fecha de emisión del cambio de la fecha"
+                                            value={nuevaGestion.fecha_cambio}
+                                            onChange={e => setNuevaGestion(s => ({ ...s, fecha_cambio: e.target.value }))}
                                             required
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label">Email *</label>
-                                        <input
-                                            type="email"
-                                            className="form-control"
-                                            placeholder="Ingrese el email"
-                                            value={nuevoAnalista.email}
-                                            onChange={e => setNuevoAnalista(s => ({ ...s, email: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label">Contraseña</label>
+                                        <label className="form-label">Nota del caso *</label>
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Ingrese la contraseña"
-                                            value={nuevoAnalista.contraseña_hash}
-                                            onChange={e => setNuevoAnalista(s => ({ ...s, contraseña_hash: e.target.value }))}
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label">especialidad</label>
-                                        <input
-                                            type="password"
-                                            className="form-control"
-                                            placeholder="Ingrese la contraseña"
-                                            value={nuevoAnalista.especialidad}
-                                            onChange={e => setNuevoAnalista(s => ({ ...s, especialidad: e.target.value }))}
+                                            placeholder="Ingrese una nota para el caso"
+                                            value={nuevaGestion.Nota_de_caso}
+                                            onChange={e => setNuevaGestion(s => ({ ...s, Nota_de_caso: e.target.value }))}
+                                            required
                                         />
                                     </div>
                                 </div>
@@ -150,7 +125,7 @@ export const AgregarAnalista = () => {
                                         disabled={store.api.loading}
                                     >
                                         <i className="fas fa-save me-1"></i>
-                                        {store.api.loading ? 'Guardando...' : 'Guardar Analista'}
+                                        {store.api.loading ? 'Guardando...' : 'Guardar Gestión'}
                                     </button>
                                 </div>
                             </form>

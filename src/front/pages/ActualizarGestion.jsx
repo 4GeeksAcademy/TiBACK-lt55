@@ -2,18 +2,16 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
-export const ActualizarAnalista = () => {
+export const ActualizarGestion = () => {
     const { store, dispatch } = useGlobalReducer();
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
     const { id } = useParams();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
-    const [analista, setAnalista] = useState({
-        nombre: "",
-        apellido: "",
-        email: "",
-        contraseña_hash: "",
-        especialidad: "",
+    const [gestion, setGestion] = useState({
+        id_ticket: "",
+        fecha_cambio: "",
+        Nota_de_caso: "",
     });
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
@@ -24,47 +22,45 @@ export const ActualizarAnalista = () => {
             .then(res => res.json().then(data => ({ ok: res.ok, data })))
             .catch(err => ({ ok: false, data: { message: err.message } }));
 
-    const cargarAnalista = () => {
+    const cargarGestion = () => {
         setLoading(true);
-        fetchJson(`${API}/analistas/${id}`)
+        fetchJson(`${API}/gestiones/${id}`)
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
-                setAnalista({
-                    nombre: data.nombre,
-                    apellido: data.apellido,
-                    email: data.email,
-                    especialidad: data.especialidad,
-                    contraseña_hash: data.contraseña_hash || "",
+                setGestion({
+                    id_ticket: data.id_ticket,
+                    fecha_cambio: data.fecha_cambio,
+                    Nota_de_caso: data.Nota_de_caso,
                 });
             }).catch(setError).finally(() => setLoading(false));
     };
 
-    const actualizarAnalista = () => {
+    const actualizarGestion = () => {
         // Validación básica
-        if (!analista.nombre || !analista.apellido || !analista.email || !analista.especialidad) {
-            setError("Los campos nombre, apellido y email son obligatorios");
+        if (!gestion.id_ticket || !gestion.fecha_cambio || !gestion.Nota_de_caso) {
+            setError("Los campos Ticket, Fecha de cambio y la nota del caso son obligatorios");
             return;
         }
 
         setLoading(true);
-        fetchJson(`${API}/analistas/${id}`, {
+        fetchJson(`${API}/gestiones/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(analista)
+            body: JSON.stringify(gestion)
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
-            dispatch({ type: "analistas_upsert", payload: data });
-            navigate('/analistas'); 
+            dispatch({ type: "gestiones_upsert", payload: data });
+            navigate('/gestiones'); // Volver al home después de actualizar
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/analistas');
+        navigate('/gestiones');
     };
 
     useEffect(() => {
         if (id) {
-            cargarAnalista();
+            cargarGestion();
         }
     }, [id]);
 
@@ -76,7 +72,7 @@ export const ActualizarAnalista = () => {
                         <div className="card-header">
                             <h4 className="mb-0">
                                 <i className="fas fa-user-edit me-2"></i>
-                                Actualizar Analista
+                                Actualizar Gestión
                             </h4>
                         </div>
                         <div className="card-body">
@@ -85,64 +81,43 @@ export const ActualizarAnalista = () => {
                             )}
                             {store.api.loading && (
                                 <div className="alert alert-info py-2">
-                                    {analista.nombre ? 'Actualizando analista...' : 'Cargando analista...'}
+                                    {gestion.id_ticket ? 'Actualizando gestion...' : 'Cargando gestion...'}
                                 </div>
                             )}
 
-                            <form onSubmit={(e) => { e.preventDefault(); actualizarAnalista(); }}>
+                            <form onSubmit={(e) => { e.preventDefault(); actualizarGestion(); }}>
                                 <div className="row g-3">
                                     <div className="col-md-6">
-                                        <label className="form-label">Nombre *</label>
+                                        <label className="form-label">Ticket *</label>
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Ingrese el nombre"
-                                            value={analista.nombre}
-                                            onChange={e => setAnalista(s => ({ ...s, nombre: e.target.value }))}
+                                            placeholder="Ingrese el ticket a actualizar"
+                                            value={gestion.id_ticket}
+                                            onChange={e => setGestion(s => ({ ...s, id_ticket: e.target.value }))}
                                             required
                                         />
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label">Apellido *</label>
+                                        <label className="form-label">Fecha del cambio *</label>
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Ingrese el apellido"
-                                            value={analista.apellido}
-                                            onChange={e => setAnalista(s => ({ ...s, apellido: e.target.value }))}
+                                            placeholder="Ingrese la fecha del cambio"
+                                            value={gestion.fecha_cambio}
+                                            onChange={e => setGestion(s => ({ ...s, fecha_cambio: e.target.value }))}
                                             required
                                         />
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label">especialidad *</label>
+                                        <label className="form-label">Nota del caso *</label>
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Ingrese la especialidad"
-                                            value={analista.especialidad}
-                                            onChange={e => setAnalista(s => ({ ...s, especialidad: e.target.value }))}
+                                            placeholder="Ingrese la nota del caso"
+                                            value={gestion.Nota_de_caso}
+                                            onChange={e => setGestion(s => ({ ...s, Nota_de_caso: e.target.value }))}
                                             required
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label">Email *</label>
-                                        <input
-                                            type="email"
-                                            className="form-control"
-                                            placeholder="Ingrese el email"
-                                            value={analista.email}
-                                            onChange={e => setAnalista(s => ({ ...s, email: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label">Contraseña</label>
-                                        <input
-                                            type="password"
-                                            className="form-control"
-                                            placeholder="Ingrese la nueva contraseña (dejar vacío para mantener la actual)"
-                                            value={analista.contraseña_hash}
-                                            onChange={e => setAnalista(s => ({ ...s, contraseña_hash: e.target.value }))}
                                         />
                                     </div>
                                 </div>
@@ -163,7 +138,7 @@ export const ActualizarAnalista = () => {
                                         disabled={store.api.loading}
                                     >
                                         <i className="fas fa-save me-1"></i>
-                                        {store.api.loading ? 'Actualizando...' : 'Actualizar Analista'}
+                                        {store.api.loading ? 'Actualizando...' : 'Actualizar Gestión'}
                                     </button>
                                 </div>
                             </form>

@@ -27,9 +27,9 @@ export const initialStore = () => {
     administradores: [],
     administradorDetail: null,
 
-      // Estado global para Tickets
-    tickets: [],
-    ticketDetail: null,
+      // Estado global para gestiones
+    gestiones: [],
+    gestionesDetail: null,
 
 
     api: { loading: false, error: null }
@@ -268,6 +268,27 @@ export default function storeReducer(store, action = {}) {
       return { ...store, ticketDetail: action.payload, api: { loading: false, error: null } };
     case 'ticket_clear_detail':
       return { ...store, ticketDetail: null, api: { loading: false, error: null } };
+
+       // Gestiones
+    case 'gestiones_add':
+      return { ...store, gestiones: [...store.gestiones, action.payload], api: { loading: false, error: null } };
+    case 'gestiones_upsert': {
+      const t = action.payload;
+      const exists = store.gestiones.some(x => x.id === t.id);
+      return {
+        ...store,
+        gestiones: exists ? store.gestiones.map(x => x.id === t.id ? t : x) : [...store.gestiones, t],
+        api: { loading: false, error: null }
+      };
+    }
+    case 'gestiones_remove':
+      return { ...store, gestiones: store.gestiones.filter(x => x.id !== action.payload), api: { loading: false, error: null } };
+    case 'gestiones_set_list':
+      return { ...store, gestiones: action.payload, api: { loading: false, error: null } };
+    case 'gestion_set_detail':
+      return { ...store, gestionDetail: action.payload, api: { loading: false, error: null } };
+    case 'gestion_clear_detail':
+      return { ...store, gestionDetail: null, api: { loading: false, error: null } };
       
 
     default:
