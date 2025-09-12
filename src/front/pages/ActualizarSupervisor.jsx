@@ -65,7 +65,6 @@ const ActualizarSupervisor = () => {
         <div className="container py-4">
             <h2 className="mb-3">Editar Supervisor</h2>
 
-            {store.api.loading && <div className="alert alert-info">Cargando...</div>}
             {store.api.error && <div className="alert alert-danger">{store.api.error}</div>}
 
             <div className="card">

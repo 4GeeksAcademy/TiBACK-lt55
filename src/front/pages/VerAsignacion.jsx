@@ -87,10 +87,6 @@ export const VerAsignacion = () => {
                             {store.api.error && (
                                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
                             )}
-                            {store.api.loading && (
-                                <div className="alert alert-info py-2">Cargando asignación...</div>
-                            )}
-
                             {asignacion && (
                                 <div className="row g-3">
                                     <div className="col-md-6">

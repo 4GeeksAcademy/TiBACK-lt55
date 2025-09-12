@@ -89,11 +89,6 @@ export const ActualizarAsignacion = () => {
                             {store.api.error && (
                                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
                             )}
-                            {store.api.loading && (
-                                <div className="alert alert-info py-2">
-                                    {asignacion.id_ticket ? 'Actualizando asignación...' : 'Cargando asignación...'}
-                                </div>
-                            )}
 
                             <form onSubmit={(e) => { e.preventDefault(); actualizarAsignacion(); }}>
                                 <div className="row g-3">

@@ -95,12 +95,6 @@ export const ActualizarComentarios = () => {
                             {store.api.error && (
                                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
                             )}
-                            {store.api.loading && (
-                                <div className="alert alert-info py-2">
-                                    {comentario.texto ? 'Actualizando comentario...' : 'Cargando comentario...'}
-                                </div>
-                            )}
-
                             <form onSubmit={(e) => { e.preventDefault(); actualizarComentario(); }}>
                                 <div className="row g-3">
                                     <div className="col-md-6">

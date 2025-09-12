@@ -87,9 +87,6 @@ export const VerGestion = () => {
                             {store.api.error && (
                                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
                             )}
-                            {store.api.loading && (
-                                <div className="alert alert-info py-2">Cargando Gestion...</div>
-                            )}
 
                             {gestion && (
                                 <div className="row g-3">

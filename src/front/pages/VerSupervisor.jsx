@@ -27,14 +27,14 @@ const VerSupervisor = () => {
     };
 
     useEffect(() => {
-           if (supervisorid && (!store.supervisorDetail || store.supervisorDetail.id !== parseInt(supervisorid))) {
-                cargarSupervisor();
-           }
+        if (supervisorid && (!store.supervisorDetail || store.supervisorDetail.id !== parseInt(supervisorid))) {
+            cargarSupervisor();
+        }
     }, [supervisorid]);
 
     const supervisor = store.supervisorDetail;
 
-    if (store.api.loading) return <div className="alert alert-info">Cargando...</div>;
+
     if (store.api.error) return <div className="alert alert-danger">{store.api.error}</div>;
     if (!supervisor) return <div className="alert alert-warning">Supervisor no encontrado.</div>;
 
