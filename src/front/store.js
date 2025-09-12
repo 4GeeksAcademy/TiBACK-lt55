@@ -29,7 +29,11 @@ export const initialStore = () => {
 
       // Estado global para gestiones
     gestiones: [],
-    gestionesDetail: null,
+    gestionDetail: null,
+
+    // Estado global para Tickets
+    tickets: [],
+    ticketDetail: null,
 
 
     api: { loading: false, error: null }

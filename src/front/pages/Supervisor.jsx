@@ -50,9 +50,6 @@ export const Supervisor = () => {
             {store?.api?.error && (
                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
             )}
-            {store?.api?.loading && (
-                <div className="alert alert-info py-2">Cargando...</div>
-            )}
             <div className="d-flex justify-content-end mb-3">
                 <Link to="/supervisores/nuevo" className="btn btn-primary mb-3">
                     <i className="fas fa-plus"></i> Nuevo Supervisor

@@ -49,10 +49,6 @@ const AgregarSupervisor = () => {
                 {store?.api?.error && (
                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
             )}
-            {store?.api?.loading && (
-                <div className="alert alert-info py-2">Cargando...</div>
-            )}
-
             <form onSubmit={manejarEnvio}>
                 <div className="row g-3">
                     {["nombre", "apellido", "email", "contraseña_hash", "area_responsable"].map((field, i) => (

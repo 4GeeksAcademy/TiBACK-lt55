@@ -63,7 +63,7 @@ export const VerTicket = () => {
 
     const ticket = store.ticketDetail;
 
-    if (store.api.loading) return <div className="alert alert-info">Cargando...</div>;
+
     if (store.api.error) return <div className="alert alert-danger">{store.api.error}</div>;
     if (!ticket) return <div className="alert alert-warning">Ticket no encontrado.</div>;
 
