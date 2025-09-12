@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const AgregarGestion = () => {
-    const { store, dispatch } = useGlobalReducer(); 
+    const { store, dispatch } = useGlobalReducer();
     const navigate = useNavigate();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
@@ -45,12 +45,12 @@ export const AgregarGestion = () => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "gestiones_add", payload: data });
             limpiarFormulario();
-            navigate('/'); // Volver al home después de crear
+            navigate('/gestiones'); // Volver al home después de crear
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/');
+        navigate('/gestiones');
     };
 
     return (

@@ -30,7 +30,7 @@ export const Gestion = () => {
     if (!window.confirm("¿Estás seguro de que quieres eliminar esta gestión?")) return;
 
     setLoading(true);
-    fetchJson(`${API}/gestion/${id}`, { method: "DELETE" })
+    fetchJson(`${API}/gestiones/${id}`, { method: "DELETE" })
       .then(({ ok, data }) => {
         if (!ok) throw new Error(data.message);
         dispatch({ type: "gestiones_remove", payload: id });
@@ -108,10 +108,10 @@ export const Gestion = () => {
                               </button>
                             </div>
                             <button
-                                className="btn btn-info btn-sm ms-4"
-                                onClick={() => navigate(`/ver-gestion/${gestion.id}`)}>                                
-                                <i class="fa-solid fa-eye"> ver</i>
-                              </button>
+                              className="btn btn-info btn-sm ms-4"
+                              onClick={() => navigate(`/ver-gestion/${gestion.id}`)}>
+                              <i className="fa-solid fa-eye"> ver</i>
+                            </button>
                           </td>
                         </tr>
                       ))}

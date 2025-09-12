@@ -112,7 +112,7 @@ export const Analistas = () => {
                             <button
                                 className="btn btn-info btn-sm ms-4"
                                 onClick={() => navigate(`/ver-analista/${analista.id}`)}>                                
-                                <i class="fa-solid fa-eye"> ver</i>
+                                <i className="fa-solid fa-eye"> ver</i>
                               </button>
                           </td>
                         </tr>

@@ -4,7 +4,7 @@ import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const ActualizarGestion = () => {
     const { store, dispatch } = useGlobalReducer();
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
     const { id } = useParams();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
@@ -50,12 +50,12 @@ export const ActualizarGestion = () => {
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "gestiones_upsert", payload: data });
-            navigate('/'); // Volver al home después de actualizar
+            navigate('/gestiones'); // Volver al home después de actualizar
         }).catch(setError).finally(() => setLoading(false));
     };
 
     const cancelar = () => {
-        navigate('/');
+        navigate('/gestiones');
     };
 
     useEffect(() => {

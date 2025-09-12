@@ -233,7 +233,6 @@ def delete_supervisor(id):
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
 
 
-
 # Comentarios
 
 @api.route('/comentarios', methods=['GET'])
@@ -245,7 +244,8 @@ def listar_comentarios():
 @api.route('/comentarios', methods=['POST'])
 def create_comentario():
     body = request.get_json(silent=True) or {}
-    required = ["id_gestion", "id_cliente", "id_analista", "id_supervisor", "texto", "fecha_comentario"]
+    required = ["id_gestion", "id_cliente", "id_analista",
+                "id_supervisor", "texto", "fecha_comentario"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
@@ -261,12 +261,14 @@ def create_comentario():
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/comentarios/<int:id>', methods=['GET'])
 def get_comentario(id):
     comentario = db.session.get(Comentarios, id)
     if not comentario:
         return jsonify({"message": "Comentario no encontrado"}), 404
     return jsonify(comentario.serialize()), 200
+
 
 @api.route('/comentarios/<int:id>', methods=['PUT'])
 def update_comentario(id):
@@ -287,6 +289,7 @@ def update_comentario(id):
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/comentarios/<int:id>', methods=['DELETE'])
 def delete_comentario(id):
     comentario = db.session.get(Comentarios, id)
@@ -301,8 +304,6 @@ def delete_comentario(id):
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
 
 
-
-
 # Asignacion
 
 @api.route('/asignaciones', methods=['GET'])
@@ -314,7 +315,8 @@ def listar_asignaciones():
 @api.route('/asignaciones', methods=['POST'])
 def create_asignacion():
     body = request.get_json(silent=True) or {}
-    required = ["id_ticket", "id_supervisor", "id_analista", "fecha_asignacion"]
+    required = ["id_ticket", "id_supervisor",
+                "id_analista", "fecha_asignacion"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
@@ -330,12 +332,14 @@ def create_asignacion():
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/asignaciones/<int:id>', methods=['GET'])
 def get_asignacion(id):
     asignacion = db.session.get(Asignacion, id)
     if not asignacion:
         return jsonify({"message": "Asignación no encontrada"}), 404
     return jsonify(asignacion.serialize()), 200
+
 
 @api.route('/asignaciones/<int:id>', methods=['PUT'])
 def update_asignacion(id):
@@ -356,6 +360,7 @@ def update_asignacion(id):
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/asignaciones/<int:id>', methods=['DELETE'])
 def delete_asignacion(id):
     asignacion = db.session.get(Asignacion, id)
@@ -368,8 +373,6 @@ def delete_asignacion(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
-
-
 
 
 # Administrador
@@ -399,12 +402,14 @@ def create_administrador():
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/administradores/<int:id>', methods=['GET'])
 def get_administrador(id):
     administrador = db.session.get(Administrador, id)
     if not administrador:
         return jsonify({"message": "Administrador no encontrado"}), 404
     return jsonify(administrador.serialize()), 200
+
 
 @api.route('/administradores/<int:id>', methods=['PUT'])
 def update_administrador(id):
@@ -425,6 +430,7 @@ def update_administrador(id):
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/administradores/<int:id>', methods=['DELETE'])
 def delete_administrador(id):
     administrador = db.session.get(Administrador, id)
@@ -439,8 +445,6 @@ def delete_administrador(id):
         return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
 
 
-
-
 # Tickets
 
 @api.route('/tickets', methods=['GET'])
@@ -452,7 +456,8 @@ def listar_tickets():
 @api.route('/tickets', methods=['POST'])
 def create_ticket():
     body = request.get_json(silent=True) or {}
-    required = ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion", "prioridad"]
+    required = ["id_cliente", "estado", "titulo",
+                "descripcion", "fecha_creacion", "prioridad"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
@@ -484,8 +489,8 @@ def update_ticket(id):
     if not ticket:
         return jsonify({"message": "Ticket no encontrado"}), 404
     try:
-        for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion", 
-                     "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion"]:
+        for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion",
+                      "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion"]:
             if field in body:
                 setattr(ticket, field, body[field])
         db.session.commit()
@@ -514,12 +519,13 @@ def delete_ticket(id):
 
 # Gestión
 
-@api.route('/gestion', methods=['GET'])
+@api.route('/gestiones', methods=['GET'])
 def obtener_gestiones():
-    gestiones = Ticket.query.all()
+    gestiones = Gestion.query.all()
     return jsonify([t.serialize() for t in gestiones]), 200
 
-@api.route('/gestion', methods=['POST'])
+
+@api.route('/gestiones', methods=['POST'])
 def crear_gestion():
     body = request.get_json(silent=True) or {}
     required = ["id_ticket", "fecha_cambio", "Nota_de_caso",]
@@ -537,15 +543,17 @@ def crear_gestion():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
-    
-@api.route('/gestion/<int:id>', methods=['GET'])
+
+
+@api.route('/gestiones/<int:id>', methods=['GET'])
 def ver_gestion(id):
     gestion = db.session.get(Gestion, id)
     if not gestion:
         return jsonify({"message": "Gestión no existe"}), 404
     return jsonify(gestion.serialize()), 200
 
-@api.route('/gestion/<int:id>', methods=['PUT'])
+
+@api.route('/gestiones/<int:id>', methods=['PUT'])
 def actualizar_gestion(id):
     body = request.get_json(silent=True) or {}
     gestion = db.session.get(Gestion, id)
@@ -564,7 +572,8 @@ def actualizar_gestion(id):
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
-@api.route('/gestion/<int:id>', methods=['DELETE'])
+
+@api.route('/gestiones/<int:id>', methods=['DELETE'])
 def eliminar_gestion(id):
     gestion = db.session.get(Gestion, id)
     if not gestion:

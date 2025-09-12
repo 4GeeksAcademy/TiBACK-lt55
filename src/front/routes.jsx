@@ -43,7 +43,7 @@ import { VerAdministrador } from "./pages/VerAdministrador";
 import { Ticket } from "./pages/Ticket";
 import { VerTicket } from "./pages/VerTicket";
 import { ActualizarTicket } from "./pages/ActualizarTicket";
-import  AgregarTicket  from "./pages/AgregarTicket";
+import AgregarTicket from "./pages/AgregarTicket";
 
 import { Gestion } from "./pages/Gestion";
 import { VerGestion } from "./pages/VerGestion";
@@ -52,20 +52,20 @@ import { ActualizarGestion } from "./pages/ActualizarGestion";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
-    
+
     <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
 
-      
-      <Route path= "/" element={<Home />} />
+
+      <Route path="/" element={<Home />} />
       <Route path="/demo" element={<Demo />} />
-      
-        
+
+
 
       <Route path="/analistas" element={<Analistas />} />
       <Route path="/agregar-analista" element={<AgregarAnalista />} />
       <Route path="/actualizar-analista/:id" element={<ActualizarAnalista />} />
       <Route path="/ver-analista/:id" element={<VerAnalista />} />
-        
+
 
       <Route path="/supervisores" element={<Supervisor />} />
       <Route path="/supervisores/nuevo" element={<AgregarSupervisor />} />
