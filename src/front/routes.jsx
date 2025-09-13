@@ -51,7 +51,7 @@ import { AgregarGestion } from "./pages/AgregarGestion"
 import { ActualizarGestion } from "./pages/ActualizarGestion";
 
 import { AuthForm } from "./authentication/AuthForm";
-import { ProtectedRoute } from "./authentication/ProtectedRoute";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ClientePage } from "./protectedViewsRol/cliente/ClientePage";
 
 export const router = createBrowserRouter(

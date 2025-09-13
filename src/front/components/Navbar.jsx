@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../authentication/useAuth";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+
 
 export const Navbar = () => {
-	const { isAuthenticated, role } = useAuth();
+	const { store } = useGlobalReducer();
+	const { isAuthenticated, role } = store.auth;
 
 	return (
 		<nav className="navbar navbar-light bg-light">
@@ -11,15 +13,6 @@ export const Navbar = () => {
 
 				<div className="d-flex  gap-4 ">
 
-					{/* <Link to="/">
-						<span className="navbar-brand mb-0 h1 ">TiBACK</span>
-					</Link>
-
-					{isAuthenticated && (
-						<Link to={`/${role}`}>
-							<button className="btn btn-primary">Dashboard</button>
-						</Link>
-					)} */}
 					<div className="d-flex flex-column align-items-center">
 						<Link to="/">
 							<span className="navbar-brand mb-0 h1">TiBACK</span>

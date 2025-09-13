@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './useAuth';
+import useGlobalReducer from '../hooks/useGlobalReducer';
 
 export function AuthForm() {
     const [isLogin, setIsLogin] = useState(true);
@@ -13,9 +13,8 @@ export function AuthForm() {
         telefono: ''
     });
     const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
 
-    const { login, register } = useAuth();
+   const { login, register, store } = useGlobalReducer();
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -28,7 +27,7 @@ export function AuthForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setIsLoading(true);
+        
 
         try {
             let result;
@@ -36,7 +35,7 @@ export function AuthForm() {
             if (isLogin) {
                 result = await login(formData.email, formData.password);
             } else {
-                // Para registro, solo enviar campos necesarios
+                
                 const registerData = {
                     nombre: formData.nombre,
                     apellido: formData.apellido,
@@ -44,21 +43,20 @@ export function AuthForm() {
                     password: formData.password,
                     direccion: formData.direccion,
                     telefono: formData.telefono,
-                    role: 'cliente' // Rol fijo para clientes
+                    role: 'cliente' 
                 };
                 result = await register(registerData);
             }
 
             if (result.success) {
-                // Redirigir según el rol
+                
                 navigate('/cliente');
             } else {
                 setError(result.error);
             }
         } catch (err) {
             setError('Error inesperado. Inténtalo de nuevo.');
-        } finally {
-            setIsLoading(false);
+        
         }
     };
 
@@ -182,9 +180,9 @@ export function AuthForm() {
                                     <button
                                         type="submit"
                                         className="btn btn-primary"
-                                        disabled={isLoading}
+                                        disabled={store.auth.isLoading}
                                     >
-                                        {isLoading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')}
+                                        {store.auth.isLoading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')}
                                     </button>
                                 </div>
                             </form>
