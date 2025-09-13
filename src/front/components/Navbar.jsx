@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../authentication/useAuth";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+
 
 export const Navbar = () => {
-	const { isAuthenticated, role } = useAuth();
+	const { store } = useGlobalReducer();
+	const { isAuthenticated, role } = store.auth;
 
 	return (
 		<nav className="navbar navbar-light bg-light">

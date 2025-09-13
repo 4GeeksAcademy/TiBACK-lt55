@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../authentication/useAuth';
+import useGlobalReducer from '../../hooks/useGlobalReducer';
 
 export function ClientePage() {
-    const { user, logout } = useAuth();
+     const { store, logout } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -12,7 +12,7 @@ export function ClientePage() {
         const cargarTickets = async () => {
             try {
                 setLoading(true);
-                const token = localStorage.getItem('accessToken');
+                    const token = store.auth.accessToken;
 
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
                     headers: {
@@ -35,7 +35,7 @@ export function ClientePage() {
         };
 
         cargarTickets();
-    }, []);
+   }, [store.auth.accessToken]);
 
     const crearTicket = async (e) => {
         e.preventDefault();
@@ -47,7 +47,7 @@ export function ClientePage() {
         };
 
         try {
-            const token = localStorage.getItem('accessToken');
+           const token = store.auth.accessToken;
 
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets`, {
                 method: 'POST',
@@ -96,7 +96,7 @@ export function ClientePage() {
                     <div className="card">
                         <div className="card-body d-flex justify-content-between align-items-center">
                             <div>
-                                <h2 className="mb-1">Bienvenido, {user?.nombre} {user?.apellido}</h2>
+                                <h2 className="mb-1">Bienvenido, {store.auth.user?.nombre} {store.auth.user?.apellido}</h2>
                                 <p className="text-muted mb-0">Panel de Cliente - Gestión de Tickets</p>
                             </div>
                             <button
