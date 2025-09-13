@@ -12,7 +12,7 @@ export function ClientePage() {
         const cargarTickets = async () => {
             try {
                 setLoading(true);
-                    const token = store.auth.accessToken;
+                   const token = store.auth.token;
 
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
                     headers: {
@@ -35,7 +35,7 @@ export function ClientePage() {
         };
 
         cargarTickets();
-   }, [store.auth.accessToken]);
+  }, [store.auth.token]);
 
     const crearTicket = async (e) => {
         e.preventDefault();
@@ -47,7 +47,7 @@ export function ClientePage() {
         };
 
         try {
-           const token = store.auth.accessToken;
+            const token = store.auth.token;
 
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets`, {
                 method: 'POST',

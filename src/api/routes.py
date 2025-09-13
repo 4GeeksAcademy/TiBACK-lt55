@@ -5,8 +5,8 @@ from flask import Flask, request, jsonify, url_for, Blueprint
 from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
 from api.utils import generate_sitemap, APIException
 from api.jwt_utils import (
-    generate_access_token, generate_refresh_token, verify_token, 
-    require_auth, require_role, refresh_access_token, get_user_from_token
+    generate_token, verify_token, 
+    require_auth, require_role, refresh_token, get_user_from_token
 )
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
@@ -469,7 +469,7 @@ def create_ticket():
         try:
              # Verificar token JWT
             token = auth_header.split(' ')[1]
-            payload = verify_token(token, 'access')
+            payload = verify_token(token)
             if not payload or payload['role'] != 'cliente':
                 return jsonify({"message": "Token inválido o acceso denegado"}), 401
             
@@ -671,13 +671,12 @@ def register():
         db.session.commit()
         
         # Generar tokens JWT seguros
-        access_token = generate_access_token(cliente.id, cliente.email, 'cliente')
-        refresh_token = generate_refresh_token(cliente.id, cliente.email, 'cliente')
-        
+        # Generar token JWT seguro
+        token = generate_token(cliente.id, cliente.email, 'cliente')
+
         return jsonify({
             "message": "Cliente registrado exitosamente",
-            "accessToken": access_token,
-            "refreshToken": refresh_token,
+            "token": token,
             "user": cliente.serialize(),
             "role": "cliente"
         }), 201
@@ -707,14 +706,12 @@ def login():
         if cliente.contraseña_hash != password:
             return jsonify({"message": "Credenciales inválidas"}), 401
         
-        # Generar tokens JWT seguros
-        access_token = generate_access_token(cliente.id, cliente.email, 'cliente')
-        refresh_token = generate_refresh_token(cliente.id, cliente.email, 'cliente')
+        # Generar token JWT seguro
+        token = generate_token(cliente.id, cliente.email, 'cliente')
         
         return jsonify({
             "message": "Login exitoso",
-            "accessToken": access_token,
-            "refreshToken": refresh_token,
+            "token": token,
             "user": cliente.serialize(),
             "role": "cliente"
         }), 200
@@ -724,24 +721,23 @@ def login():
 
 
 @api.route('/refresh', methods=['POST'])
-def refresh_token():
-    """Refrescar token de acceso con JWT"""
+def refresh_token_endpoint():
+    """Refrescar token con JWT"""
     body = request.get_json(silent=True) or {}
-    refresh_token = body.get('refreshToken')
+    old_token = body.get('token')
     
-    if not refresh_token:
-        return jsonify({"message": "Refresh token requerido"}), 400
-    
+    if not old_token:
+         return jsonify({"message": "Token requerido"}), 400
+
     try:
-        # Usar la función JWT para refrescar tokens
-        new_tokens = refresh_access_token(refresh_token)
+        # Usar la función JWT para refrescar token
+        new_token = refresh_token(old_token)
         
-        if not new_tokens:
-            return jsonify({"message": "Refresh token inválido o expirado"}), 401
+        if not new_token:
+         return jsonify({"message": "Token inválido o expirado"}), 401
         
         return jsonify({
-            "accessToken": new_tokens['access_token'],
-            "refreshToken": new_tokens['refresh_token']
+            "token": new_token
         }), 200
         
     except Exception as e:

@@ -1,6 +1,6 @@
 """
 JWT Utilities for TiBACK Authentication System
-Provides secure token generation, validation, and refresh functionality
+Provides secure token generation and validation with role-based tokens
 """
 import jwt
 import os
@@ -11,62 +11,41 @@ from flask import request, jsonify
 # JWT Configuration
 JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-super-secret-jwt-key-change-in-production')
 JWT_ALGORITHM = 'HS256'
-ACCESS_TOKEN_EXPIRE_MINUTES = 15  # 15 minutes
-REFRESH_TOKEN_EXPIRE_DAYS = 7     # 7 days
+TOKEN_EXPIRE_HOURS = 24  # 24 hours for all roles
 
-def generate_access_token(user_id, email, role):
+def generate_token(user_id, email, role):
     """
-    Generate a secure JWT access token
+    Generate a secure JWT token based on user role
     
     Args:
         user_id (int): User ID
         email (str): User email
-        role (str): User role
+        role (str): User role (administrador, cliente, supervisor, analista)
     
     Returns:
-        str: JWT access token
+        str: JWT token
     """
+    # Validar que el rol sea uno de los permitidos
+    valid_roles = ['administrador', 'cliente', 'supervisor', 'analista']
+    if role not in valid_roles:
+        raise ValueError(f"Rol inválido: {role}. Roles permitidos: {valid_roles}")
+    
     payload = {
         'user_id': user_id,
         'email': email,
         'role': role,
-        'type': 'access',
         'iat': datetime.utcnow(),
-        'exp': datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        'exp': datetime.utcnow() + timedelta(hours=TOKEN_EXPIRE_HOURS)
     }
     
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
-def generate_refresh_token(user_id, email, role):
-    """
-    Generate a secure JWT refresh token
-    
-    Args:
-        user_id (int): User ID
-        email (str): User email
-        role (str): User role
-    
-    Returns:
-        str: JWT refresh token
-    """
-    payload = {
-        'user_id': user_id,
-        'email': email,
-        'role': role,
-        'type': 'refresh',
-        'iat': datetime.utcnow(),
-        'exp': datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    }
-    
-    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-def verify_token(token, token_type='access'):
+def verify_token(token):
     """
     Verify and decode a JWT token
     
     Args:
         token (str): JWT token to verify
-        token_type (str): Expected token type ('access' or 'refresh')
     
     Returns:
         dict: Decoded token payload if valid, None if invalid
@@ -74,12 +53,13 @@ def verify_token(token, token_type='access'):
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         
-        # Verify token type
-        if payload.get('type') != token_type:
-            return None
-            
         # Verify token is not expired
         if datetime.utcnow() > datetime.fromtimestamp(payload['exp']):
+            return None
+            
+        # Verify role is valid
+        valid_roles = ['administrador', 'cliente', 'supervisor', 'analista']
+        if payload.get('role') not in valid_roles:
             return None
             
         return payload
@@ -120,7 +100,7 @@ def require_auth(f):
         if not token:
             return jsonify({'message': 'Token de autorización requerido'}), 401
         
-        payload = verify_token(token, 'access')
+        payload = verify_token(token)
         if not payload:
             return jsonify({'message': 'Token inválido o expirado'}), 401
         
@@ -153,7 +133,7 @@ def require_role(allowed_roles):
             if not token:
                 return jsonify({'message': 'Token de autorización requerido'}), 401
             
-            payload = verify_token(token, 'access')
+            payload = verify_token(token)
             if not payload:
                 return jsonify({'message': 'Token inválido o expirado'}), 401
             
@@ -173,36 +153,26 @@ def require_role(allowed_roles):
         return decorated_function
     return decorator
 
-def refresh_access_token(refresh_token):
+def refresh_token(old_token):
     """
-    Generate new access token from refresh token
+    Generate new token from existing token
     
     Args:
-        refresh_token (str): Valid refresh token
+        old_token (str): Valid token
     
     Returns:
-        dict: New access token and refresh token if valid, None if invalid
+        str: New token if valid, None if invalid
     """
-    payload = verify_token(refresh_token, 'refresh')
+    payload = verify_token(old_token)
     if not payload:
         return None
     
-    # Generate new tokens
-    new_access_token = generate_access_token(
+    # Generate new token with same role
+    return generate_token(
         payload['user_id'], 
         payload['email'], 
         payload['role']
     )
-    new_refresh_token = generate_refresh_token(
-        payload['user_id'], 
-        payload['email'], 
-        payload['role']
-    )
-    
-    return {
-        'access_token': new_access_token,
-        'refresh_token': new_refresh_token
-    }
 
 def get_user_from_token():
     """
