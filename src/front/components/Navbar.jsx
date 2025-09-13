@@ -13,15 +13,6 @@ export const Navbar = () => {
 
 				<div className="d-flex  gap-4 ">
 
-					{/* <Link to="/">
-						<span className="navbar-brand mb-0 h1 ">TiBACK</span>
-					</Link>
-
-					{isAuthenticated && (
-						<Link to={`/${role}`}>
-							<button className="btn btn-primary">Dashboard</button>
-						</Link>
-					)} */}
 					<div className="d-flex flex-column align-items-center">
 						<Link to="/">
 							<span className="navbar-brand mb-0 h1">TiBACK</span>

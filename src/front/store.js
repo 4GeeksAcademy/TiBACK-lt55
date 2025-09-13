@@ -96,7 +96,7 @@ export const authActions = {
     }
   },
 
-  // Register
+  // Registro
   register: async (userData, dispatch) => {
     try {
       dispatch({ type: 'auth_loading', payload: true });
@@ -208,7 +208,7 @@ export const authActions = {
     }
   },
 
-  // Check if token is expiring soon
+  
   isTokenExpiringSoon: () => {
     try {
       const token = localStorage.getItem('accessToken');
@@ -225,7 +225,7 @@ export const authActions = {
     }
   },
 
-  // Check user role
+   
   hasRole: (userRole, allowedRoles) => {
     if (!Array.isArray(allowedRoles)) {
       allowedRoles = [allowedRoles];
@@ -236,7 +236,7 @@ export const authActions = {
 
 export default function storeReducer(store, action = {}) {
   switch (action.type) {
-      // acciones de autenticacion
+      
     case 'auth_loading':
       return {
         ...store,
@@ -294,7 +294,7 @@ export default function storeReducer(store, action = {}) {
         }
       };
 
-      // Quitar extras de la plantilla
+       
     case "set_hello":
       return {
         ...store,
@@ -407,8 +407,7 @@ export default function storeReducer(store, action = {}) {
         api: { loading: false, error: null },
       };
 
-    // ___________________________________________________________________________________________________________
-
+     
     case "supervisores_add":
       return {
         ...store,
