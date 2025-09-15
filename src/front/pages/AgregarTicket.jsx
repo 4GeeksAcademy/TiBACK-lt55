@@ -10,7 +10,7 @@ const AgregarTicket = () => {
 
     const [nuevoTicket, setNuevoTicket] = useState({
         id_cliente: "",
-        estado: "abierto",
+        estado: "creado",
         titulo: "",
         descripcion: "",
         fecha_creacion: new Date().toISOString().split('T')[0],
@@ -20,10 +20,24 @@ const AgregarTicket = () => {
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
 
-    const fetchJson = (url, options = {}) =>
-        fetch(url, options)
-            .then(res => res.json().then(data => ({ ok: res.ok, data })))
-            .catch(err => ({ ok: false, data: { message: err.message } }));
+    const fetchJson = (url, options = {}) => {
+        const token = store.auth.token;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        return fetch(url, {
+            ...options,
+            headers
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .catch(err => ({ ok: false, data: { message: err.message } }));
+    };
 
     const manejarEnvio = (e) => {
         e.preventDefault();
@@ -31,7 +45,6 @@ const AgregarTicket = () => {
 
         fetchJson(`${API}/tickets`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(nuevoTicket)
         })
             .then(({ ok, data }) => {
@@ -70,10 +83,13 @@ const AgregarTicket = () => {
                             value={nuevoTicket.estado}
                             onChange={e => setNuevoTicket(s => ({ ...s, estado: e.target.value }))}
                         >
-                            <option value="abierto">Abierto</option>
+                            <option value="creado">Creado</option>
+                            <option value="recibido">Recibido</option>
+                            <option value="en_espera">En Espera</option>
                             <option value="en_proceso">En Proceso</option>
+                            <option value="solucionado">Solucionado</option>
                             <option value="cerrado">Cerrado</option>
-                            <option value="pendiente">Pendiente</option>
+                            <option value="reabierto">Reabierto</option>
                         </select>
                     </div>
                     <div className="col-12">

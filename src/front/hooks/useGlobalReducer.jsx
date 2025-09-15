@@ -30,7 +30,7 @@ export function StoreProvider({ children }) {
         store,
         dispatch,
         // Auth functions
-        login: (email, password) => authActions.login(email, password, dispatch),
+        login: (email, password, role) => authActions.login(email, password, role, dispatch),
         register: (userData) => authActions.register(userData, dispatch),
         logout: () => authActions.logout(dispatch),
         refresh: () => authActions.refresh(dispatch),

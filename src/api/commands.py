@@ -1,6 +1,6 @@
 
 import click
-from api.models import db, User
+from api.models import db, User, Cliente, Analista, Supervisor, Administrador
 
 """
 In this file, you can add as many commands as you want using the @app.cli.command decorator
@@ -31,4 +31,66 @@ def setup_commands(app):
 
     @app.cli.command("insert-test-data")
     def insert_test_data():
-        pass
+        print("Creating test data for all roles")
+        
+        # Crear cliente de prueba
+        try:
+            cliente = Cliente(
+                nombre="Juan",
+                apellido="Pérez",
+                email="cliente@test.com",
+                contraseña_hash="123456",
+                direccion="Calle Principal 123",
+                telefono="555-0001"
+            )
+            db.session.add(cliente)
+            print("Cliente de prueba creado: cliente@test.com")
+        except Exception as e:
+            print(f"Error creando cliente: {e}")
+        
+        # Crear analista de prueba
+        try:
+            analista = Analista(
+                nombre="María",
+                apellido="González",
+                email="analista@test.com",
+                contraseña_hash="123456",
+                especialidad="Soporte Técnico"
+            )
+            db.session.add(analista)
+            print("Analista de prueba creado: analista@test.com")
+        except Exception as e:
+            print(f"Error creando analista: {e}")
+        
+        # Crear supervisor de prueba
+        try:
+            supervisor = Supervisor(
+                nombre="Carlos",
+                apellido="López",
+                email="supervisor@test.com",
+                contraseña_hash="123456",
+                area_responsable="Soporte y Mantenimiento"
+            )
+            db.session.add(supervisor)
+            print("Supervisor de prueba creado: supervisor@test.com")
+        except Exception as e:
+            print(f"Error creando supervisor: {e}")
+        
+        # Crear administrador de prueba
+        try:
+            administrador = Administrador(
+                email="admin@test.com",
+                contraseña_hash="123456",
+                permisos_especiales="Gestión completa del sistema"
+            )
+            db.session.add(administrador)
+            print("Administrador de prueba creado: admin@test.com")
+        except Exception as e:
+            print(f"Error creando administrador: {e}")
+        
+        try:
+            db.session.commit()
+            print("Todos los usuarios de prueba creados exitosamente!")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error al guardar usuarios: {e}")

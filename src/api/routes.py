@@ -5,12 +5,13 @@ from flask import Flask, request, jsonify, url_for, Blueprint
 from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
 from api.utils import generate_sitemap, APIException
 from api.jwt_utils import (
-    generate_access_token, generate_refresh_token, verify_token, 
-    require_auth, require_role, refresh_access_token, get_user_from_token
+    generate_token, verify_token, 
+    require_auth, require_role, refresh_token, get_user_from_token
 )
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
 
+from datetime import datetime
 api = Blueprint('api', __name__)
 
 # Allow CORS requests to this API
@@ -28,12 +29,14 @@ def handle_hello():
 
 
 @api.route('/clientes', methods=['GET'])
+@require_role(['administrador', 'cliente'])
 def listar_clientes():
     clientes = Cliente.query.all()
     return jsonify([c.serialize() for c in clientes]), 200
 
 
 @api.route('/clientes', methods=['POST'])
+@require_role(['administrador', 'cliente'])
 def create_cliente():
     body = request.get_json(silent=True) or {}
     required = ["direccion", "telefono", "nombre",
@@ -55,6 +58,7 @@ def create_cliente():
 
 
 @api.route('/clientes/<int:id>', methods=['GET'])
+@require_role(['administrador', 'cliente'])
 def get_cliente(id):
     cliente = db.session.get(Cliente, id)
     if not cliente:
@@ -63,6 +67,7 @@ def get_cliente(id):
 
 
 @api.route('/clientes/<int:id>', methods=['PUT'])
+@require_role(['administrador', 'cliente'])
 def update_cliente(id):
     body = request.get_json(silent=True) or {}
     cliente = db.session.get(Cliente, id)
@@ -83,6 +88,7 @@ def update_cliente(id):
 
 
 @api.route('/clientes/<int:id>', methods=['DELETE'])
+@require_role(['administrador', 'cliente'])
 def delete_cliente(id):
     cliente = db.session.get(Cliente, id)
     if not cliente:
@@ -99,12 +105,14 @@ def delete_cliente(id):
 # analista
 
 @api.route('/analistas', methods=['GET'])
+@require_role(['administrador', 'analista', 'supervisor'])
 def listar_analistas():
     analistas = Analista.query.all()
     return jsonify([a.serialize() for a in analistas]), 200
 
 
 @api.route('/analistas', methods=['POST'])
+@require_role(['administrador', 'analista'])
 def create_analista():
     body = request.get_json(silent=True) or {}
     required = ["especialidad", "nombre",
@@ -126,6 +134,7 @@ def create_analista():
 
 
 @api.route('/analistas/<int:id>', methods=['GET'])
+@require_role(['administrador', 'analista', 'supervisor'])
 def get_analista(id):
     analista = db.session.get(Analista, id)
     if not analista:
@@ -134,6 +143,7 @@ def get_analista(id):
 
 
 @api.route('/analistas/<int:id>', methods=['PUT'])
+@require_role(['administrador', 'analista'])
 def update_analista(id):
     body = request.get_json(silent=True) or {}
     analista = db.session.get(Analista, id)
@@ -154,6 +164,7 @@ def update_analista(id):
 
 
 @api.route('/analistas/<int:id>', methods=['DELETE'])
+@require_role(['administrador', 'analista'])
 def delete_analista(id):
     analista = db.session.get(Analista, id)
     if not analista:
@@ -169,12 +180,14 @@ def delete_analista(id):
 
 # supervisor
 @api.route('/supervisores', methods=['GET'])
+@require_role(['administrador', 'supervisor'])
 def listar_supervisores():
     supervisores = Supervisor.query.all()
     return jsonify([s.serialize() for s in supervisores]), 200
 
 
 @api.route('/supervisores', methods=['POST'])
+@require_role(['administrador', 'supervisor'])
 def create_supervisor():
     body = request.get_json(silent=True) or {}
     required = ["area_responsable", "nombre",
@@ -196,6 +209,7 @@ def create_supervisor():
 
 
 @api.route('/supervisores/<int:id>', methods=['GET'])
+@require_role(['administrador', 'supervisor'])
 def get_supervisor(id):
     supervisor = db.session.get(Supervisor, id)
     if not supervisor:
@@ -204,6 +218,7 @@ def get_supervisor(id):
 
 
 @api.route('/supervisores/<int:id>', methods=['PUT'])
+@require_role(['administrador', 'supervisor'])
 def update_supervisor(id):
     body = request.get_json(silent=True) or {}
     supervisor = db.session.get(Supervisor, id)
@@ -224,6 +239,7 @@ def update_supervisor(id):
 
 
 @api.route('/supervisores/<int:id>', methods=['DELETE'])
+@require_role(['administrador', 'supervisor'])
 def delete_supervisor(id):
     supervisor = db.session.get(Supervisor, id)
     if not supervisor:
@@ -240,21 +256,67 @@ def delete_supervisor(id):
 # Comentarios
 
 @api.route('/comentarios', methods=['GET'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def listar_comentarios():
     comentarios = Comentarios.query.all()
     return jsonify([c.serialize() for c in comentarios]), 200
 
 
+@api.route('/tickets/<int:id>/comentarios', methods=['GET'])
+@require_role(['cliente', 'analista', 'supervisor', 'administrador'])
+def get_ticket_comentarios(id):
+    """Obtener comentarios de un ticket específico"""
+    try:
+        user = get_user_from_token()
+        ticket = db.session.get(Ticket, id)
+        
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Verificar permisos
+        if user['role'] == 'cliente' and ticket.id_cliente != user['id']:
+            return jsonify({"message": "No tienes permisos para ver este ticket"}), 403
+        
+        # Para analistas, verificar que el ticket esté asignado a ellos
+        if user['role'] == 'analista':
+            asignacion = Asignacion.query.filter_by(id_ticket=id, id_analista=user['id']).first()
+            if not asignacion:
+                return jsonify({"message": "No tienes permisos para ver este ticket"}), 403
+        
+        comentarios = Comentarios.query.filter_by(id_ticket=id).order_by(Comentarios.fecha_comentario).all()
+        return jsonify([c.serialize() for c in comentarios]), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener comentarios: {str(e)}"}), 500
+
+
 @api.route('/comentarios', methods=['POST'])
+@require_role(['analista', 'supervisor', 'cliente', 'administrador'])
 def create_comentario():
     body = request.get_json(silent=True) or {}
-    required = ["id_gestion", "id_cliente", "id_analista",
-                "id_supervisor", "texto", "fecha_comentario"]
+    user = get_user_from_token()
+    
+    required = ["id_ticket", "texto"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+    
     try:
-        comentario = Comentarios(**{k: body[k] for k in required})
+        # Determinar quién está comentando
+        id_cliente = user['id'] if user['role'] == 'cliente' else body.get('id_cliente')
+        id_analista = user['id'] if user['role'] == 'analista' else body.get('id_analista')
+        id_supervisor = user['id'] if user['role'] == 'supervisor' else body.get('id_supervisor')
+        id_gestion = body.get('id_gestion')
+        
+        comentario = Comentarios(
+            id_ticket=body["id_ticket"],
+            id_gestion=id_gestion,
+            id_cliente=id_cliente,
+            id_analista=id_analista,
+            id_supervisor=id_supervisor,
+            texto=body["texto"],
+            fecha_comentario=datetime.now()
+        )
         db.session.add(comentario)
         db.session.commit()
         return jsonify(comentario.serialize()), 201
@@ -267,6 +329,7 @@ def create_comentario():
 
 
 @api.route('/comentarios/<int:id>', methods=['GET'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def get_comentario(id):
     comentario = db.session.get(Comentarios, id)
     if not comentario:
@@ -275,6 +338,7 @@ def get_comentario(id):
 
 
 @api.route('/comentarios/<int:id>', methods=['PUT'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def update_comentario(id):
     body = request.get_json(silent=True) or {}
     comentario = db.session.get(Comentarios, id)
@@ -283,7 +347,10 @@ def update_comentario(id):
     try:
         for field in ["id_gestion", "id_cliente", "id_analista", "id_supervisor", "texto", "fecha_comentario"]:
             if field in body:
-                setattr(comentario, field, body[field])
+                value = body[field]
+                if field == "fecha_comentario" and value:
+                    value = datetime.fromisoformat(value)
+                setattr(comentario, field, value)
         db.session.commit()
         return jsonify(comentario.serialize()), 200
     except IntegrityError:
@@ -295,6 +362,7 @@ def update_comentario(id):
 
 
 @api.route('/comentarios/<int:id>', methods=['DELETE'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def delete_comentario(id):
     comentario = db.session.get(Comentarios, id)
     if not comentario:
@@ -311,12 +379,14 @@ def delete_comentario(id):
 # Asignacion
 
 @api.route('/asignaciones', methods=['GET'])
+@require_role(['supervisor', 'administrador', 'analista'])
 def listar_asignaciones():
     asignaciones = Asignacion.query.all()
     return jsonify([a.serialize() for a in asignaciones]), 200
 
 
 @api.route('/asignaciones', methods=['POST'])
+@require_role(['supervisor', 'administrador', 'analista'])
 def create_asignacion():
     body = request.get_json(silent=True) or {}
     required = ["id_ticket", "id_supervisor",
@@ -325,7 +395,12 @@ def create_asignacion():
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
     try:
-        asignacion = Asignacion(**{k: body[k] for k in required})
+        asignacion = Asignacion(
+            id_ticket=body["id_ticket"],
+            id_supervisor=body["id_supervisor"],
+            id_analista=body["id_analista"],
+            fecha_asignacion=datetime.fromisoformat(body["fecha_asignacion"])
+        )
         db.session.add(asignacion)
         db.session.commit()
         return jsonify(asignacion.serialize()), 201
@@ -338,6 +413,7 @@ def create_asignacion():
 
 
 @api.route('/asignaciones/<int:id>', methods=['GET'])
+@require_role(['supervisor', 'administrador', 'analista'])
 def get_asignacion(id):
     asignacion = db.session.get(Asignacion, id)
     if not asignacion:
@@ -346,6 +422,7 @@ def get_asignacion(id):
 
 
 @api.route('/asignaciones/<int:id>', methods=['PUT'])
+@require_role(['supervisor', 'administrador', 'analista'])
 def update_asignacion(id):
     body = request.get_json(silent=True) or {}
     asignacion = db.session.get(Asignacion, id)
@@ -354,7 +431,10 @@ def update_asignacion(id):
     try:
         for field in ["id_ticket", "id_supervisor", "id_analista", "fecha_asignacion"]:
             if field in body:
-                setattr(asignacion, field, body[field])
+                value = body[field]
+                if field == "fecha_asignacion" and value:
+                    value = datetime.fromisoformat(value)
+                setattr(asignacion, field, value)
         db.session.commit()
         return jsonify(asignacion.serialize()), 200
     except IntegrityError:
@@ -366,6 +446,7 @@ def update_asignacion(id):
 
 
 @api.route('/asignaciones/<int:id>', methods=['DELETE'])
+@require_role(['supervisor', 'administrador', 'analista'])
 def delete_asignacion(id):
     asignacion = db.session.get(Asignacion, id)
     if not asignacion:
@@ -382,12 +463,14 @@ def delete_asignacion(id):
 # Administrador
 
 @api.route('/administradores', methods=['GET'])
+@require_role(['administrador'])
 def listar_administradores():
     administradores = Administrador.query.all()
     return jsonify([a.serialize() for a in administradores]), 200
 
 
 @api.route('/administradores', methods=['POST'])
+@require_role(['administrador'])
 def create_administrador():
     body = request.get_json(silent=True) or {}
     required = ["permisos_especiales", "email", "contraseña_hash"]
@@ -408,6 +491,7 @@ def create_administrador():
 
 
 @api.route('/administradores/<int:id>', methods=['GET'])
+@require_role(['administrador'])
 def get_administrador(id):
     administrador = db.session.get(Administrador, id)
     if not administrador:
@@ -416,6 +500,7 @@ def get_administrador(id):
 
 
 @api.route('/administradores/<int:id>', methods=['PUT'])
+@require_role(['administrador'])
 def update_administrador(id):
     body = request.get_json(silent=True) or {}
     administrador = db.session.get(Administrador, id)
@@ -436,6 +521,7 @@ def update_administrador(id):
 
 
 @api.route('/administradores/<int:id>', methods=['DELETE'])
+@require_role(['administrador'])
 def delete_administrador(id):
     administrador = db.session.get(Administrador, id)
     if not administrador:
@@ -452,77 +538,63 @@ def delete_administrador(id):
 # Tickets
 
 @api.route('/tickets', methods=['GET'])
+@require_role(['administrador', 'supervisor', 'analista'])
 def listar_tickets():
     tickets = Ticket.query.all()
     return jsonify([t.serialize() for t in tickets]), 200
 
 
 @api.route('/tickets', methods=['POST'])
+@require_role(['cliente', 'administrador'])
 def create_ticket():
     body = request.get_json(silent=True) or {}
+    user = get_user_from_token()
 
-     # Verificar si hay token de autenticación
-    
-    auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '):
-        # Crear ticket autenticado (desde panel de cliente)
-        try:
-             # Verificar token JWT
-            token = auth_header.split(' ')[1]
-            payload = verify_token(token, 'access')
-            if not payload or payload['role'] != 'cliente':
-                return jsonify({"message": "Token inválido o acceso denegado"}), 401
-            
-            cliente_id = payload['user_id']
-            
-            # Validar campos requeridos para cliente autenticado
-            required = ["titulo", "descripcion", "prioridad"]
-            missing = [k for k in required if not body.get(k)]
-            if missing:
-                return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
-            
-            # Crear ticket con datos del cliente autenticado
-            from datetime import datetime
-            ticket = Ticket(
-                id_cliente=cliente_id,
-                estado="abierto",
-                titulo=body['titulo'],
-                descripcion=body['descripcion'],
-                fecha_creacion=datetime.now().isoformat(),
-                prioridad=body['prioridad']
-            )
-            
-            db.session.add(ticket)
-            db.session.commit()
-            return jsonify(ticket.serialize()), 201
-            
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"message": f"Error al crear ticket: {str(e)}"}), 500
-    
-    else:
-
-        # Crear ticket sin autenticación (desde panel admin)
-
-        required = ["id_cliente", "estado", "titulo",
-                    "descripcion", "fecha_creacion", "prioridad"]
+    if user['role'] == 'cliente':
+        required = ["titulo", "descripcion", "prioridad"]
         missing = [k for k in required if not body.get(k)]
         if missing:
             return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
-        try:
-            ticket = Ticket(**{k: body[k] for k in required})
-            db.session.add(ticket)
-            db.session.commit()
-            return jsonify(ticket.serialize()), 201
-        except IntegrityError:
-            db.session.rollback()
-            return jsonify({"message": "Error de integridad en la base de datos"}), 400
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+        ticket = Ticket(
+            id_cliente=user['id'],
+            estado="creado",
+            titulo=body['titulo'],
+            descripcion=body['descripcion'],
+            fecha_creacion=datetime.now(),
+            prioridad=body['prioridad']
+        )
+        db.session.add(ticket)
+        db.session.commit()
+        return jsonify(ticket.serialize()), 201
+
+    required = ["id_cliente", "estado", "titulo",
+                "descripcion", "fecha_creacion", "prioridad"]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+    try:
+        ticket = Ticket(
+            id_cliente=body["id_cliente"],
+            estado=body["estado"],
+            titulo=body["titulo"],
+            descripcion=body["descripcion"],
+            fecha_creacion=datetime.fromisoformat(body["fecha_creacion"]),
+            prioridad=body["prioridad"],
+        )
+        db.session.add(ticket)
+        db.session.commit()
+        return jsonify(ticket.serialize()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
 
 @api.route('/tickets/<int:id>', methods=['GET'])
+@require_role(['cliente', 'analista', 'supervisor', 'administrador'])
 def get_ticket(id):
     ticket = db.session.get(Ticket, id)
     if not ticket:
@@ -531,6 +603,7 @@ def get_ticket(id):
 
 
 @api.route('/tickets/<int:id>', methods=['PUT'])
+@require_role(['cliente', 'analista', 'supervisor', 'administrador'])
 def update_ticket(id):
     body = request.get_json(silent=True) or {}
     ticket = db.session.get(Ticket, id)
@@ -540,7 +613,10 @@ def update_ticket(id):
         for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion",
                       "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion"]:
             if field in body:
-                setattr(ticket, field, body[field])
+                value = body[field]
+                if field in ["fecha_creacion", "fecha_cierre", "fecha_evaluacion"] and value:
+                    value = datetime.fromisoformat(value)
+                setattr(ticket, field, value)
         db.session.commit()
         return jsonify(ticket.serialize()), 200
     except IntegrityError:
@@ -552,11 +628,28 @@ def update_ticket(id):
 
 
 @api.route('/tickets/<int:id>', methods=['DELETE'])
+@require_role(['administrador'])
 def delete_ticket(id):
     ticket = db.session.get(Ticket, id)
     if not ticket:
         return jsonify({"message": "Ticket no encontrado"}), 404
     try:
+        # Eliminar asignaciones relacionadas primero
+        asignaciones = Asignacion.query.filter_by(id_ticket=id).all()
+        for asignacion in asignaciones:
+            db.session.delete(asignacion)
+        
+        # Eliminar comentarios relacionados
+        comentarios = Comentarios.query.filter_by(id_ticket=id).all()
+        for comentario in comentarios:
+            db.session.delete(comentario)
+        
+        # Eliminar gestiones relacionadas
+        gestiones = Gestion.query.filter_by(id_ticket=id).all()
+        for gestion in gestiones:
+            db.session.delete(gestion)
+        
+        # Finalmente eliminar el ticket
         db.session.delete(ticket)
         db.session.commit()
         return jsonify({"message": "Ticket eliminado"}), 200
@@ -568,12 +661,14 @@ def delete_ticket(id):
 # Gestión
 
 @api.route('/gestiones', methods=['GET'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def obtener_gestiones():
     gestiones = Gestion.query.all()
     return jsonify([t.serialize() for t in gestiones]), 200
 
 
 @api.route('/gestiones', methods=['POST'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def crear_gestion():
     body = request.get_json(silent=True) or {}
     required = ["id_ticket", "fecha_cambio", "Nota_de_caso",]
@@ -581,7 +676,11 @@ def crear_gestion():
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
     try:
-        gestion = Gestion(**{k: body[k] for k in required})
+        gestion = Gestion(
+            id_ticket=body["id_ticket"],
+            fecha_cambio=datetime.fromisoformat(body["fecha_cambio"]),
+            Nota_de_caso=body["Nota_de_caso"],
+        )
         db.session.add(gestion)
         db.session.commit()
         return jsonify(gestion.serialize()), 201
@@ -594,6 +693,7 @@ def crear_gestion():
 
 
 @api.route('/gestiones/<int:id>', methods=['GET'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def ver_gestion(id):
     gestion = db.session.get(Gestion, id)
     if not gestion:
@@ -602,6 +702,7 @@ def ver_gestion(id):
 
 
 @api.route('/gestiones/<int:id>', methods=['PUT'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def actualizar_gestion(id):
     body = request.get_json(silent=True) or {}
     gestion = db.session.get(Gestion, id)
@@ -610,7 +711,10 @@ def actualizar_gestion(id):
     try:
         for field in ["id_ticket", "fecha_cambio", "Nota_de_caso",]:
             if field in body:
-                setattr(gestion, field, body[field])
+                value = body[field]
+                if field == "fecha_cambio" and value:
+                    value = datetime.fromisoformat(value)
+                setattr(gestion, field, value)
         db.session.commit()
         return jsonify(gestion.serialize()), 200
     except IntegrityError:
@@ -622,6 +726,7 @@ def actualizar_gestion(id):
 
 
 @api.route('/gestiones/<int:id>', methods=['DELETE'])
+@require_role(['analista', 'supervisor', 'administrador', 'cliente'])
 def eliminar_gestion(id):
     gestion = db.session.get(Gestion, id)
     if not gestion:
@@ -670,16 +775,9 @@ def register():
         db.session.add(cliente)
         db.session.commit()
         
-        # Generar tokens JWT seguros
-        access_token = generate_access_token(cliente.id, cliente.email, 'cliente')
-        refresh_token = generate_refresh_token(cliente.id, cliente.email, 'cliente')
-        
         return jsonify({
-            "message": "Cliente registrado exitosamente",
-            "accessToken": access_token,
-            "refreshToken": refresh_token,
-            "user": cliente.serialize(),
-            "role": "cliente"
+            "message": "Cliente registrado exitosamente. Por favor inicia sesión con tus credenciales.",
+            "success": True
         }), 201
         
     except Exception as e:
@@ -693,55 +791,58 @@ def login():
     body = request.get_json(silent=True) or {}
     email = body.get('email')
     password = body.get('password')
+    role = body.get('role', 'cliente')
     
     if not email or not password:
         return jsonify({"message": "Email y contraseña requeridos"}), 400
     
     try:
-        # Buscar cliente por email
-        cliente = Cliente.query.filter_by(email=email).first()
-        if not cliente:
+        user = None
+        if role == 'cliente':
+            user = Cliente.query.filter_by(email=email).first()
+        elif role == 'analista':
+            user = Analista.query.filter_by(email=email).first()
+        elif role == 'supervisor':
+            user = Supervisor.query.filter_by(email=email).first()
+        elif role == 'administrador':
+            user = Administrador.query.filter_by(email=email).first()
+        else:
+            return jsonify({"message": "Rol inválido"}), 400
+
+        if not user or user.contraseña_hash != password:
             return jsonify({"message": "Credenciales inválidas"}), 401
-        
-        # Verificar contraseña (en producción, verificar hash)
-        if cliente.contraseña_hash != password:
-            return jsonify({"message": "Credenciales inválidas"}), 401
-        
-        # Generar tokens JWT seguros
-        access_token = generate_access_token(cliente.id, cliente.email, 'cliente')
-        refresh_token = generate_refresh_token(cliente.id, cliente.email, 'cliente')
-        
+
+        token = generate_token(user.id, user.email, role)
+
         return jsonify({
             "message": "Login exitoso",
-            "accessToken": access_token,
-            "refreshToken": refresh_token,
-            "user": cliente.serialize(),
-            "role": "cliente"
+            "token": token,
+            "user": user.serialize(),
+            "role": role
         }), 200
-        
+
     except Exception as e:
         return jsonify({"message": f"Error en login: {str(e)}"}), 500
 
 
 @api.route('/refresh', methods=['POST'])
-def refresh_token():
-    """Refrescar token de acceso con JWT"""
+def refresh_token_endpoint():
+    """Refrescar token con JWT"""
     body = request.get_json(silent=True) or {}
-    refresh_token = body.get('refreshToken')
+    token = body.get('token')
     
-    if not refresh_token:
-        return jsonify({"message": "Refresh token requerido"}), 400
+    if not token:
+        return jsonify({"message": "Token requerido"}), 400
     
     try:
-        # Usar la función JWT para refrescar tokens
-        new_tokens = refresh_access_token(refresh_token)
+        # Usar la función JWT para refrescar token
+        new_token = refresh_token(token)
         
-        if not new_tokens:
-            return jsonify({"message": "Refresh token inválido o expirado"}), 401
+        if not new_token:
+            return jsonify({"message": "Token inválido o expirado"}), 401
         
         return jsonify({
-            "accessToken": new_tokens['access_token'],
-            "refreshToken": new_tokens['refresh_token']
+            "token": new_token['token']
         }), 200
         
     except Exception as e:
@@ -749,7 +850,7 @@ def refresh_token():
 
 
 @api.route('/tickets/cliente', methods=['GET'])
-@require_auth
+@require_role(['cliente'])
 def get_cliente_tickets():
     """Obtener tickets del cliente autenticado con JWT"""
     try:
@@ -758,10 +859,325 @@ def get_cliente_tickets():
         if not user or user['role'] != 'cliente':
             return jsonify({"message": "Acceso denegado"}), 403
         
-        # Obtener tickets del cliente
-        tickets = Ticket.query.filter_by(id_cliente=user['id']).all()
+        # Obtener tickets del cliente, excluyendo los cerrados por supervisor
+        tickets = Ticket.query.filter(
+            Ticket.id_cliente == user['id'],
+            Ticket.estado != 'cerrado_por_supervisor'
+        ).all()
         
         return jsonify([t.serialize() for t in tickets]), 200
         
     except Exception as e:
         return jsonify({"message": f"Error al obtener tickets: {str(e)}"}), 500
+
+
+@api.route('/tickets/analista', methods=['GET'])
+@require_role(['analista', 'administrador'])
+def get_analista_tickets():
+    """Obtener tickets asignados al analista autenticado (excluyendo tickets escalados)"""
+    try:
+        user = get_user_from_token()
+        if not user or user['role'] != 'analista':
+            return jsonify({"message": "Acceso denegado"}), 403
+        
+        # Obtener asignaciones del analista
+        asignaciones = Asignacion.query.filter_by(id_analista=user['id']).all()
+        ticket_ids = [a.id_ticket for a in asignaciones]
+        
+        # Obtener tickets asignados al analista
+        tickets = Ticket.query.filter(Ticket.id.in_(ticket_ids)).all()
+        
+        # Filtrar tickets que el analista ya escaló anteriormente, que están solucionados, o que están reabiertos
+        tickets_filtrados = []
+        for ticket in tickets:
+            # Verificar si este analista ya escaló este ticket
+            comentario_escalacion = Comentarios.query.filter_by(
+                id_ticket=ticket.id,
+                id_analista=user['id'],
+                texto="Ticket escalado al supervisor"
+            ).first()
+            
+            # Verificar si este analista ya solucionó este ticket (para evitar que vea tickets reabiertos)
+            comentario_solucion = Comentarios.query.filter_by(
+                id_ticket=ticket.id,
+                id_analista=user['id'],
+                texto="Ticket solucionado"
+            ).first()
+            
+            # Si el analista ya escaló este ticket, está solucionado, o está reabierto (y ya lo solucionó), no incluirlo en su bandeja
+            if (comentario_escalacion or 
+                ticket.estado.lower() == 'solucionado' or 
+                (ticket.estado.lower() == 'reabierto' and comentario_solucion)):
+                continue
+            else:
+                # Incluir el ticket si no lo ha escalado, no está solucionado, y no es reabierto que ya solucionó
+                tickets_filtrados.append(ticket)
+        
+        return jsonify([t.serialize() for t in tickets_filtrados]), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener tickets: {str(e)}"}), 500
+
+
+@api.route('/tickets/supervisor', methods=['GET'])
+@require_role(['supervisor', 'administrador'])
+def get_supervisor_tickets():
+    """Obtener todos los tickets para el supervisor"""
+    try:
+        tickets = Ticket.query.all()
+        return jsonify([t.serialize() for t in tickets]), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener tickets: {str(e)}"}), 500
+
+
+@api.route('/tickets/<int:id>/estado', methods=['PUT'])
+@require_role(['analista', 'supervisor', 'cliente', 'administrador'])
+def cambiar_estado_ticket(id):
+    """Cambiar el estado de un ticket"""
+    body = request.get_json(silent=True) or {}
+    user = get_user_from_token()
+    
+    nuevo_estado = body.get('estado')
+    if not nuevo_estado:
+        return jsonify({"message": "Estado requerido"}), 400
+    
+    try:
+        ticket = db.session.get(Ticket, id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Verificar permisos según el rol
+        if user['role'] == 'cliente' and ticket.id_cliente != user['id']:
+            return jsonify({"message": "No tienes permisos para modificar este ticket"}), 403
+        
+        # Validar transiciones de estado según el flujo especificado
+        estado_actual = ticket.estado.lower()
+        nuevo_estado_lower = nuevo_estado.lower()
+        
+        # Flujo: Creado → En espera → En proceso → Solucionado → Cerrado → Reabierto
+        
+        # Cliente puede: cerrar tickets solucionados y reabrir tickets cerrados
+        if user['role'] == 'cliente':
+            if nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado':
+                ticket.estado = nuevo_estado
+                ticket.fecha_cierre = datetime.now()
+            elif nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado':
+                ticket.estado = nuevo_estado
+                ticket.fecha_cierre = None  # Reset fecha de cierre
+            else:
+                return jsonify({"message": "Transición de estado no válida para cliente"}), 400
+        
+        # Analista puede: cambiar a en_proceso, solucionado, o escalar (en_espera)
+        elif user['role'] == 'analista':
+            if nuevo_estado_lower == 'en_proceso' and estado_actual in ['creado', 'en_espera']:
+                ticket.estado = nuevo_estado
+            elif nuevo_estado_lower == 'solucionado' and estado_actual == 'en_proceso':
+                ticket.estado = nuevo_estado
+                
+                # Crear comentario automático de solución
+                comentario_solucion = Comentarios(
+                    id_ticket=ticket.id,
+                    id_analista=user['id'],
+                    texto="Ticket solucionado",
+                    fecha_comentario=datetime.now()
+                )
+                db.session.add(comentario_solucion)
+            elif nuevo_estado_lower == 'en_espera' and estado_actual in ['en_proceso', 'en_espera']:  # Escalar al supervisor
+                # Si está escalando desde 'en_espera', significa que no puede resolverlo sin iniciarlo
+                # Si está escalando desde 'en_proceso', significa que ya lo trabajó pero no puede resolverlo
+                ticket.estado = nuevo_estado
+                
+                # Eliminar la asignación actual cuando se escala (el ticket vuelve al supervisor)
+                asignacion_actual = Asignacion.query.filter_by(
+                    id_ticket=ticket.id, 
+                    id_analista=user['id']
+                ).first()
+                if asignacion_actual:
+                    # Crear comentario automático de escalación
+                    comentario_escalacion = Comentarios(
+                        id_ticket=ticket.id,
+                        id_analista=user['id'],
+                        texto="Ticket escalado al supervisor",
+                        fecha_comentario=datetime.now()
+                    )
+                    db.session.add(comentario_escalacion)
+                    db.session.delete(asignacion_actual)
+            else:
+                return jsonify({"message": "Transición de estado no válida para analista"}), 400
+        
+        # Supervisor puede: cambiar a en_espera o cerrar tickets reabiertos (NO puede cambiar a en_proceso)
+        elif user['role'] == 'supervisor':
+            if nuevo_estado_lower == 'en_espera' and estado_actual in ['creado', 'reabierto']:
+                ticket.estado = nuevo_estado
+            elif nuevo_estado_lower == 'cerrado' and estado_actual == 'reabierto':
+                ticket.estado = 'cerrado_por_supervisor'  # Estado especial que oculta el ticket al cliente
+                ticket.fecha_cierre = datetime.now()
+            else:
+                return jsonify({"message": "Transición de estado no válida para supervisor"}), 400
+        
+        # Administrador puede cambiar cualquier estado
+        elif user['role'] == 'administrador':
+            ticket.estado = nuevo_estado
+            if nuevo_estado_lower == 'cerrado':
+                ticket.fecha_cierre = datetime.now()
+            elif nuevo_estado_lower == 'reabierto':
+                ticket.fecha_cierre = None
+        
+        db.session.commit()
+        return jsonify(ticket.serialize()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al cambiar estado: {str(e)}"}), 500
+
+
+@api.route('/tickets/<int:id>/evaluar', methods=['POST'])
+@require_role(['cliente'])
+def evaluar_ticket(id):
+    """Evaluar un ticket cerrado"""
+    body = request.get_json(silent=True) or {}
+    user = get_user_from_token()
+    
+    calificacion = body.get('calificacion')
+    comentario = body.get('comentario', '')
+    
+    if not calificacion or calificacion < 1 or calificacion > 5:
+        return jsonify({"message": "Calificación debe estar entre 1 y 5"}), 400
+    
+    try:
+        ticket = db.session.get(Ticket, id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        if ticket.id_cliente != user['id']:
+            return jsonify({"message": "No tienes permisos para evaluar este ticket"}), 403
+        
+        if ticket.estado.lower() != 'cerrado':
+            return jsonify({"message": "Solo se pueden evaluar tickets cerrados"}), 400
+        
+        ticket.calificacion = calificacion
+        ticket.comentario = comentario
+        ticket.fecha_evaluacion = datetime.now()
+        
+        db.session.commit()
+        return jsonify(ticket.serialize()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al evaluar ticket: {str(e)}"}), 500
+
+
+@api.route('/tickets/<int:id>/asignacion-status', methods=['GET'])
+@require_role(['supervisor', 'administrador'])
+def get_ticket_asignacion_status(id):
+    """Obtener el estado de asignación de un ticket para el supervisor"""
+    try:
+        ticket = db.session.get(Ticket, id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Verificar si el ticket ya tiene asignaciones
+        asignaciones = Asignacion.query.filter_by(id_ticket=id).all()
+        
+        if not asignaciones:
+            return jsonify({
+                "tiene_asignacion": False,
+                "accion": "asignar",
+                "ticket": ticket.serialize()
+            }), 200
+        else:
+            # Obtener la asignación más reciente
+            asignacion_mas_reciente = max(asignaciones, key=lambda x: x.fecha_asignacion)
+            return jsonify({
+                "tiene_asignacion": True,
+                "accion": "reasignar",
+                "asignacion_actual": asignacion_mas_reciente.serialize(),
+                "ticket": ticket.serialize()
+            }), 200
+            
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener estado de asignación: {str(e)}"}), 500
+
+
+@api.route('/tickets/<int:id>/asignar', methods=['POST'])
+@require_role(['supervisor', 'administrador'])
+def asignar_ticket(id):
+    """Asignar o reasignar ticket a un analista"""
+    body = request.get_json(silent=True) or {}
+    user = get_user_from_token()
+    
+    id_analista = body.get('id_analista')
+    comentario = body.get('comentario')
+    es_reasignacion = body.get('es_reasignacion', False)
+    
+    if not id_analista:
+        return jsonify({"message": "ID del analista requerido"}), 400
+    
+    try:
+        ticket = db.session.get(Ticket, id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Verificar que el analista existe
+        analista = db.session.get(Analista, id_analista)
+        if not analista:
+            return jsonify({"message": "Analista no encontrado"}), 404
+        
+        # Se permite reasignar al mismo analista que escaló anteriormente
+        
+        # Si es reasignación, eliminar comentarios de escalación anteriores del mismo analista
+        if es_reasignacion:
+            comentarios_escalacion_anteriores = Comentarios.query.filter_by(
+                id_ticket=id,
+                id_analista=id_analista,
+                texto="Ticket escalado al supervisor"
+            ).all()
+            for comentario in comentarios_escalacion_anteriores:
+                db.session.delete(comentario)
+        
+        # Crear nueva asignación
+        asignacion = Asignacion(
+            id_ticket=id,
+            id_supervisor=user['id'],
+            id_analista=id_analista,
+            fecha_asignacion=datetime.now()
+        )
+
+        # Cambiar estado del ticket a "en_espera" según el flujo especificado
+        ticket.estado = 'en_espera'
+
+        db.session.add(asignacion)
+
+        # Crear comentario automático de asignación
+        accion_texto = f"Ticket {'reasignado' if es_reasignacion else 'asignado'} a {analista.nombre} {analista.apellido}"
+        comentario_asignacion = Comentarios(
+            id_ticket=id,
+            id_supervisor=user['id'],
+            texto=accion_texto,
+            fecha_comentario=datetime.now()
+        )
+        db.session.add(comentario_asignacion)
+
+        # Agregar comentario del supervisor si se proporciona
+        if comentario:
+            nuevo_comentario = Comentarios(
+                id_ticket=id,
+                id_supervisor=user['id'],
+                texto=comentario,
+                fecha_comentario=datetime.now()
+            )
+            db.session.add(nuevo_comentario)
+
+        db.session.commit()
+
+        accion = "reasignado" if es_reasignacion else "asignado"
+        return jsonify({
+            "message": f"Ticket {accion} exitosamente",
+            "ticket": ticket.serialize(),
+            "asignacion": asignacion.serialize()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al asignar ticket: {str(e)}"}), 500

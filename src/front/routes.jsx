@@ -53,6 +53,9 @@ import { ActualizarGestion } from "./pages/ActualizarGestion";
 import { AuthForm } from "./authentication/AuthForm";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ClientePage } from "./protectedViewsRol/cliente/ClientePage";
+import { AnalistaPage } from "./protectedViewsRol/analista/AnalistaPage";
+import { SupervisorPage } from "./protectedViewsRol/supervisor/SupervisorPage";
+import { AdministradorPage } from "./protectedViewsRol/administrador/AdministradorPage";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -63,7 +66,7 @@ export const router = createBrowserRouter(
       <Route path="/" element={<Home />} />
       <Route path="/demo" element={<Demo />} />
 
-         {/* rutas de autenticacion */}
+      {/* rutas de autenticacion */}
       <Route path="/auth" element={<AuthForm />} />
 
       {/* rutas protegidas para diferentes roles */}
@@ -73,53 +76,199 @@ export const router = createBrowserRouter(
         </ProtectedRoute>
       } />
 
+      <Route path="/analista" element={
+        <ProtectedRoute allowedRoles={["analista"]}>
+          <AnalistaPage />
+        </ProtectedRoute>
+      } />
 
-      <Route path="/analistas" element={<Analistas />} />
-      <Route path="/agregar-analista" element={<AgregarAnalista />} />
-      <Route path="/actualizar-analista/:id" element={<ActualizarAnalista />} />
-      <Route path="/ver-analista/:id" element={<VerAnalista />} />
+      <Route path="/supervisor" element={
+        <ProtectedRoute allowedRoles={["supervisor"]}>
+          <SupervisorPage />
+        </ProtectedRoute>
+      } />
 
-
-      <Route path="/supervisores" element={<Supervisor />} />
-      <Route path="/supervisores/nuevo" element={<AgregarSupervisor />} />
-      <Route path="/supervisor/:supervisorid/editar" element={<ActualizarSupervisor />} />
-      <Route path="/supervisor/:supervisorid" element={<VerSupervisor />} />
-
-
-      <Route path="/tickets" element={<Ticket />} />
-      <Route path="/tickets/nuevo" element={<AgregarTicket />} />
-      <Route path="/ver-ticket/:id" element={<VerTicket />} />
-      <Route path="/actualizar-ticket/:id" element={<ActualizarTicket />} />
-
-
-      <Route path="/clientes" element={<Clientes />} />
-      <Route path="/agregar-cliente" element={<AgregarCliente />} />
-      <Route path="/actualizar-cliente/:id" element={<ActualizarCliente />} />
-      <Route path="/ver-cliente/:id" element={<VerCliente />} />
+      <Route path="/administrador" element={
+        <ProtectedRoute allowedRoles={["administrador"]}>
+          <AdministradorPage />
+        </ProtectedRoute>
+      } />
 
 
-      <Route path="/comentarios" element={<Comentarios />} />
-      <Route path="/agregar-comentario" element={<AgregarComentarios />} />
-      <Route path="/actualizar-comentario/:id" element={<ActualizarComentarios />} />
-      <Route path="/ver-comentario/:id" element={<VerComentarios />} />
+      <Route path="/analistas" element={
+        <ProtectedRoute allowedRoles={["administrador", "analista"]}>
+          <Analistas />
+        </ProtectedRoute>
+      } />
+      <Route path="/agregar-analista" element={
+        <ProtectedRoute allowedRoles={["administrador", "analista"]}>
+          <AgregarAnalista />
+        </ProtectedRoute>
+      } />
+      <Route path="/actualizar-analista/:id" element={
+        <ProtectedRoute allowedRoles={["administrador", "analista"]}>
+          <ActualizarAnalista />
+        </ProtectedRoute>
+      } />
+      <Route path="/ver-analista/:id" element={
+        <ProtectedRoute allowedRoles={["administrador", "analista"]}>
+          <VerAnalista />
+        </ProtectedRoute>
+      } />
 
 
-      <Route path="/asignaciones" element={<Asignacion />} />
-      <Route path="/agregar-asignacion" element={<AgregarAsignacion />} />
-      <Route path="/actualizar-asignacion/:id" element={<ActualizarAsignacion />} />
-      <Route path="/ver-asignacion/:id" element={<VerAsignacion />} />
+      <Route path="/supervisores" element={
+        <ProtectedRoute allowedRoles={["administrador", "supervisor"]}>
+          <Supervisor />
+        </ProtectedRoute>
+      } />
+      <Route path="/supervisores/nuevo" element={
+        <ProtectedRoute allowedRoles={["administrador", "supervisor"]}>
+          <AgregarSupervisor />
+        </ProtectedRoute>
+      } />
+      <Route path="/supervisor/:supervisorid/editar" element={
+        <ProtectedRoute allowedRoles={["administrador", "supervisor"]}>
+          <ActualizarSupervisor />
+        </ProtectedRoute>
+      } />
+      <Route path="/supervisor/:supervisorid" element={
+        <ProtectedRoute allowedRoles={["administrador", "supervisor"]}>
+          <VerSupervisor />
+        </ProtectedRoute>
+      } />
 
 
-      <Route path="/administradores" element={<Administrador />} />
-      <Route path="/agregar-administrador" element={<AgregarAdministrador />} />
-      <Route path="/actualizar-administrador/:id" element={<ActualizarAdministrador />} />
-      <Route path="/ver-administrador/:id" element={<VerAdministrador />} />
+      <Route path="/tickets" element={
+        <ProtectedRoute allowedRoles={["administrador", "supervisor", "analista"]}>
+          <Ticket />
+        </ProtectedRoute>
+      } />
+      <Route path="/tickets/nuevo" element={
+        <ProtectedRoute allowedRoles={["administrador", "cliente"]}>
+          <AgregarTicket />
+        </ProtectedRoute>
+      } />
+      <Route path="/ver-ticket/:id" element={
+        <ProtectedRoute allowedRoles={["administrador", "supervisor", "analista"]}>
+          <VerTicket />
+        </ProtectedRoute>
+      } />
+      <Route path="/actualizar-ticket/:id" element={
+        <ProtectedRoute allowedRoles={["administrador", "supervisor", "analista"]}>
+          <ActualizarTicket />
+        </ProtectedRoute>
+      } />
 
 
-      <Route path="/gestiones" element={<Gestion />} />
-      <Route path="/agregar-gestion" element={<AgregarGestion />} />
-      <Route path="/actualizar-gestion/:id" element={<ActualizarGestion />} />
-      <Route path="/ver-gestion/:id" element={<VerGestion />} />
+      <Route path="/clientes" element={
+        <ProtectedRoute allowedRoles={["administrador", "cliente"]}>
+          <Clientes />
+        </ProtectedRoute>
+      } />
+      <Route path="/agregar-cliente" element={
+        <ProtectedRoute allowedRoles={["administrador", "cliente"]}>
+          <AgregarCliente />
+        </ProtectedRoute>
+      } />
+      <Route path="/actualizar-cliente/:id" element={
+        <ProtectedRoute allowedRoles={["administrador", "cliente"]}>
+          <ActualizarCliente />
+        </ProtectedRoute>
+      } />
+      <Route path="/ver-cliente/:id" element={
+        <ProtectedRoute allowedRoles={["administrador", "cliente"]}>
+          <VerCliente />
+        </ProtectedRoute>
+      } />
+
+
+      <Route path="/comentarios" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <Comentarios />
+        </ProtectedRoute>
+      } />
+      <Route path="/agregar-comentario" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <AgregarComentarios />
+        </ProtectedRoute>
+      } />
+      <Route path="/actualizar-comentario/:id" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <ActualizarComentarios />
+        </ProtectedRoute>
+      } />
+      <Route path="/ver-comentario/:id" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <VerComentarios />
+        </ProtectedRoute>
+      } />
+
+
+      <Route path="/asignaciones" element={
+        <ProtectedRoute allowedRoles={["supervisor", "administrador", "analista"]}>
+          <Asignacion />
+        </ProtectedRoute>
+      } />
+      <Route path="/agregar-asignacion" element={
+        <ProtectedRoute allowedRoles={["supervisor", "administrador", "analista"]}>
+          <AgregarAsignacion />
+        </ProtectedRoute>
+      } />
+      <Route path="/actualizar-asignacion/:id" element={
+        <ProtectedRoute allowedRoles={["supervisor", "administrador", "analista"]}>
+          <ActualizarAsignacion />
+        </ProtectedRoute>
+      } />
+      <Route path="/ver-asignacion/:id" element={
+        <ProtectedRoute allowedRoles={["supervisor", "administrador", "analista"]}>
+          <VerAsignacion />
+        </ProtectedRoute>
+      } />
+
+
+      <Route path="/administradores" element={
+        <ProtectedRoute allowedRoles={["administrador"]}>
+          <Administrador />
+        </ProtectedRoute>
+      } />
+      <Route path="/agregar-administrador" element={
+        <ProtectedRoute allowedRoles={["administrador"]}>
+          <AgregarAdministrador />
+        </ProtectedRoute>
+      } />
+      <Route path="/actualizar-administrador/:id" element={
+        <ProtectedRoute allowedRoles={["administrador"]}>
+          <ActualizarAdministrador />
+        </ProtectedRoute>
+      } />
+      <Route path="/ver-administrador/:id" element={
+        <ProtectedRoute allowedRoles={["administrador"]}>
+          <VerAdministrador />
+        </ProtectedRoute>
+      } />
+
+
+      <Route path="/gestiones" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <Gestion />
+        </ProtectedRoute>
+      } />
+      <Route path="/agregar-gestion" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <AgregarGestion />
+        </ProtectedRoute>
+      } />
+      <Route path="/actualizar-gestion/:id" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <ActualizarGestion />
+        </ProtectedRoute>
+      } />
+      <Route path="/ver-gestion/:id" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <VerGestion />
+        </ProtectedRoute>
+      } />
     </Route>
   )
 );
