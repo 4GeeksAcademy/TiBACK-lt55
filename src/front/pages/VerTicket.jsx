@@ -11,10 +11,24 @@ export const VerTicket = () => {
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
 
-    const fetchJson = (url, options = {}) =>
-        fetch(url, options)
-            .then(res => res.json().then(data => ({ ok: res.ok, data })))
-            .catch(err => ({ ok: false, data: { message: err.message } }));
+    const fetchJson = (url, options = {}) => {
+        const token = store.auth.token;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        return fetch(url, {
+            ...options,
+            headers
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .catch(err => ({ ok: false, data: { message: err.message } }));
+    };
 
     const cargarTicket = () => {
         setLoading(true);
@@ -35,14 +49,20 @@ export const VerTicket = () => {
 
     const getEstadoClase = (estado) => {
         switch (estado?.toLowerCase()) {
-            case "abierto":
-                return "badge bg-success";
-            case "en_proceso":
-                return "badge bg-warning";
-            case "cerrado":
+            case "creado":
                 return "badge bg-secondary";
-            case "pendiente":
+            case "recibido":
                 return "badge bg-info";
+            case "en_espera":
+                return "badge bg-warning";
+            case "en_proceso":
+                return "badge bg-primary";
+            case "solucionado":
+                return "badge bg-success";
+            case "cerrado":
+                return "badge bg-dark";
+            case "reabierto":
+                return "badge bg-danger";
             default:
                 return "badge bg-light text-dark";
         }
@@ -73,14 +93,14 @@ export const VerTicket = () => {
             <hr />
             <div className="row">
                 <div className="col-md-6">
-                    <p><strong>ID Cliente:</strong> {ticket.id_cliente}</p>
+                    <p><strong>Cliente:</strong> {ticket.cliente ? `${ticket.cliente.nombre} ${ticket.cliente.apellido}` : ticket.id_cliente}</p>
                     <p><strong>Estado:</strong> <span className={getEstadoClase(ticket.estado)}>{ticket.estado}</span></p>
                     <p><strong>Prioridad:</strong> <span className={getPrioridadClase(ticket.prioridad)}>{ticket.prioridad}</span></p>
                 </div>
                 <div className="col-md-6">
                     <p><strong>Título:</strong> {ticket.titulo}</p>
-                    <p><strong>Fecha Creación:</strong> {ticket.fecha_creacion}</p>
-                    <p><strong>Fecha Cierre:</strong> {ticket.fecha_cierre || "No cerrado"}</p>
+                    <p><strong>Fecha Creación:</strong> {ticket.fecha_creacion ? new Date(ticket.fecha_creacion).toLocaleString() : ''}</p>
+                    <p><strong>Fecha Cierre:</strong> {ticket.fecha_cierre ? new Date(ticket.fecha_cierre).toLocaleString() : "No cerrado"}</p>
                 </div>
                 <div className="col-12">
                     <p><strong>Descripción:</strong> {ticket.descripcion}</p>

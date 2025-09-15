@@ -1,6 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime
+from typing import List
 
 db = SQLAlchemy()
 
@@ -28,6 +30,9 @@ class Cliente(db.Model):
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    tickets: Mapped[List["Ticket"]] = relationship(
+        "Ticket", back_populates="cliente", cascade="all, delete-orphan"
+    )
 
     def serialize(self):
         return {
@@ -47,6 +52,9 @@ class Analista(db.Model):
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    asignaciones: Mapped[List["Asignacion"]] = relationship(
+        "Asignacion", back_populates="analista", cascade="all, delete-orphan"
+    )
 
     def serialize(self):
         return {
@@ -66,6 +74,9 @@ class Supervisor(db.Model):
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    asignaciones: Mapped[List["Asignacion"]] = relationship(
+        "Asignacion", back_populates="supervisor", cascade="all, delete-orphan"
+    )
 
     def serialize(self):
         return {
@@ -80,32 +91,58 @@ class Supervisor(db.Model):
 
 class Comentarios(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_gestion: Mapped[int] = mapped_column(nullable=False)
-    id_cliente: Mapped[int] = mapped_column(nullable=False)
-    id_analista: Mapped[int] = mapped_column(nullable=False)
-    id_supervisor: Mapped[int] = mapped_column(nullable=False)
+    id_ticket: Mapped[int] = mapped_column(
+        ForeignKey("ticket.id"), nullable=False
+    )
+    id_gestion: Mapped[int] = mapped_column(
+        ForeignKey("gestion.id"), nullable=True
+    )
+    id_cliente: Mapped[int] = mapped_column(
+        ForeignKey("cliente.id"), nullable=True
+    )
+    id_analista: Mapped[int] = mapped_column(
+        ForeignKey("analista.id"), nullable=True
+    )
+    id_supervisor: Mapped[int] = mapped_column(
+        ForeignKey("supervisor.id"), nullable=True
+    )
     texto: Mapped[str] = mapped_column(String(500), nullable=False)
-    fecha_comentario: Mapped[str] = mapped_column(String(50), nullable=False)
+    fecha_comentario: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    gestion = relationship("Gestion", back_populates="comentarios")
+    ticket = relationship("Ticket", backref="comentarios")
+    cliente = relationship("Cliente")
+    analista = relationship("Analista")
+    supervisor = relationship("Supervisor")
 
     def serialize(self):
         return {
             "id": self.id,
+            "id_ticket": self.id_ticket,
             "id_gestion": self.id_gestion,
             "id_cliente": self.id_cliente,
             "id_analista": self.id_analista,
             "id_supervisor": self.id_supervisor,
             "texto": self.texto,
-            "fecha_comentario": self.fecha_comentario
+            "fecha_comentario": self.fecha_comentario.isoformat() if self.fecha_comentario else None,
+            "autor": {
+                "nombre": (self.cliente.nombre + " " + self.cliente.apellido) if self.cliente else 
+                        (self.analista.nombre + " " + self.analista.apellido) if self.analista else
+                        (self.supervisor.nombre + " " + self.supervisor.apellido) if self.supervisor else "Desconocido",
+                "rol": "cliente" if self.cliente else "analista" if self.analista else "supervisor" if self.supervisor else "desconocido"
+            }
         }
 
 
 
 class Asignacion(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_ticket: Mapped[int] = mapped_column(nullable=False)
-    id_supervisor: Mapped[int] = mapped_column(nullable=False)
-    id_analista: Mapped[int] = mapped_column(nullable=False)
-    fecha_asignacion: Mapped[str] = mapped_column(String(50), nullable=False)
+    id_ticket: Mapped[int] = mapped_column(ForeignKey("ticket.id"), nullable=False)
+    id_supervisor: Mapped[int] = mapped_column(ForeignKey("supervisor.id"), nullable=False)
+    id_analista: Mapped[int] = mapped_column(ForeignKey("analista.id"), nullable=False)
+    fecha_asignacion: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    ticket = relationship("Ticket", backref="asignaciones")
+    analista = relationship("Analista", back_populates="asignaciones")
+    supervisor = relationship("Supervisor", back_populates="asignaciones")
 
     def serialize(self):
         return {
@@ -113,7 +150,7 @@ class Asignacion(db.Model):
             "id_ticket": self.id_ticket,
             "id_supervisor": self.id_supervisor,
             "id_analista": self.id_analista,
-            "fecha_asignacion": self.fecha_asignacion
+            "fecha_asignacion": self.fecha_asignacion.isoformat() if self.fecha_asignacion else None
         }
 
 
@@ -134,43 +171,66 @@ class Administrador(db.Model):
 
 class Ticket(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_cliente: Mapped[int] = mapped_column(nullable=False)
+    id_cliente: Mapped[int] = mapped_column(
+        ForeignKey("cliente.id"), nullable=False
+    )
     estado: Mapped[str] = mapped_column(String(50), nullable=False)
     titulo: Mapped[str] = mapped_column(String(200), nullable=False)
     descripcion: Mapped[str] = mapped_column(String(1000), nullable=False)
-    fecha_creacion: Mapped[str] = mapped_column(String(50), nullable=False)
-    fecha_cierre: Mapped[str] = mapped_column(String(50), nullable=True)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    fecha_cierre: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     prioridad: Mapped[str] = mapped_column(String(20), nullable=False)
     calificacion: Mapped[int] = mapped_column(nullable=True)
     comentario: Mapped[str] = mapped_column(String(500), nullable=True)
-    fecha_evaluacion: Mapped[str] = mapped_column(String(50), nullable=True)
+    fecha_evaluacion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    cliente = relationship("Cliente", back_populates="tickets")
 
     def serialize(self):
+        # Obtener la asignación más reciente
+        asignacion_actual = None
+        if self.asignaciones:
+            asignacion_mas_reciente = max(self.asignaciones, key=lambda x: x.fecha_asignacion)
+            asignacion_actual = {
+                "id": asignacion_mas_reciente.id,
+                "id_ticket": asignacion_mas_reciente.id_ticket,
+                "id_supervisor": asignacion_mas_reciente.id_supervisor,
+                "id_analista": asignacion_mas_reciente.id_analista,
+                "fecha_asignacion": asignacion_mas_reciente.fecha_asignacion.isoformat() if asignacion_mas_reciente.fecha_asignacion else None,
+                "analista": asignacion_mas_reciente.analista.serialize() if asignacion_mas_reciente.analista else None,
+                "supervisor": asignacion_mas_reciente.supervisor.serialize() if asignacion_mas_reciente.supervisor else None
+            }
+        
         return {
             "id": self.id,
             "id_cliente": self.id_cliente,
             "estado": self.estado,
             "titulo": self.titulo,
             "descripcion": self.descripcion,
-            "fecha_creacion": self.fecha_creacion,
-            "fecha_cierre": self.fecha_cierre,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_cierre": self.fecha_cierre.isoformat() if self.fecha_cierre else None,
             "prioridad": self.prioridad,
             "calificacion": self.calificacion,
             "comentario": self.comentario,
-            "fecha_evaluacion": self.fecha_evaluacion
+            "fecha_evaluacion": self.fecha_evaluacion.isoformat() if self.fecha_evaluacion else None,
+            "cliente": self.cliente.serialize() if self.cliente else None,
+            "asignacion_actual": asignacion_actual,
+            "comentarios": [c.serialize() for c in self.comentarios] if hasattr(self, 'comentarios') else []
         }
 
 class Gestion(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_ticket: Mapped[int] = mapped_column(nullable=False)
-    fecha_cambio: Mapped[str] = mapped_column(String(50), nullable=False)
+    id_ticket: Mapped[int] = mapped_column(ForeignKey("ticket.id"), nullable=False)
+    fecha_cambio: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     Nota_de_caso: Mapped[str] = mapped_column(String(200), nullable=False)
-
+    ticket = relationship("Ticket", backref="gestiones")
+    comentarios = relationship(
+        "Comentarios", back_populates="gestion", cascade="all, delete-orphan"
+    )
 
     def serialize(self):
         return {
             "id": self.id,
             "id_ticket": self.id_ticket,
-            "fecha_cambio": self.fecha_cambio,
+            "fecha_cambio": self.fecha_cambio.isoformat() if self.fecha_cambio else None,
             "Nota_de_caso": self.Nota_de_caso,
         }

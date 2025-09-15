@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 
 export function ClientePage() {
-     const { store, logout } = useGlobalReducer();
+    const { store, logout } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -12,7 +13,7 @@ export function ClientePage() {
         const cargarTickets = async () => {
             try {
                 setLoading(true);
-                    const token = store.auth.accessToken;
+                const token = store.auth.token;
 
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
                     headers: {
@@ -35,7 +36,7 @@ export function ClientePage() {
         };
 
         cargarTickets();
-   }, [store.auth.accessToken]);
+    }, [store.auth.token]);
 
     const crearTicket = async (e) => {
         e.preventDefault();
@@ -47,7 +48,7 @@ export function ClientePage() {
         };
 
         try {
-           const token = store.auth.accessToken;
+            const token = store.auth.token;
 
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets`, {
                 method: 'POST',
@@ -71,10 +72,12 @@ export function ClientePage() {
 
     const getEstadoColor = (estado) => {
         switch (estado.toLowerCase()) {
-            case 'abierto': return 'badge bg-warning';
-            case 'en_progreso': return 'badge bg-info';
-            case 'cerrado': return 'badge bg-success';
-            case 'cancelado': return 'badge bg-danger';
+            case 'creado': return 'badge bg-secondary';
+            case 'en_espera': return 'badge bg-warning';
+            case 'en_proceso': return 'badge bg-primary';
+            case 'solucionado': return 'badge bg-success';
+            case 'cerrado': return 'badge bg-dark';
+            case 'reabierto': return 'badge bg-danger';
             default: return 'badge bg-secondary';
         }
     };
@@ -85,6 +88,75 @@ export function ClientePage() {
             case 'media': return 'badge bg-warning';
             case 'baja': return 'badge bg-success';
             default: return 'badge bg-secondary';
+        }
+    };
+
+    const evaluarTicket = async (ticketId, calificacion, comentario) => {
+        try {
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/evaluar`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ calificacion, comentario })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al evaluar ticket');
+            }
+
+            // Recargar tickets
+            window.location.reload();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const reabrirTicket = async (ticketId) => {
+        try {
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ estado: 'reabierto' })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al reabrir ticket');
+            }
+
+            // Recargar tickets
+            window.location.reload();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const cerrarTicket = async (ticketId) => {
+        try {
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ estado: 'cerrado' })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al cerrar ticket');
+            }
+
+            // Recargar tickets
+            window.location.reload();
+        } catch (err) {
+            setError(err.message);
         }
     };
 
@@ -99,12 +171,15 @@ export function ClientePage() {
                                 <h2 className="mb-1">Bienvenido, {store.auth.user?.nombre} {store.auth.user?.apellido}</h2>
                                 <p className="text-muted mb-0">Panel de Cliente - Gestión de Tickets</p>
                             </div>
-                            <button
-                                className="btn btn-outline-danger"
-                                onClick={logout}
-                            >
-                                Cerrar Sesión
-                            </button>
+                            <div className="d-flex gap-2">
+                                <Link to="/clientes" className="btn btn-primary">Ir al CRUD</Link>
+                                <button
+                                    className="btn btn-outline-danger"
+                                    onClick={logout}
+                                >
+                                    Cerrar Sesión
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -198,6 +273,7 @@ export function ClientePage() {
                                                 <th>Prioridad</th>
                                                 <th>Fecha Creación</th>
                                                 <th>Calificación</th>
+                                                <th>Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -243,6 +319,43 @@ export function ClientePage() {
                                                         ) : (
                                                             <span className="text-muted">Sin calificar</span>
                                                         )}
+                                                    </td>
+                                                    <td>
+                                                        <div className="btn-group" role="group">
+                                                            {ticket.estado.toLowerCase() === 'solucionado' && (
+                                                                <button
+                                                                    className="btn btn-success btn-sm"
+                                                                    onClick={() => cerrarTicket(ticket.id)}
+                                                                    title="Cerrar ticket"
+                                                                >
+                                                                    <i className="fas fa-check"></i> Cerrar
+                                                                </button>
+                                                            )}
+                                                            {ticket.estado.toLowerCase() === 'cerrado' && !ticket.calificacion && (
+                                                                <button
+                                                                    className="btn btn-warning btn-sm"
+                                                                    onClick={() => {
+                                                                        const calificacion = prompt('Califica el servicio (1-5):');
+                                                                        const comentario = prompt('Comentario (opcional):');
+                                                                        if (calificacion && calificacion >= 1 && calificacion <= 5) {
+                                                                            evaluarTicket(ticket.id, parseInt(calificacion), comentario || '');
+                                                                        }
+                                                                    }}
+                                                                    title="Evaluar ticket"
+                                                                >
+                                                                    <i className="fas fa-star"></i> Evaluar
+                                                                </button>
+                                                            )}
+                                                            {ticket.estado.toLowerCase() === 'cerrado' && ticket.calificacion && (
+                                                                <button
+                                                                    className="btn btn-danger btn-sm"
+                                                                    onClick={() => reabrirTicket(ticket.id)}
+                                                                    title="Reabrir ticket"
+                                                                >
+                                                                    <i className="fas fa-redo"></i> Reabrir
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}

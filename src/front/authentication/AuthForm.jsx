@@ -10,11 +10,12 @@ export function AuthForm() {
         email: '',
         password: '',
         direccion: '',
-        telefono: ''
+        telefono: '',
+        role: 'cliente'
     });
     const [error, setError] = useState('');
 
-   const { login, register, store } = useGlobalReducer();
+    const { login, register, store } = useGlobalReducer();
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -27,15 +28,15 @@ export function AuthForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        
+
 
         try {
             let result;
 
             if (isLogin) {
-                result = await login(formData.email, formData.password);
+                result = await login(formData.email, formData.password, formData.role);
             } else {
-                
+
                 const registerData = {
                     nombre: formData.nombre,
                     apellido: formData.apellido,
@@ -43,20 +44,44 @@ export function AuthForm() {
                     password: formData.password,
                     direccion: formData.direccion,
                     telefono: formData.telefono,
-                    role: 'cliente' 
+                    role: 'cliente'
                 };
                 result = await register(registerData);
             }
 
             if (result.success) {
-                
-                navigate('/cliente');
+                if (isLogin) {
+                    const role = result.role;
+                    if (role === 'cliente') {
+                        navigate('/cliente');
+                    } else if (role === 'analista') {
+                        navigate('/analista');
+                    } else if (role === 'supervisor') {
+                        navigate('/supervisor');
+                    } else if (role === 'administrador') {
+                        navigate('/administrador');
+                    }
+                } else {
+                    // Para registro, mostrar mensaje de éxito y cambiar a login
+                    setError('');
+                    alert('Cliente registrado exitosamente. Por favor inicia sesión con tus credenciales.');
+                    setIsLogin(true);
+                    setFormData({
+                        nombre: '',
+                        apellido: '',
+                        email: formData.email, // Mantener el email para facilitar el login
+                        password: '',
+                        direccion: '',
+                        telefono: '',
+                        role: 'cliente'
+                    });
+                }
             } else {
                 setError(result.error);
             }
         } catch (err) {
             setError('Error inesperado. Inténtalo de nuevo.');
-        
+
         }
     };
 
@@ -69,7 +94,8 @@ export function AuthForm() {
             email: '',
             password: '',
             direccion: '',
-            telefono: ''
+            telefono: '',
+            role: 'cliente'
         });
     };
 
@@ -175,6 +201,24 @@ export function AuthForm() {
                                         minLength="6"
                                     />
                                 </div>
+
+                                {isLogin && (
+                                    <div className="mb-3">
+                                        <label htmlFor="role" className="form-label">Rol</label>
+                                        <select
+                                            id="role"
+                                            name="role"
+                                            className="form-select"
+                                            value={formData.role}
+                                            onChange={handleChange}
+                                        >
+                                            <option value="cliente">Cliente</option>
+                                            <option value="analista">Analista</option>
+                                            <option value="supervisor">Supervisor</option>
+                                            <option value="administrador">Administrador</option>
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="d-grid">
                                     <button

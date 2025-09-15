@@ -5,8 +5,7 @@ export const initialStore = () => {
 
     // Estado de autenticacion
     auth: {
-      accessToken: null,
-      refreshToken: null,
+      token: null,
       user: null,
       role: null,
       isAuthenticated: false,
@@ -55,7 +54,7 @@ export const initialStore = () => {
 // Funciones de autenticación
 export const authActions = {
   // Login
-  login: async (email, password, dispatch) => {
+  login: async (email, password, role, dispatch) => {
     try {
       dispatch({ type: 'auth_loading', payload: true });
 
@@ -64,7 +63,7 @@ export const authActions = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role }),
       });
 
       const data = await response.json();
@@ -74,22 +73,20 @@ export const authActions = {
       }
 
       // Guardar en localStorage
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('role', data.role);
 
       dispatch({
         type: 'auth_login_success',
         payload: {
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
+          token: data.token,
           user: data.user,
           role: data.role
         }
       });
 
-      return { success: true };
+      return { success: true, role: data.role };
     } catch (error) {
       dispatch({ type: 'auth_loading', payload: false });
       return { success: false, error: error.message };
@@ -116,16 +113,14 @@ export const authActions = {
       }
 
       // Guardar en localStorage
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('role', data.role);
 
       dispatch({
         type: 'auth_login_success',
         payload: {
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
+          token: data.token,
           user: data.user,
           role: data.role
         }
@@ -140,8 +135,7 @@ export const authActions = {
 
   // Logout
   logout: (dispatch) => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('role');
     dispatch({ type: 'auth_logout' });
@@ -150,15 +144,15 @@ export const authActions = {
   // Refresh token
   refresh: async (dispatch) => {
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) return false;
+      const token = localStorage.getItem('token');
+      if (!token) return false;
 
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ token }),
       });
 
       const data = await response.json();
@@ -167,14 +161,12 @@ export const authActions = {
         throw new Error(data.message || 'Error refreshing token');
       }
 
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('token', data.token);
 
       dispatch({
         type: 'auth_refresh_token',
         payload: {
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken
+          token: data.token
         }
       });
 
@@ -189,15 +181,14 @@ export const authActions = {
   // Restore session
   restoreSession: (dispatch) => {
     try {
-      const accessToken = localStorage.getItem('accessToken');
-      const refreshToken = localStorage.getItem('refreshToken');
+      const token = localStorage.getItem('token');
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       const role = localStorage.getItem('role');
 
-      if (accessToken && refreshToken) {
+      if (token) {
         dispatch({
           type: 'auth_restore_session',
-          payload: { accessToken, refreshToken, user, role }
+          payload: { token, user, role }
         });
       } else {
         dispatch({ type: 'auth_loading', payload: false });
@@ -211,14 +202,14 @@ export const authActions = {
   
   isTokenExpiringSoon: () => {
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('token');
       if (!token) return true;
 
       const payload = JSON.parse(atob(token.split('.')[1]));
       const now = Date.now() / 1000;
       const timeUntilExpiry = payload.exp - now;
 
-      return timeUntilExpiry < 300; // 5 minutes
+      return timeUntilExpiry < 3600; // 1 hour
     } catch (error) {
       console.error('Error checking token expiry:', error);
       return true;
@@ -248,8 +239,7 @@ export default function storeReducer(store, action = {}) {
         ...store,
         auth: {
           ...store.auth,
-          accessToken: action.payload.accessToken,
-          refreshToken: action.payload.refreshToken,
+          token: action.payload.token,
           user: action.payload.user,
           role: action.payload.role,
           isAuthenticated: true,
@@ -261,8 +251,7 @@ export default function storeReducer(store, action = {}) {
       return {
         ...store,
         auth: {
-          accessToken: null,
-          refreshToken: null,
+          token: null,
           user: null,
           role: null,
           isAuthenticated: false,
@@ -275,8 +264,7 @@ export default function storeReducer(store, action = {}) {
         ...store,
         auth: {
           ...store.auth,
-          accessToken: action.payload.accessToken,
-          refreshToken: action.payload.refreshToken
+          token: action.payload.token
         }
       };
 
@@ -285,11 +273,10 @@ export default function storeReducer(store, action = {}) {
         ...store,
         auth: {
           ...store.auth,
-          accessToken: action.payload.accessToken,
-          refreshToken: action.payload.refreshToken,
+          token: action.payload.token,
           user: action.payload.user,
           role: action.payload.role,
-          isAuthenticated: !!action.payload.accessToken,
+          isAuthenticated: !!action.payload.token,
           isLoading: false
         }
       };

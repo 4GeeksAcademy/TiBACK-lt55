@@ -18,10 +18,24 @@ export const ActualizarAsignacion = () => {
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
 
-    const fetchJson = (url, options = {}) =>
-        fetch(url, options)
-            .then(res => res.json().then(data => ({ ok: res.ok, data })))
-            .catch(err => ({ ok: false, data: { message: err.message } }));
+    const fetchJson = (url, options = {}) => {
+        const token = store.auth.token;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        return fetch(url, {
+            ...options,
+            headers
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .catch(err => ({ ok: false, data: { message: err.message } }));
+    };
 
     const cargarAsignacion = () => {
         setLoading(true);
@@ -55,7 +69,6 @@ export const ActualizarAsignacion = () => {
         setLoading(true);
         fetchJson(`${API}/asignaciones/${id}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(asignacionData)
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);

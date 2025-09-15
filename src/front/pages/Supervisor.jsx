@@ -1,18 +1,33 @@
 import React, { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const Supervisor = () => {
     const { store, dispatch } = useGlobalReducer();
+    const navigate = useNavigate();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
 
-    const fetchJson = (url, options = {}) =>
-        fetch(url, options)
-            .then(res => res.json().then(data => ({ ok: res.ok, data })))
-            .catch(err => ({ ok: false, data: { message: err.message } }));
+    const fetchJson = (url, options = {}) => {
+        const token = store.auth.token;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        return fetch(url, {
+            ...options,
+            headers
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .catch(err => ({ ok: false, data: { message: err.message } }));
+    };
 
     const eliminarSupervisor = (id) => {
         if (!confirm("¿Estás seguro de que deseas eliminar este supervisor?")) return;
@@ -45,7 +60,10 @@ export const Supervisor = () => {
 
     return (
         <div className="container py-4">
-            <h2 className="mb-3">Gestión de Supervisores</h2>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <h2 className="mb-0">Gestión de Supervisores</h2>
+                <button className="btn btn-secondary" onClick={() => navigate(`/${store.auth.role}`)}>Volver</button>
+            </div>
 
             {store?.api?.error && (
                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>

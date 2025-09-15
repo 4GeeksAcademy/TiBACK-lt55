@@ -10,10 +10,24 @@ export const Gestion = () => {
   const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
   const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
 
-  const fetchJson = (url, options = {}) =>
-    fetch(url, options)
-      .then(res => res.json().then(data => ({ ok: res.ok, data })))
-      .catch(err => ({ ok: false, data: { message: err.message } }));
+  const fetchJson = (url, options = {}) => {
+    const token = store.auth.token;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return fetch(url, {
+      ...options,
+      headers
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })))
+    .catch(err => ({ ok: false, data: { message: err.message } }));
+  };
 
   const listarTodasLasGestiones = () => {
     setLoading(true);
@@ -45,12 +59,15 @@ export const Gestion = () => {
     <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0">Lista de Gestiones</h2>
-        <button
-          className="btn btn-primary"
-          onClick={() => navigate('/agregar-gestion')}
-        >
-          <i className="fas fa-plus"></i> Agregar Gestión
-        </button>
+        <div className="d-flex gap-2">
+          <button className="btn btn-secondary" onClick={() => navigate(`/${store.auth.role}`)}>Volver</button>
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate('/agregar-gestion')}
+          >
+            <i className="fas fa-plus"></i> Agregar Gestión
+          </button>
+        </div>
       </div>
 
       {store.api.error && (
