@@ -1,0 +1,374 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import useGlobalReducer from '../../hooks/useGlobalReducer';
+
+export function ClientePage() {
+    const { store, logout } = useGlobalReducer();
+    const [tickets, setTickets] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    // Cargar tickets del cliente
+    useEffect(() => {
+        const cargarTickets = async () => {
+            try {
+                setLoading(true);
+                const token = store.auth.token;
+
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar tickets');
+                }
+
+                const data = await response.json();
+                setTickets(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        cargarTickets();
+    }, [store.auth.token]);
+
+    const crearTicket = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const ticketData = {
+            titulo: formData.get('titulo'),
+            descripcion: formData.get('descripcion'),
+            prioridad: formData.get('prioridad')
+        };
+
+        try {
+            const token = store.auth.token;
+
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(ticketData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al crear ticket');
+            }
+
+            // Recargar tickets
+            window.location.reload();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const getEstadoColor = (estado) => {
+        switch (estado.toLowerCase()) {
+            case 'creado': return 'badge bg-secondary';
+            case 'en_espera': return 'badge bg-warning';
+            case 'en_proceso': return 'badge bg-primary';
+            case 'solucionado': return 'badge bg-success';
+            case 'cerrado': return 'badge bg-dark';
+            case 'reabierto': return 'badge bg-danger';
+            default: return 'badge bg-secondary';
+        }
+    };
+
+    const getPrioridadColor = (prioridad) => {
+        switch (prioridad.toLowerCase()) {
+            case 'alta': return 'badge bg-danger';
+            case 'media': return 'badge bg-warning';
+            case 'baja': return 'badge bg-success';
+            default: return 'badge bg-secondary';
+        }
+    };
+
+    const evaluarTicket = async (ticketId, calificacion, comentario) => {
+        try {
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/evaluar`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ calificacion, comentario })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al evaluar ticket');
+            }
+
+            // Recargar tickets
+            window.location.reload();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const reabrirTicket = async (ticketId) => {
+        try {
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ estado: 'reabierto' })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al reabrir ticket');
+            }
+
+            // Recargar tickets
+            window.location.reload();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const cerrarTicket = async (ticketId) => {
+        try {
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ estado: 'cerrado' })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al cerrar ticket');
+            }
+
+            // Recargar tickets
+            window.location.reload();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    return (
+        <div className="container py-4">
+            {/* Header con información del usuario */}
+            <div className="row mb-4">
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 className="mb-1">Bienvenido, {store.auth.user?.nombre} {store.auth.user?.apellido}</h2>
+                                <p className="text-muted mb-0">Panel de Cliente - Gestión de Tickets</p>
+                            </div>
+                            <div className="d-flex gap-2">
+                                <Link to="/clientes" className="btn btn-primary">Ir al CRUD</Link>
+                                <button
+                                    className="btn btn-outline-danger"
+                                    onClick={logout}
+                                >
+                                    Cerrar Sesión
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {error && (
+                <div className="alert alert-danger" role="alert">
+                    {error}
+                </div>
+            )}
+
+            {/* Formulario para crear nuevo ticket */}
+            <div className="row mb-4">
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-header">
+                            <h5 className="mb-0">Crear Nuevo Ticket</h5>
+                        </div>
+                        <div className="card-body">
+                            <form onSubmit={crearTicket}>
+                                <div className="row g-3">
+                                    <div className="col-md-8">
+                                        <label htmlFor="titulo" className="form-label">Título del Ticket *</label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            id="titulo"
+                                            name="titulo"
+                                            required
+                                            placeholder="Describe brevemente el problema"
+                                        />
+                                    </div>
+                                    <div className="col-md-4">
+                                        <label htmlFor="prioridad" className="form-label">Prioridad *</label>
+                                        <select className="form-select" id="prioridad" name="prioridad" required>
+                                            <option value="">Seleccionar...</option>
+                                            <option value="baja">Baja</option>
+                                            <option value="media">Media</option>
+                                            <option value="alta">Alta</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-12">
+                                        <label htmlFor="descripcion" className="form-label">Descripción Detallada *</label>
+                                        <textarea
+                                            className="form-control"
+                                            id="descripcion"
+                                            name="descripcion"
+                                            rows="4"
+                                            required
+                                            placeholder="Describe detalladamente el problema que necesitas resolver"
+                                        ></textarea>
+                                    </div>
+                                    <div className="col-12">
+                                        <button type="submit" className="btn btn-primary">
+                                            Crear Ticket
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Lista de tickets */}
+            <div className="row">
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-header">
+                            <h5 className="mb-0">Mis Tickets</h5>
+                        </div>
+                        <div className="card-body">
+                            {loading ? (
+                                <div className="text-center py-4">
+                                    <div className="spinner-border text-primary" role="status">
+                                        <span className="visually-hidden">Cargando tickets...</span>
+                                    </div>
+                                </div>
+                            ) : tickets.length === 0 ? (
+                                <div className="text-center py-4">
+                                    <p className="text-muted">No tienes tickets creados aún.</p>
+                                </div>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table className="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Título</th>
+                                                <th>Estado</th>
+                                                <th>Prioridad</th>
+                                                <th>Fecha Creación</th>
+                                                <th>Calificación</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tickets.map((ticket) => (
+                                                <tr key={ticket.id}>
+                                                    <td>#{ticket.id}</td>
+                                                    <td>
+                                                        <div>
+                                                            <strong>{ticket.titulo}</strong>
+                                                            <br />
+                                                            <small className="text-muted">
+                                                                {ticket.descripcion.length > 50
+                                                                    ? `${ticket.descripcion.substring(0, 50)}...`
+                                                                    : ticket.descripcion
+                                                                }
+                                                            </small>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className={getEstadoColor(ticket.estado)}>
+                                                            {ticket.estado}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span className={getPrioridadColor(ticket.prioridad)}>
+                                                            {ticket.prioridad}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                                                    </td>
+                                                    <td>
+                                                        {ticket.calificacion ? (
+                                                            <div className="d-flex align-items-center">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <i
+                                                                        key={i}
+                                                                        className={`fas fa-star ${i < ticket.calificacion ? 'text-warning' : 'text-muted'
+                                                                            }`}
+                                                                    ></i>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-muted">Sin calificar</span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        <div className="btn-group" role="group">
+                                                            {ticket.estado.toLowerCase() === 'solucionado' && (
+                                                                <button
+                                                                    className="btn btn-success btn-sm"
+                                                                    onClick={() => cerrarTicket(ticket.id)}
+                                                                    title="Cerrar ticket"
+                                                                >
+                                                                    <i className="fas fa-check"></i> Cerrar
+                                                                </button>
+                                                            )}
+                                                            {ticket.estado.toLowerCase() === 'cerrado' && !ticket.calificacion && (
+                                                                <button
+                                                                    className="btn btn-warning btn-sm"
+                                                                    onClick={() => {
+                                                                        const calificacion = prompt('Califica el servicio (1-5):');
+                                                                        const comentario = prompt('Comentario (opcional):');
+                                                                        if (calificacion && calificacion >= 1 && calificacion <= 5) {
+                                                                            evaluarTicket(ticket.id, parseInt(calificacion), comentario || '');
+                                                                        }
+                                                                    }}
+                                                                    title="Evaluar ticket"
+                                                                >
+                                                                    <i className="fas fa-star"></i> Evaluar
+                                                                </button>
+                                                            )}
+                                                            {ticket.estado.toLowerCase() === 'cerrado' && ticket.calificacion && (
+                                                                <button
+                                                                    className="btn btn-danger btn-sm"
+                                                                    onClick={() => reabrirTicket(ticket.id)}
+                                                                    title="Reabrir ticket"
+                                                                >
+                                                                    <i className="fas fa-redo"></i> Reabrir
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default ClientePage;
