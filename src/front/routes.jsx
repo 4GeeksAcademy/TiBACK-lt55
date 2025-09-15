@@ -51,8 +51,10 @@ import { AgregarGestion } from "./pages/AgregarGestion"
 import { ActualizarGestion } from "./pages/ActualizarGestion";
 
 import { AuthForm } from "./authentication/AuthForm";
+import AuthFormSupervisor from "./authentication/AuthFormSupervisor";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ClientePage } from "./protectedViewsRol/cliente/ClientePage";
+import { SupervisorPage } from "./protectedViewsRol/cliente/SupervisorPage";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -66,12 +68,20 @@ export const router = createBrowserRouter(
          {/* rutas de autenticacion */}
       <Route path="/auth" element={<AuthForm />} />
 
+      <Route path="/auth-supervisor" element={<AuthFormSupervisor />} />
+
       {/* rutas protegidas para diferentes roles */}
       <Route path="/cliente" element={
         <ProtectedRoute allowedRoles={["cliente"]}>
           <ClientePage />
         </ProtectedRoute>
       } />
+
+      <Route path="/supervisor" element={
+        <ProtectedRoute allowedRoles={["supervisor"]}>
+          <SupervisorPage />
+        </ProtectedRoute>
+      } /> 
 
 
       <Route path="/analistas" element={<Analistas />} />
@@ -123,3 +133,5 @@ export const router = createBrowserRouter(
     </Route>
   )
 );
+
+

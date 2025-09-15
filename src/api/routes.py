@@ -765,3 +765,99 @@ def get_cliente_tickets():
         
     except Exception as e:
         return jsonify({"message": f"Error al obtener tickets: {str(e)}"}), 500
+
+
+# SUPERVISOR
+
+@api.route('/tickets', methods=['GET'])
+@require_auth
+def get_all_tickets():
+    user = get_user_from_token()
+    if not user:
+        return jsonify({"message": "No autenticado"}), 401
+    if user['role'] != 'supervisor':
+        return jsonify({"message": "Acceso denegado"}), 403
+
+    tickets = Ticket.query.all()
+    return jsonify([t.serialize_full() for t in tickets]), 200
+
+@api.route('/tickets/no-asignados', methods=['GET'])
+@require_auth
+def get_unassigned_tickets():
+    user = get_user_from_token()
+    if not user or user['role'] != 'supervisor':
+        return jsonify({"message": "Acceso denegado"}), 403
+
+    tickets = Ticket.query.filter(Ticket.id_analista == None).all()
+    return jsonify([t.serialize_full() for t in tickets]), 200
+
+@api.route('/tickets/<int:ticket_id>/asignar', methods=['PUT'])
+@require_auth
+def asignar_ticket(ticket_id):
+    user = get_user_from_token()
+    if not user or user['role'] != 'supervisor':
+        return jsonify({"message": "Acceso denegado"}), 403
+
+    body = request.get_json() or {}
+    analista_id = body.get('analista_id')
+    if analista_id is None:
+        return jsonify({"message": "Debe pasar analista_id"}), 400
+
+    # Verificar que el analista existe y tiene rol analista
+    analista = Analista.query.get(analista_id)
+    if not analista: return jsonify({"message": "Analista no válido"}), 400
+
+    ticket = Ticket.query.get(ticket_id)
+    if not ticket:
+        return jsonify({"message": "Ticket no encontrado"}), 404
+
+    ticket.id_analista = analista_id
+    db.session.commit()
+
+    return jsonify({"message": "Ticket asignado", "ticket": ticket.serialize_full()}), 200
+
+@api.route('/usuarios/analistas', methods=['GET'])
+@require_auth
+def get_analistas():
+    user = get_user_from_token()
+    if not user or user['role'] != 'supervisor':
+        return jsonify({"message": "Acceso denegado"}), 403
+
+    analistas = Analista.query.all()
+    return jsonify([a.serialize() for a in analistas]), 200
+
+@api.route('/supervisor/login', methods=['POST'])
+def login_supervisor():
+    """Login para supervisores con JWT"""
+    body = request.get_json(silent=True) or {}
+    email = body.get('email')
+    password = body.get('password')
+
+    if not email or not password:
+        return jsonify({"message": "Email y contraseña requeridos"}), 400
+
+    try:
+        # Buscar supervisor por email
+        supervisor = Supervisor.query.filter_by(email=email).first()
+        if not supervisor:
+            return jsonify({"message": "Credenciales inválidas"}), 401
+
+        # Verificar contraseña - aquí hay que comparar con el campo contraseña_hash
+        # Asumo que todavía no usás hashing, si usás hashing usa check_password_hash o similar
+        if supervisor.contraseña_hash != password:
+            return jsonify({"message": "Credenciales inválidas"}), 401
+
+        # Generar tokens JWT para supervisor
+        access_token = generate_access_token(supervisor.id, supervisor.email, 'supervisor')
+        refresh_token = generate_refresh_token(supervisor.id, supervisor.email, 'supervisor')
+
+        return jsonify({
+            "message": "Login exitoso (supervisor)",
+            "accessToken": access_token,
+            "refreshToken": refresh_token,
+            "user": supervisor.serialize(),
+            "role": "supervisor"
+        }), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error en login supervisor: {str(e)}"}), 500

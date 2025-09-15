@@ -55,11 +55,15 @@ export const initialStore = () => {
 // Funciones de autenticación
 export const authActions = {
   // Login
-  login: async (email, password, dispatch) => {
+  login: async (email, password, role = 'cliente', dispatch) => {
     try {
       dispatch({ type: 'auth_loading', payload: true });
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/login`, {
+       const endpoint = role === 'supervisor'
+        ? '/api/supervisor/login'
+        : '/api/login';  // default: cliente
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

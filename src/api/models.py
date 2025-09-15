@@ -135,6 +135,7 @@ class Administrador(db.Model):
 class Ticket(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     id_cliente: Mapped[int] = mapped_column(nullable=False)
+    id_analista: Mapped[int] = mapped_column(nullable=True)
     estado: Mapped[str] = mapped_column(String(50), nullable=False)
     titulo: Mapped[str] = mapped_column(String(200), nullable=False)
     descripcion: Mapped[str] = mapped_column(String(1000), nullable=False)
@@ -149,6 +150,7 @@ class Ticket(db.Model):
         return {
             "id": self.id,
             "id_cliente": self.id_cliente,
+            "id_analista": self.id_analista,
             "estado": self.estado,
             "titulo": self.titulo,
             "descripcion": self.descripcion,

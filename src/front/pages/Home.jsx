@@ -15,7 +15,13 @@ export const Home = () => (
     		</div>
 
 				<Link to="/analistas" className="btn btn-success btn-lg mx-4">Analistas</Link>
+
+			<div>
 				<Link to="/supervisores" className="btn btn-warning btn-lg mx-4">Supervisores</Link>
+				<Link to="/auth-supervisor" className="btn btn-outline-primary btn-lg mt-2 d-flex align-items-center">
+					<i className="fas fa-user me-2"></i> Acceso Supervisor
+				</Link>
+			</div>
 				<Link to="/administradores" className="btn btn-danger btn-lg mx-4">Administradores</Link>
 
 		</div>
