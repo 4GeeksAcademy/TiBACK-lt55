@@ -132,11 +132,11 @@ export const AgregarAnalista = () => {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label">especialidad</label>
+                                        <label className="form-label">Especialidad</label>
                                         <input
-                                            type="password"
+                                            type="text"
                                             className="form-control"
-                                            placeholder="Ingrese la Contraseña"
+                                            placeholder="Ingrese la Especialidad"
                                             value={nuevoAnalista.especialidad}
                                             onChange={e => setNuevoAnalista(s => ({ ...s, especialidad: e.target.value }))}
                                         />
