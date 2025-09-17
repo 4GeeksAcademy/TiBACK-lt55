@@ -40,7 +40,7 @@ def setup_commands(app):
                 nombre="Juan",
                 apellido="Pérez",
                 email="cliente@test.com",
-                contraseña="123456",
+                contraseña_hash="123456",
                 direccion="Calle Principal 123",
                 telefono="555-0001"
             )
@@ -55,7 +55,7 @@ def setup_commands(app):
                 nombre="María",
                 apellido="González",
                 email="analista@test.com",
-                contraseña="123456",
+                contraseña_hash="123456",
                 especialidad="Soporte Técnico"
             )
             db.session.add(analista)
@@ -69,7 +69,7 @@ def setup_commands(app):
                 nombre="Carlos",
                 apellido="López",
                 email="supervisor@test.com",
-                contraseña="123456",
+                contraseña_hash="123456",
                 area_responsable="Soporte y Mantenimiento"
             )
             db.session.add(supervisor)
@@ -81,7 +81,7 @@ def setup_commands(app):
         try:
             administrador = Administrador(
                 email="admin@test.com",
-                contraseña="123456",
+                contraseña_hash="123456",
                 permisos_especiales="Gestión completa del sistema"
             )
             db.session.add(administrador)

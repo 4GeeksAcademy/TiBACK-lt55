@@ -39,7 +39,6 @@ export function SupervisorPage() {
 
                 if (analistasResponse.ok) {
                     const analistasData = await analistasResponse.json();
-                    console.log('Analistas cargados:', analistasData);
                     setAnalistas(analistasData);
                 } else {
                     console.error('Error al cargar analistas:', analistasResponse.status, analistasResponse.statusText);
