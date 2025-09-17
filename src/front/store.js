@@ -1,13 +1,66 @@
+import { string } from "prop-types";
+
+// Utilidades de token seguras - SOLO TOKEN COMO FUENTE DE VERDAD
+const tokenUtils = {
+  // Decodifica el token JWT
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+
+  // Obtiene el rol del token
+  getRole: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.role : null;
+  },
+
+  // Obtiene el ID del usuario del token
+  getUserId: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.user_id : null;
+  },
+
+  // Obtiene el email del usuario del token
+  getEmail: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.email : null;
+  },
+
+  // Verifica si el token es válido
+  isValid: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    if (!payload || !payload.exp) return false;
+    return payload.exp > Math.floor(Date.now() / 1000);
+  },
+
+  // Genera hash transaccional dinámico basado en rol
+  generateTransactionHash: (token) => {
+    const role = tokenUtils.getRole(token);
+    if (!role) return null;
+    return btoa(token + role + Date.now());
+  },
+
+  // Obtiene nombre de variable transaccional dinámico
+  getTransactionVariableName: (token) => {
+    const role = tokenUtils.getRole(token);
+    return role || 'usuario';
+  }
+};
+
 export const initialStore = () => {
   return {
     message: null,
     todos: [],
 
-    // Estado de autenticacion
+    // Estado de autenticacion - SOLO TOKEN COMO FUENTE DE VERDAD
     auth: {
       token: null,
-      user: null,
-      role: null,
       isAuthenticated: false,
       isLoading: true
     },
@@ -72,21 +125,34 @@ export const authActions = {
         throw new Error(data.message || 'Error en el login');
       }
 
-      // Guardar en localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('role', data.role);
+      // SEGURIDAD: Guardar token con nombre dinámico según rol
+      const secureRole = tokenUtils.getRole(data.token);
+      const dynamicKey = secureRole || 'usuario';
+      
+      // Eliminar cualquier token anterior y variables vulnerables
+      localStorage.removeItem('token');
+      localStorage.removeItem('cliente');
+      localStorage.removeItem('analista');
+      localStorage.removeItem('supervisor');
+      localStorage.removeItem('administrador');
+      localStorage.removeItem('usuario');
+      // LIMPIAR VARIABLES VULNERABLES EXPLÍCITAMENTE
+      localStorage.removeItem('role');
+      localStorage.removeItem('user');
+      
+      // Guardar con nombre dinámico del rol
+      localStorage.setItem(dynamicKey, data.token);
+      // ELIMINADO: localStorage.setItem('user', JSON.stringify(data.user)); // VULNERABILIDAD
+      // ELIMINADO: localStorage.setItem('role', data.role); // VULNERABILIDAD CRÍTICA
 
       dispatch({
         type: 'auth_login_success',
         payload: {
-          token: data.token,
-          user: data.user,
-          role: data.role
+          token: data.token
         }
       });
 
-      return { success: true, role: data.role };
+      return { success: true, role: secureRole };
     } catch (error) {
       dispatch({ type: 'auth_loading', payload: false });
       return { success: false, error: error.message };
@@ -112,17 +178,30 @@ export const authActions = {
         throw new Error(data.message || 'Error en el registro');
       }
 
-      // Guardar en localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('role', data.role);
+      // SEGURIDAD: Guardar token con nombre dinámico según rol
+      const secureRole = tokenUtils.getRole(data.token);
+      const dynamicKey = secureRole || 'usuario';
+      
+      // Eliminar cualquier token anterior y variables vulnerables
+      localStorage.removeItem('token');
+      localStorage.removeItem('cliente');
+      localStorage.removeItem('analista');
+      localStorage.removeItem('supervisor');
+      localStorage.removeItem('administrador');
+      localStorage.removeItem('usuario');
+      // LIMPIAR VARIABLES VULNERABLES EXPLÍCITAMENTE
+      localStorage.removeItem('role');
+      localStorage.removeItem('user');
+      
+      // Guardar con nombre dinámico del rol
+      localStorage.setItem(dynamicKey, data.token);
+      // ELIMINADO: localStorage.setItem('user', JSON.stringify(data.user)); // VULNERABILIDAD
+      // ELIMINADO: localStorage.setItem('role', data.role); // VULNERABILIDAD CRÍTICA
 
       dispatch({
         type: 'auth_login_success',
         payload: {
-          token: data.token,
-          user: data.user,
-          role: data.role
+          token: data.token
         }
       });
 
@@ -135,16 +214,36 @@ export const authActions = {
 
   // Logout
   logout: (dispatch) => {
+    // Limpiar todas las variables dinámicas posibles
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('cliente');
+    localStorage.removeItem('analista');
+    localStorage.removeItem('supervisor');
+    localStorage.removeItem('administrador');
+    localStorage.removeItem('usuario');
+    // LIMPIAR VARIABLES VULNERABLES EXPLÍCITAMENTE
     localStorage.removeItem('role');
+    localStorage.removeItem('user');
     dispatch({ type: 'auth_logout' });
   },
 
   // Refresh token
   refresh: async (dispatch) => {
     try {
-      const token = localStorage.getItem('token');
+      // Buscar token en cualquiera de las variables dinámicas
+      const possibleKeys = ['token', 'cliente', 'analista', 'supervisor', 'administrador', 'usuario'];
+      let token = null;
+      let currentKey = null;
+      
+      for (const key of possibleKeys) {
+        const value = localStorage.getItem(key);
+        if (value && tokenUtils.isValid(value)) {
+          token = value;
+          currentKey = key;
+          break;
+        }
+      }
+      
       if (!token) return false;
 
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/refresh`, {
@@ -161,7 +260,17 @@ export const authActions = {
         throw new Error(data.message || 'Error refreshing token');
       }
 
-      localStorage.setItem('token', data.token);
+      // Actualizar con el mismo nombre dinámico
+      const secureRole = tokenUtils.getRole(data.token);
+      const dynamicKey = secureRole || 'usuario';
+      
+      // Limpiar token anterior
+      if (currentKey && currentKey !== dynamicKey) {
+        localStorage.removeItem(currentKey);
+      }
+      
+      // Guardar nuevo token con nombre dinámico
+      localStorage.setItem(dynamicKey, data.token);
 
       dispatch({
         type: 'auth_refresh_token',
@@ -178,17 +287,29 @@ export const authActions = {
     }
   },
 
-  // Restore session
+  // Restore session - BUSCAR EN VARIABLES DINÁMICAS
   restoreSession: (dispatch) => {
     try {
-      const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user') || 'null');
-      const role = localStorage.getItem('role');
+      // LIMPIAR VARIABLES VULNERABLES AL INICIALIZAR
+      localStorage.removeItem('role');
+      localStorage.removeItem('user');
+      
+      // Buscar token en cualquiera de las variables dinámicas
+      const possibleKeys = ['token', 'cliente', 'analista', 'supervisor', 'administrador', 'usuario'];
+      let token = null;
+      
+      for (const key of possibleKeys) {
+        const value = localStorage.getItem(key);
+        if (value && tokenUtils.isValid(value)) {
+          token = value;
+          break;
+        }
+      }
 
       if (token) {
         dispatch({
           type: 'auth_restore_session',
-          payload: { token, user, role }
+          payload: { token }
         });
       } else {
         dispatch({ type: 'auth_loading', payload: false });
@@ -202,13 +323,25 @@ export const authActions = {
   
   isTokenExpiringSoon: () => {
     try {
-      const token = localStorage.getItem('token');
+      // Buscar token en cualquiera de las variables dinámicas
+      const possibleKeys = ['token', 'cliente', 'analista', 'supervisor', 'administrador', 'usuario'];
+      let token = null;
+      
+      for (const key of possibleKeys) {
+        const value = localStorage.getItem(key);
+        if (value && tokenUtils.isValid(value)) {
+          token = value;
+          break;
+        }
+      }
+      
       if (!token) return true;
 
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const now = Date.now() / 1000;
+      const payload = tokenUtils.decodeToken(token);
+      if (!payload || !payload.exp) return true;
+      
+      const now = Math.floor(Date.now() / 1000);
       const timeUntilExpiry = payload.exp - now;
-
       return timeUntilExpiry < 3600; // 1 hour
     } catch (error) {
       console.error('Error checking token expiry:', error);
@@ -217,10 +350,13 @@ export const authActions = {
   },
 
    
-  hasRole: (userRole, allowedRoles) => {
+  // Función segura para verificar roles usando token
+  hasRole: (token, allowedRoles) => {
     if (!Array.isArray(allowedRoles)) {
       allowedRoles = [allowedRoles];
     }
+    
+    const userRole = tokenUtils.getRole(token);
     return allowedRoles.includes(userRole);
   }
 };  
@@ -240,8 +376,6 @@ export default function storeReducer(store, action = {}) {
         auth: {
           ...store.auth,
           token: action.payload.token,
-          user: action.payload.user,
-          role: action.payload.role,
           isAuthenticated: true,
           isLoading: false
         }
@@ -252,8 +386,6 @@ export default function storeReducer(store, action = {}) {
         ...store,
         auth: {
           token: null,
-          user: null,
-          role: null,
           isAuthenticated: false,
           isLoading: false
         }
@@ -274,8 +406,6 @@ export default function storeReducer(store, action = {}) {
         auth: {
           ...store.auth,
           token: action.payload.token,
-          user: action.payload.user,
-          role: action.payload.role,
           isAuthenticated: !!action.payload.token,
           isLoading: false
         }

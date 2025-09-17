@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
+import GoogleMapsLocation from '../components/GoogleMapsLocation';
 
 export function AuthForm() {
+    const [searchParams] = useSearchParams();
     const [isLogin, setIsLogin] = useState(true);
     const [formData, setFormData] = useState({
         nombre: '',
@@ -13,15 +15,39 @@ export function AuthForm() {
         telefono: '',
         role: 'cliente'
     });
+    const [locationData, setLocationData] = useState({
+        address: '',
+        lat: null,
+        lng: null
+    });
     const [error, setError] = useState('');
 
     const { login, register, store } = useGlobalReducer();
     const navigate = useNavigate();
 
+    // Establecer el rol inicial basado en el parámetro de la URL
+    useEffect(() => {
+        const roleFromUrl = searchParams.get('role');
+        if (roleFromUrl && ['cliente', 'analista', 'supervisor', 'administrador'].includes(roleFromUrl)) {
+            setFormData(prev => ({
+                ...prev,
+                role: roleFromUrl
+            }));
+        }
+    }, [searchParams]);
+
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
+        });
+    };
+
+    const handleLocationChange = (location) => {
+        setLocationData(location);
+        setFormData({
+            ...formData,
+            direccion: location.address
         });
     };
 
@@ -44,14 +70,17 @@ export function AuthForm() {
                     password: formData.password,
                     direccion: formData.direccion,
                     telefono: formData.telefono,
-                    role: 'cliente'
+                    role: 'cliente',
+                    latitude: locationData.lat,
+                    longitude: locationData.lng
                 };
                 result = await register(registerData);
             }
 
             if (result.success) {
                 if (isLogin) {
-                    const role = result.role;
+                    // SEGURIDAD: Obtener rol del token, no del resultado
+                    const role = result.role; // Este viene del token decodificado en store.js
                     if (role === 'cliente') {
                         navigate('/cliente');
                     } else if (role === 'analista') {
@@ -97,6 +126,11 @@ export function AuthForm() {
             telefono: '',
             role: 'cliente'
         });
+        setLocationData({
+            address: '',
+            lat: null,
+            lng: null
+        });
     };
 
     return (
@@ -107,8 +141,27 @@ export function AuthForm() {
                         <div className="card-header text-center">
                             <h3>{isLogin ? 'Iniciar Sesión' : 'Registrarse'}</h3>
                             <p className="text-muted mb-0">
-                                {isLogin ? 'Accede a tu cuenta de cliente' : 'Crea tu cuenta de cliente'}
+                                {isLogin 
+                                    ? `Accede a tu cuenta de ${formData.role}` 
+                                    : `Crea tu cuenta de ${formData.role}`
+                                }
                             </p>
+                            <div className="mt-2">
+                                <span className={`badge ${
+                                    formData.role === 'cliente' ? 'bg-primary' :
+                                    formData.role === 'analista' ? 'bg-success' :
+                                    formData.role === 'supervisor' ? 'bg-warning' :
+                                    'bg-danger'
+                                }`}>
+                                    <i className={`fas ${
+                                        formData.role === 'cliente' ? 'fa-user' :
+                                        formData.role === 'analista' ? 'fa-user-tie' :
+                                        formData.role === 'supervisor' ? 'fa-user-shield' :
+                                        'fa-crown'
+                                    } me-1`}></i>
+                                    {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
+                                </span>
+                            </div>
                         </div>
                         <div className="card-body">
                             {error && (
@@ -146,31 +199,27 @@ export function AuthForm() {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="row">
-                                            <div className="col-md-6 mb-3">
-                                                <label htmlFor="direccion" className="form-label">Dirección *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    id="direccion"
-                                                    name="direccion"
-                                                    value={formData.direccion}
-                                                    onChange={handleChange}
-                                                    required={!isLogin}
-                                                />
-                                            </div>
-                                            <div className="col-md-6 mb-3">
-                                                <label htmlFor="telefono" className="form-label">Teléfono *</label>
-                                                <input
-                                                    type="tel"
-                                                    className="form-control"
-                                                    id="telefono"
-                                                    name="telefono"
-                                                    value={formData.telefono}
-                                                    onChange={handleChange}
-                                                    required={!isLogin}
-                                                />
-                                            </div>
+                                        <div className="mb-3">
+                                            <label htmlFor="telefono" className="form-label">Teléfono *</label>
+                                            <input
+                                                type="tel"
+                                                className="form-control"
+                                                id="telefono"
+                                                name="telefono"
+                                                value={formData.telefono}
+                                                onChange={handleChange}
+                                                required={!isLogin}
+                                            />
+                                        </div>
+                                        
+                                        <div className="mb-3">
+                                            <label className="form-label">Ubicación *</label>
+                                            <GoogleMapsLocation
+                                                onLocationChange={handleLocationChange}
+                                                initialAddress={locationData.address}
+                                                initialLat={locationData.lat}
+                                                initialLng={locationData.lng}
+                                            />
                                         </div>
                                     </>
                                 )}
@@ -202,23 +251,6 @@ export function AuthForm() {
                                     />
                                 </div>
 
-                                {isLogin && (
-                                    <div className="mb-3">
-                                        <label htmlFor="role" className="form-label">Rol</label>
-                                        <select
-                                            id="role"
-                                            name="role"
-                                            className="form-select"
-                                            value={formData.role}
-                                            onChange={handleChange}
-                                        >
-                                            <option value="cliente">Cliente</option>
-                                            <option value="analista">Analista</option>
-                                            <option value="supervisor">Supervisor</option>
-                                            <option value="administrador">Administrador</option>
-                                        </select>
-                                    </div>
-                                )}
 
                                 <div className="d-grid">
                                     <button

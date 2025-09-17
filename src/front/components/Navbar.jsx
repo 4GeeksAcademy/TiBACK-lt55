@@ -1,10 +1,30 @@
 import { Link } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
+// Utilidades de token seguras
+const tokenUtils = {
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+  getRole: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.role : null;
+  }
+};
 
 export const Navbar = () => {
 	const { store } = useGlobalReducer();
-	const { isAuthenticated, role } = store.auth;
+	const { isAuthenticated, token } = store.auth;
+	
+	// SEGURIDAD: Obtener rol del token
+	const role = tokenUtils.getRole(token);
 
 	return (
 		<nav className="navbar navbar-light bg-light">
