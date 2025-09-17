@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 export const Home = () => (
 	<div className="container-fluid d-flex flex-column min-vh-100 py-4 text-center">
 		<h1 className="display-1 mt-4 mb-5 me-4">TiBACK</h1>
-		
+
 		<div className="container">
 			<div className="row g-3 justify-content-center">
 
@@ -47,14 +47,14 @@ export const Home = () => (
 					</div>
 				</div>
 
+				{/* Administradores */}
 				<div className="col-12 col-sm-6 col-md-3">
 					<div className="card h-100">
-						
 						<div className="card-body">
-							<Link to="/administradores" className="btn btn-danger btn-lg w-100">Administradores</Link>
+							<Link to="/administrador" className="btn btn-danger btn-lg w-100">Administradores</Link>
 						</div>
 						<div className="card-footer">
-							<Link to="/auth" className="btn btn-outline-primary btn-lg mt-2 d-flex align-items-center justify-content-center">
+							<Link to="/authadmin" className="btn btn-outline-primary btn-lg mt-2 d-flex align-items-center justify-content-center">
 								<i className="fas fa-user me-2"></i> Acceso Administradores
 							</Link>
 						</div>

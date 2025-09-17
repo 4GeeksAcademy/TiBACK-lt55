@@ -4,12 +4,14 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
 from api.utils import generate_sitemap, APIException
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from api.jwt_utils import (
     generate_token, verify_token,
     require_auth, require_role, refresh_token, get_user_from_token
 )
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from datetime import datetime
 api = Blueprint('api', __name__)
@@ -1190,3 +1192,98 @@ def asignar_ticket(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al asignar ticket: {str(e)}"}), 500
+
+#########################  Login ADMIN  #########################
+
+@api.route('/registeradmin', methods=['POST'])
+def registeradmin():
+    """Registrar nuevo administrador con JWT"""
+    body = request.get_json(silent=True) or {}
+    required = ["email", "password"]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+
+    try:
+        # Verificar si el email ya existe
+        existing_administrador = Administrador.query.filter_by(email=body['email']).first()
+        if existing_administrador:
+            return jsonify({"message": "Email ya registrado"}), 400
+
+        # Hashear la contraseña antes de guardarla
+        password_hash = generate_password_hash(body['password'])
+
+        # Crear nuevo administrador
+        administrador = Administrador(
+            email=body['email'],
+            password_hash=password_hash
+        )
+
+        db.session.add(administrador)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Administrador registrado exitosamente. Por favor inicia sesión con tus credenciales.",
+            "success": True
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al registrar: {str(e)}"}), 500
+
+
+@api.route('/loginadmin', methods=['POST'])
+def loginadmin():
+    """Iniciar sesión con JWT (solo un perfil)"""
+    body = request.get_json(silent=True) or {}
+    email = body.get('email')
+    password = body.get('password')
+
+    if not email or not password:
+        return jsonify({"message": "Email y contraseña requeridos"}), 400
+
+    try:
+        # Buscar el usuario en la tabla Administrador (o la que uses)
+        user = Administrador.query.filter_by(email=email).first()
+
+        if not user:
+            return jsonify({"message": "Usuario no encontrado"}), 404
+
+        # Verificar contraseña (suponiendo que guardas hash en la DB)
+        if not check_password_hash(user.password_hash, password):
+            return jsonify({"message": "Credenciales inválidas"}), 401
+
+        # Generar token
+        token = generate_token(user.id, user.email, "administrador")
+
+        return jsonify({
+            "message": "Login exitoso",
+            "token": token,
+            "user": user.serialize(),
+            "role": "administrador"
+        }), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error en login: {str(e)}"}), 500
+
+
+@api.route('/refreshadmin', methods=['POST'])
+@jwt_required(refresh=True)  # Solo se aceptan refresh tokens
+def refreshadmin_token_endpoint():
+    """Refrescar token con JWT"""
+    try:
+        # Recupera la identidad guardada en el refresh token
+        identity = get_jwt_identity()
+
+        # Genera un nuevo access token
+        new_token = create_access_token(identity=identity)
+
+        return jsonify({
+            "message": "Token refrescado exitosamente",
+            "token": new_token
+        }), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al refrescar token: {str(e)}"}), 500
+
+#########################  Login ADMIN  #########################
