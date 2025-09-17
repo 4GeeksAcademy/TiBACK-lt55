@@ -25,17 +25,17 @@ const AgregarSupervisor = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const manejarEnvio = (e) => {
@@ -59,12 +59,12 @@ const AgregarSupervisor = () => {
         <div className="container py-4">
             <h2 className="mb-3">Agregar Nuevo Supervisor</h2>
 
-                {store?.api?.error && (
+            {store?.api?.error && (
                 <div className="alert alert-danger py-2">{String(store.api.error)}</div>
             )}
             <form onSubmit={manejarEnvio}>
                 <div className="row g-3">
-                    {["nombre", "apellido", "email", "contraseña_hash", "area_responsable"].map((field, i) => (
+                    {["nombre", "apellido", "email", "Contraseña", "area_responsable"].map((field, i) => (
                         <div key={i} className={`col-${field === "area_responsable" ? "12" : "6"}`}>
                             <label className="form-label">{field.charAt(0).toUpperCase() + field.slice(1)}</label>
                             <input

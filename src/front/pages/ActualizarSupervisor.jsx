@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const ActualizarSupervisor = () => {
-     const { supervisorid } = useParams();
+    const { supervisorid } = useParams();
     const navigate = useNavigate();
     const { store, dispatch } = useGlobalReducer();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
@@ -25,17 +25,17 @@ const ActualizarSupervisor = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const cargarSupervisor = () => {
@@ -82,12 +82,12 @@ const ActualizarSupervisor = () => {
 
             <div className="card">
                 <div className="card-body">
-                   <form onSubmit={(e) => { e.preventDefault(); actualizarSupervisor(); }}>
-                        {["nombre", "apellido", "email", "contraseña_hash", "area_responsable"].map((field, idx) => (
+                    <form onSubmit={(e) => { e.preventDefault(); actualizarSupervisor(); }}>
+                        {["nombre", "apellido", "email", "Contraseña", "area_responsable"].map((field, idx) => (
                             <div className="mb-3" key={idx}>
                                 <label className="form-label text-capitalize">{field.replace("_", " ")}</label>
                                 <input
-                                       type={field === "email" ? "email" : field === "contraseña_hash" ? "password" : "text"}
+                                    type={field === "email" ? "email" : field === "Contraseña" ? "password" : "text"}
                                     className="form-control"
                                     name={field}
                                     value={supervisor[field] || ""}
@@ -101,7 +101,7 @@ const ActualizarSupervisor = () => {
                                 <i className="fas fa-save"></i> Guardar Cambios
                             </button>
                         </div>
-                     </form>
+                    </form>
                 </div>
             </div>
         </div>

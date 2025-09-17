@@ -11,6 +11,13 @@ export const initialStore = () => {
       isAuthenticated: false,
       isLoading: true
     },
+     authadmin: {
+      token: null,
+      email: null,
+      role: null,
+      isAuthenticated: false,
+      isLoading: true
+    },
 
       // Estado global para Clientes
     clientes: [],
@@ -222,7 +229,181 @@ export const authActions = {
       allowedRoles = [allowedRoles];
     }
     return allowedRoles.includes(userRole);
+  },
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@  ADMIN  #######################################
+
+  loginadmin: async (email, password, role, dispatch) => {
+    try {
+      dispatch({ type: 'auth_loading', payload: true });
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, role }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en el login');
+      }
+
+      // Guardar en localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('email', JSON.stringify(data.email));
+      localStorage.setItem('role', data.role);
+
+      dispatch({
+        type: 'auth_login_success',
+        payload: {
+          token: data.token,
+          email: data.email,
+          role: data.role
+        }
+      });
+
+      return { success: true, role: data.role };
+    } catch (error) {
+      dispatch({ type: 'auth_loading', payload: false });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Registro
+  registeradmin: async (userData, dispatch) => {
+    try {
+      dispatch({ type: 'auth_loading', payload: true });
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en el registro');
+      }
+
+      // Guardar en localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('role', data.role);
+
+      dispatch({
+        type: 'auth_login_success',
+        payload: {
+          token: data.token,
+          user: data.user,
+          role: data.role
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      dispatch({ type: 'auth_loading', payload: false });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Logout
+  logoutadmin: (dispatch) => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    dispatch({ type: 'auth_logout' });
+  },
+
+  // Refresh token
+  refresh: async (dispatch) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error refreshing token');
+      }
+
+      localStorage.setItem('token', data.token);
+
+      dispatch({
+        type: 'auth_refresh_token',
+        payload: {
+          token: data.token
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      authActions.logout(dispatch);
+      return false;
+    }
+  },
+
+  // Restore session
+  restoreSessionadmin: (dispatch) => {
+    try {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const role = localStorage.getItem('role');
+
+      if (token) {
+        dispatch({
+          type: 'auth_restore_session',
+          payload: { token, user, role }
+        });
+      } else {
+        dispatch({ type: 'auth_loading', payload: false });
+      }
+    } catch (error) {
+      console.error('Error restoring session:', error);
+      dispatch({ type: 'auth_loading', payload: false });
+    }
+  },
+
+  
+  isTokenExpiringSoonadmin: () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return true;
+
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const now = Date.now() / 1000;
+      const timeUntilExpiry = payload.exp - now;
+
+      return timeUntilExpiry < 3600; // 1 hour
+    } catch (error) {
+      console.error('Error checking token expiry:', error);
+      return true;
+    }
+  },
+  //@@@@@@@@@@@@@@@@@@@@@@@@@@@  FIN ADMIN  #######################################
+
+   
+  hasRoleadmin: (userRole, allowedRoles) => {
+    if (!Array.isArray(allowedRoles)) {
+      allowedRoles = [allowedRoles];
+    }
+    return allowedRoles.includes(userRole);
   }
+
 };  
 
 export default function storeReducer(store, action = {}) {

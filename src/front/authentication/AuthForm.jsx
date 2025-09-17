@@ -189,7 +189,7 @@ export function AuthForm() {
                                 </div>
 
                                 <div className="mb-3">
-                                    <label htmlFor="password" className="form-label">Contraseña *</label>
+                                    <label htmlFor="password" className="form-label">contraseña_hash *</label>
                                     <input
                                         type="password"
                                         className="form-control"

@@ -7,7 +7,7 @@ export const Navbar = () => {
 	const { isAuthenticated, role } = store.auth;
 
 	return (
-		<nav className="navbar navbar-light bg-light">
+		<nav className="navbar navbar-light bg-light sticky-md-top">
 			<div className="container ">
 
 

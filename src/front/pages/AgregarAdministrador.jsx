@@ -22,17 +22,17 @@ export const AgregarAdministrador = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const limpiarFormulario = () => {
@@ -95,11 +95,11 @@ export const AgregarAdministrador = () => {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label">Contraseña *</label>
+                                        <label className="form-label">Contraseña </label>
                                         <input
                                             type="password"
                                             className="form-control"
-                                            placeholder="Ingrese la contraseña"
+                                            placeholder="Ingrese la Contraseña"
                                             value={nuevoAdministrador.contraseña_hash}
                                             onChange={e => setNuevoAdministrador(s => ({ ...s, contraseña_hash: e.target.value }))}
                                             required

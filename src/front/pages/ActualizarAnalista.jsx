@@ -4,7 +4,7 @@ import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const ActualizarAnalista = () => {
     const { store, dispatch } = useGlobalReducer();
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
     const { id } = useParams();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
@@ -25,17 +25,17 @@ export const ActualizarAnalista = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const cargarAnalista = () => {
@@ -67,7 +67,7 @@ export const ActualizarAnalista = () => {
         }).then(({ ok, data }) => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "analistas_upsert", payload: data });
-            navigate('/analistas'); 
+            navigate('/analistas');
         }).catch(setError).finally(() => setLoading(false));
     };
 
@@ -147,7 +147,7 @@ export const ActualizarAnalista = () => {
                                         <input
                                             type="password"
                                             className="form-control"
-                                            placeholder="Ingrese la nueva contraseña (dejar vacío para mantener la actual)"
+                                            placeholder="Ingrese la nueva Contraseña (dejar vacío para mantener la actual)"
                                             value={analista.contraseña_hash}
                                             onChange={e => setAnalista(s => ({ ...s, contraseña_hash: e.target.value }))}
                                         />

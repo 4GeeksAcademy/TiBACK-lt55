@@ -25,17 +25,17 @@ export const AgregarCliente = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const limpiarFormulario = () => {
@@ -45,7 +45,7 @@ export const AgregarCliente = () => {
             email: "",
             contraseña_hash: "",
             direccion: "",
-            telefono: "" 
+            telefono: ""
         });
     };
 
@@ -64,7 +64,7 @@ export const AgregarCliente = () => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "clientes_add", payload: data });
             limpiarFormulario();
-            navigate('/clientes'); 
+            navigate('/clientes');
         }).catch(setError).finally(() => setLoading(false));
     };
 
@@ -127,7 +127,7 @@ export const AgregarCliente = () => {
                                         <input
                                             type="password"
                                             className="form-control"
-                                            placeholder="Ingrese la contraseña"
+                                            placeholder="Ingrese la Contraseña"
                                             value={nuevoCliente.contraseña_hash}
                                             onChange={e => setNuevoCliente(s => ({ ...s, contraseña_hash: e.target.value }))}
                                         />

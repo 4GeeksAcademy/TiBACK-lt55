@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const AgregarAnalista = () => {
-    const { store, dispatch } = useGlobalReducer(); 
+    const { store, dispatch } = useGlobalReducer();
     const navigate = useNavigate();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
 
@@ -25,17 +25,17 @@ export const AgregarAnalista = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const limpiarFormulario = () => {
@@ -63,7 +63,7 @@ export const AgregarAnalista = () => {
             if (!ok) throw new Error(data.message);
             dispatch({ type: "analistas_add", payload: data });
             limpiarFormulario();
-            navigate('/analistas'); 
+            navigate('/analistas');
         }).catch(setError).finally(() => setLoading(false));
     };
 
@@ -126,7 +126,7 @@ export const AgregarAnalista = () => {
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Ingrese la contraseña"
+                                            placeholder="Ingrese la Contraseña"
                                             value={nuevoAnalista.contraseña_hash}
                                             onChange={e => setNuevoAnalista(s => ({ ...s, contraseña_hash: e.target.value }))}
                                         />
@@ -136,7 +136,7 @@ export const AgregarAnalista = () => {
                                         <input
                                             type="password"
                                             className="form-control"
-                                            placeholder="Ingrese la contraseña"
+                                            placeholder="Ingrese la Contraseña"
                                             value={nuevoAnalista.especialidad}
                                             onChange={e => setNuevoAnalista(s => ({ ...s, especialidad: e.target.value }))}
                                         />

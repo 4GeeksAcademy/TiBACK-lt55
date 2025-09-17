@@ -26,17 +26,17 @@ export const ActualizarCliente = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const cargarCliente = () => {
@@ -139,7 +139,7 @@ export const ActualizarCliente = () => {
                                         <input
                                             type="password"
                                             className="form-control"
-                                            placeholder="Ingrese la nueva contraseña (dejar vacío para mantener la actual)"
+                                            placeholder="Ingrese la nueva Contraseña (dejar vacío para mantener la actual)"
                                             value={cliente.contraseña_hash}
                                             onChange={e => setCliente(s => ({ ...s, contraseña_hash: e.target.value }))}
                                         />

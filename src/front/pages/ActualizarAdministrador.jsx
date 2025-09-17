@@ -23,17 +23,17 @@ export const ActualizarAdministrador = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const cargarAdministrador = () => {
@@ -44,7 +44,7 @@ export const ActualizarAdministrador = () => {
                 setAdministrador({
                     permisos_especiales: data.permisos_especiales,
                     email: data.email,
-                    contraseña_hash: "" // No cargar la contraseña por seguridad
+                    contraseña_hash: "" // No cargar la contraseña_hash por seguridad
                 });
             }).catch(setError).finally(() => setLoading(false));
     };
@@ -56,7 +56,7 @@ export const ActualizarAdministrador = () => {
             return;
         }
 
-        // Solo enviar contraseña si se proporcionó una nueva
+        // Solo enviar contraseña_hash si se proporcionó una nueva
         const datosActualizacion = {
             permisos_especiales: administrador.permisos_especiales,
             email: administrador.email
@@ -120,7 +120,7 @@ export const ActualizarAdministrador = () => {
                                         <input
                                             type="password"
                                             className="form-control"
-                                            placeholder="Ingrese la nueva contraseña (dejar vacío para mantener la actual)"
+                                            placeholder="Ingrese la nueva Contraseña (dejar vacío para mantener la actual)"
                                             value={administrador.contraseña_hash}
                                             onChange={e => setAdministrador(s => ({ ...s, contraseña_hash: e.target.value }))}
                                         />

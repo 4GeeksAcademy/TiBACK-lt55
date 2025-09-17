@@ -6,12 +6,13 @@ from typing import List
 
 db = SQLAlchemy()
 
+
 class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
-
 
     def serialize(self):
         return {
@@ -21,14 +22,14 @@ class User(db.Model):
         }
 
 
-
 class Cliente(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     direccion: Mapped[str] = mapped_column(String(120), nullable=False)
     telefono: Mapped[str] = mapped_column(String(20), nullable=False)
     nombre: Mapped[str] = mapped_column(String(50), nullable=False)
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False)
     contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     tickets: Mapped[List["Ticket"]] = relationship(
         "Ticket", back_populates="cliente", cascade="all, delete-orphan"
@@ -50,7 +51,8 @@ class Analista(db.Model):
     especialidad: Mapped[str] = mapped_column(String(120), nullable=False)
     nombre: Mapped[str] = mapped_column(String(50), nullable=False)
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False)
     contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     asignaciones: Mapped[List["Asignacion"]] = relationship(
         "Asignacion", back_populates="analista", cascade="all, delete-orphan"
@@ -66,13 +68,13 @@ class Analista(db.Model):
         }
 
 
-
 class Supervisor(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     area_responsable: Mapped[str] = mapped_column(String(120), nullable=False)
     nombre: Mapped[str] = mapped_column(String(50), nullable=False)
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False)
     contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     asignaciones: Mapped[List["Asignacion"]] = relationship(
         "Asignacion", back_populates="supervisor", cascade="all, delete-orphan"
@@ -86,7 +88,6 @@ class Supervisor(db.Model):
             "email": self.email,
             "area_responsable": self.area_responsable
         }
-
 
 
 class Comentarios(db.Model):
@@ -107,7 +108,8 @@ class Comentarios(db.Model):
         ForeignKey("supervisor.id"), nullable=True
     )
     texto: Mapped[str] = mapped_column(String(500), nullable=False)
-    fecha_comentario: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    fecha_comentario: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False)
     gestion = relationship("Gestion", back_populates="comentarios")
     ticket = relationship("Ticket", backref="comentarios")
     cliente = relationship("Cliente")
@@ -125,21 +127,25 @@ class Comentarios(db.Model):
             "texto": self.texto,
             "fecha_comentario": self.fecha_comentario.isoformat() if self.fecha_comentario else None,
             "autor": {
-                "nombre": (self.cliente.nombre + " " + self.cliente.apellido) if self.cliente else 
-                        (self.analista.nombre + " " + self.analista.apellido) if self.analista else
-                        (self.supervisor.nombre + " " + self.supervisor.apellido) if self.supervisor else "Desconocido",
+                "nombre": (self.cliente.nombre + " " + self.cliente.apellido) if self.cliente else
+                (self.analista.nombre + " " + self.analista.apellido) if self.analista else
+                (self.supervisor.nombre + " " +
+                 self.supervisor.apellido) if self.supervisor else "Desconocido",
                 "rol": "cliente" if self.cliente else "analista" if self.analista else "supervisor" if self.supervisor else "desconocido"
             }
         }
 
 
-
 class Asignacion(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_ticket: Mapped[int] = mapped_column(ForeignKey("ticket.id"), nullable=False)
-    id_supervisor: Mapped[int] = mapped_column(ForeignKey("supervisor.id"), nullable=False)
-    id_analista: Mapped[int] = mapped_column(ForeignKey("analista.id"), nullable=False)
-    fecha_asignacion: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    id_ticket: Mapped[int] = mapped_column(
+        ForeignKey("ticket.id"), nullable=False)
+    id_supervisor: Mapped[int] = mapped_column(
+        ForeignKey("supervisor.id"), nullable=False)
+    id_analista: Mapped[int] = mapped_column(
+        ForeignKey("analista.id"), nullable=False)
+    fecha_asignacion: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False)
     ticket = relationship("Ticket", backref="asignaciones")
     analista = relationship("Analista", back_populates="asignaciones")
     supervisor = relationship("Supervisor", back_populates="asignaciones")
@@ -154,11 +160,12 @@ class Asignacion(db.Model):
         }
 
 
-
 class Administrador(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    permisos_especiales: Mapped[str] = mapped_column(String(200), nullable=False)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    permisos_especiales: Mapped[str] = mapped_column(
+        String(200), nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False)
     contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     def serialize(self):
@@ -189,7 +196,8 @@ class Ticket(db.Model):
         # Obtener la asignación más reciente
         asignacion_actual = None
         if self.asignaciones:
-            asignacion_mas_reciente = max(self.asignaciones, key=lambda x: x.fecha_asignacion)
+            asignacion_mas_reciente = max(
+                self.asignaciones, key=lambda x: x.fecha_asignacion)
             asignacion_actual = {
                 "id": asignacion_mas_reciente.id,
                 "id_ticket": asignacion_mas_reciente.id_ticket,
@@ -199,7 +207,7 @@ class Ticket(db.Model):
                 "analista": asignacion_mas_reciente.analista.serialize() if asignacion_mas_reciente.analista else None,
                 "supervisor": asignacion_mas_reciente.supervisor.serialize() if asignacion_mas_reciente.supervisor else None
             }
-        
+
         return {
             "id": self.id,
             "id_cliente": self.id_cliente,
@@ -217,9 +225,11 @@ class Ticket(db.Model):
             "comentarios": [c.serialize() for c in self.comentarios] if hasattr(self, 'comentarios') else []
         }
 
+
 class Gestion(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_ticket: Mapped[int] = mapped_column(ForeignKey("ticket.id"), nullable=False)
+    id_ticket: Mapped[int] = mapped_column(
+        ForeignKey("ticket.id"), nullable=False)
     fecha_cambio: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     Nota_de_caso: Mapped[str] = mapped_column(String(200), nullable=False)
     ticket = relationship("Ticket", backref="gestiones")
