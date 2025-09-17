@@ -1,33 +1,99 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
+import GoogleMapsLocation from '../../components/GoogleMapsLocation';
+
+// Utilidades de token seguras
+const tokenUtils = {
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+  getUserId: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.user_id : null;
+  }
+};
 
 export function ClientePage() {
-    const { store, logout } = useGlobalReducer();
+    const { store, logout, dispatch } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showLocationForm, setShowLocationForm] = useState(false);
+    const [updatingLocation, setUpdatingLocation] = useState(false);
+    const [userData, setUserData] = useState(null);
+    const [locationData, setLocationData] = useState({
+        address: '',
+        lat: null,
+        lng: null
+    });
 
-    // Cargar tickets del cliente
+    // Función helper para actualizar tickets sin recargar la página
+    const actualizarTickets = async () => {
+        try {
+            const token = store.auth.token;
+            const ticketsResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (ticketsResponse.ok) {
+                const ticketsData = await ticketsResponse.json();
+                setTickets(ticketsData);
+            }
+        } catch (err) {
+            console.error('Error al actualizar tickets:', err);
+        }
+    };
+
+    // Cargar datos del usuario y tickets
     useEffect(() => {
-        const cargarTickets = async () => {
+        const cargarDatos = async () => {
             try {
                 setLoading(true);
                 const token = store.auth.token;
+                const userId = tokenUtils.getUserId(token);
 
-                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
+                // Cargar datos del usuario
+                const userResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
 
-                if (!response.ok) {
+                if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    setUserData(userData);
+                    setLocationData({
+                        address: userData.direccion || '',
+                        lat: userData.latitude || null,
+                        lng: userData.longitude || null
+                    });
+                }
+
+                // Cargar tickets del cliente
+                const ticketsResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!ticketsResponse.ok) {
                     throw new Error('Error al cargar tickets');
                 }
 
-                const data = await response.json();
-                setTickets(data);
+                const ticketsData = await ticketsResponse.json();
+                setTickets(ticketsData);
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -35,7 +101,7 @@ export function ClientePage() {
             }
         };
 
-        cargarTickets();
+        cargarDatos();
     }, [store.auth.token]);
 
     const crearTicket = async (e) => {
@@ -63,8 +129,8 @@ export function ClientePage() {
                 throw new Error('Error al crear ticket');
             }
 
-            // Recargar tickets
-            window.location.reload();
+            // Actualizar tickets sin recargar la página
+            await actualizarTickets();
         } catch (err) {
             setError(err.message);
         }
@@ -107,8 +173,8 @@ export function ClientePage() {
                 throw new Error('Error al evaluar ticket');
             }
 
-            // Recargar tickets
-            window.location.reload();
+            // Actualizar tickets sin recargar la página
+            await actualizarTickets();
         } catch (err) {
             setError(err.message);
         }
@@ -130,8 +196,8 @@ export function ClientePage() {
                 throw new Error('Error al reabrir ticket');
             }
 
-            // Recargar tickets
-            window.location.reload();
+            // Actualizar tickets sin recargar la página
+            await actualizarTickets();
         } catch (err) {
             setError(err.message);
         }
@@ -153,10 +219,54 @@ export function ClientePage() {
                 throw new Error('Error al cerrar ticket');
             }
 
-            // Recargar tickets
-            window.location.reload();
+            // Actualizar tickets sin recargar la página
+            await actualizarTickets();
         } catch (err) {
             setError(err.message);
+        }
+    };
+
+    const handleLocationChange = (location) => {
+        setLocationData(location);
+    };
+
+    const updateLocation = async () => {
+        try {
+            setUpdatingLocation(true);
+            const token = store.auth.token;
+            const userId = tokenUtils.getUserId(token);
+            
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    direccion: locationData.address,
+                    latitude: locationData.lat,
+                    longitude: locationData.lng
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al actualizar ubicación');
+            }
+
+            // Actualizar los datos locales
+            setUserData(prev => ({
+                ...prev,
+                direccion: locationData.address,
+                latitude: locationData.lat,
+                longitude: locationData.lng
+            }));
+            
+            alert('Ubicación actualizada exitosamente');
+            setShowLocationForm(false);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setUpdatingLocation(false);
         }
     };
 
@@ -168,10 +278,32 @@ export function ClientePage() {
                     <div className="card">
                         <div className="card-body d-flex justify-content-between align-items-center">
                             <div>
-                                <h2 className="mb-1">Bienvenido, {store.auth.user?.nombre} {store.auth.user?.apellido}</h2>
+                                <h2 className="mb-1">Bienvenido, {userData?.nombre} {userData?.apellido}</h2>
                                 <p className="text-muted mb-0">Panel de Cliente - Gestión de Tickets</p>
+                                {userData?.direccion && (
+                                    <div className="mt-2">
+                                        <small className="text-info d-flex align-items-center">
+                                            <i className="fas fa-map-marker-alt me-1"></i>
+                                            <span className="fw-bold">Ubicación:</span>
+                                            <span className="ms-1 w-50 ">{userData.direccion}</span>
+                                        </small>
+                                        {userData?.latitude && userData?.longitude && (
+                                            <small className="text-muted d-block mt-1">
+                                                <i className="fas fa-globe me-1"></i>
+                                                Coordenadas: {userData.latitude.toFixed(6)}, {userData.longitude.toFixed(6)}
+                                            </small>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="d-flex gap-2">
+                                <button
+                                    className="btn btn-info"
+                                    onClick={() => setShowLocationForm(!showLocationForm)}
+                                >
+                                    <i className="fas fa-map-marker-alt me-1"></i>
+                                    {showLocationForm ? 'Ocultar Ubicación' : 'Actualizar Ubicación'}
+                                </button>
                                 <Link to="/clientes" className="btn btn-primary">Ir al CRUD</Link>
                                 <button
                                     className="btn btn-outline-danger"
@@ -188,6 +320,57 @@ export function ClientePage() {
             {error && (
                 <div className="alert alert-danger" role="alert">
                     {error}
+                </div>
+            )}
+
+            {/* Formulario de ubicación */}
+            {showLocationForm && (
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="card">
+                            <div className="card-header">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-map-marker-alt me-2"></i>
+                                    Actualizar Mi Ubicación
+                                </h5>
+                            </div>
+                            <div className="card-body">
+                                <GoogleMapsLocation
+                                    onLocationChange={handleLocationChange}
+                                    initialAddress={locationData.address}
+                                    initialLat={locationData.lat}
+                                    initialLng={locationData.lng}
+                                />
+                                <div className="mt-3 d-flex gap-2">
+                                    <button
+                                        className="btn btn-success"
+                                        onClick={updateLocation}
+                                        disabled={!locationData.address || updatingLocation}
+                                    >
+                                        {updatingLocation ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                                Actualizando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="fas fa-save me-1"></i>
+                                                Guardar Ubicación
+                                            </>
+                                        )}
+                                    </button>
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowLocationForm(false)}
+                                        disabled={updatingLocation}
+                                    >
+                                        <i className="fas fa-times me-1"></i>
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 

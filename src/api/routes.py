@@ -45,7 +45,14 @@ def create_cliente():
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
     try:
-        cliente = Cliente(**{k: body[k] for k in required})
+        # Preparar datos del cliente incluyendo coordenadas opcionales
+        cliente_data = {k: body[k] for k in required}
+        if 'latitude' in body:
+            cliente_data['latitude'] = body['latitude']
+        if 'longitude' in body:
+            cliente_data['longitude'] = body['longitude']
+            
+        cliente = Cliente(**cliente_data)
         db.session.add(cliente)
         db.session.commit()
         return jsonify(cliente.serialize()), 201
@@ -74,7 +81,7 @@ def update_cliente(id):
     if not cliente:
         return jsonify({"message": "Cliente no encontrado"}), 404
     try:
-        for field in ["direccion", "telefono", "nombre", "apellido", "email", "contraseña_hash"]:
+        for field in ["direccion", "telefono", "nombre", "apellido", "email", "contraseña_hash", "latitude", "longitude"]:
             if field in body:
                 setattr(cliente, field, body[field])
         db.session.commit()
@@ -762,15 +769,23 @@ def register():
         if existing_cliente:
             return jsonify({"message": "Email ya registrado"}), 400
         
-        # Crear nuevo cliente
-        cliente = Cliente(
-            nombre=body['nombre'],
-            apellido=body['apellido'],
-            email=body['email'],
-            contraseña_hash=body['password'],  # En producción, hashear la contraseña
-            direccion=body['direccion'],
-            telefono=body['telefono']
-        )
+        # Crear nuevo cliente con coordenadas opcionales
+        cliente_data = {
+            'nombre': body['nombre'],
+            'apellido': body['apellido'],
+            'email': body['email'],
+            'contraseña_hash': body['password'],  # En producción, hashear la contraseña
+            'direccion': body['direccion'],
+            'telefono': body['telefono']
+        }
+        
+        # Agregar coordenadas si están presentes
+        if 'latitude' in body:
+            cliente_data['latitude'] = body['latitude']
+        if 'longitude' in body:
+            cliente_data['longitude'] = body['longitude']
+        
+        cliente = Cliente(**cliente_data)
         
         db.session.add(cliente)
         db.session.commit()
@@ -816,9 +831,9 @@ def login():
 
         return jsonify({
             "message": "Login exitoso",
-            "token": token,
-            "user": user.serialize(),
-            "role": role
+            "token": token
+            # "user": user.serialize(),
+            # "role": role
         }), 200
 
     except Exception as e:

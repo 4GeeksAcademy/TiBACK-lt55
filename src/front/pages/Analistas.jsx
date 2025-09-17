@@ -2,6 +2,24 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
+// Utilidades de token seguras
+const tokenUtils = {
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+  getRole: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.role : null;
+  }
+};
+
 export const Analistas = () => {
   const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
@@ -60,7 +78,7 @@ export const Analistas = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0">Lista de Analistas</h2>
         <div className="d-flex gap-2">
-          <button className="btn btn-secondary" onClick={() => navigate(`/${store.auth.role}`)}>Volver</button>
+          <button className="btn btn-secondary" onClick={() => navigate(`/${tokenUtils.getRole(store.auth.token)}`)}>Volver</button>
           <button
             className="btn btn-primary"
             onClick={() => navigate('/agregar-analista')}

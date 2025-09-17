@@ -8,6 +8,25 @@ export function AnalistaPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // Función helper para actualizar tickets sin recargar la página
+    const actualizarTickets = async () => {
+        try {
+            const token = store.auth.token;
+            const ticketsResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/analista`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (ticketsResponse.ok) {
+                const ticketsData = await ticketsResponse.json();
+                setTickets(ticketsData);
+            }
+        } catch (err) {
+            console.error('Error al actualizar tickets:', err);
+        }
+    };
+
     // Cargar tickets asignados al analista
     useEffect(() => {
         const cargarTickets = async () => {
@@ -54,8 +73,8 @@ export function AnalistaPage() {
                 throw new Error('Error al cambiar estado del ticket');
             }
 
-            // Recargar tickets
-            window.location.reload();
+            // Actualizar tickets sin recargar la página
+            await actualizarTickets();
         } catch (err) {
             setError(err.message);
         }
@@ -96,7 +115,8 @@ export function AnalistaPage() {
                 throw new Error('Error al agregar comentario');
             }
 
-            window.location.reload();
+            // Actualizar tickets sin recargar la página
+            await actualizarTickets();
         } catch (err) {
             setError(err.message);
         }

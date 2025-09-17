@@ -34,7 +34,7 @@ export function StoreProvider({ children }) {
         register: (userData) => authActions.register(userData, dispatch),
         logout: () => authActions.logout(dispatch),
         refresh: () => authActions.refresh(dispatch),
-        hasRole: (allowedRoles) => authActions.hasRole(store.auth.role, allowedRoles),
+        hasRole: (allowedRoles) => authActions.hasRole(store.auth.token, allowedRoles),
         isTokenExpiringSoon: authActions.isTokenExpiringSoon
     }}>
         {children}

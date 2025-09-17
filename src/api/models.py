@@ -25,6 +25,8 @@ class User(db.Model):
 class Cliente(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     direccion: Mapped[str] = mapped_column(String(120), nullable=False)
+    latitude: Mapped[float] = mapped_column(nullable=True)
+    longitude: Mapped[float] = mapped_column(nullable=True)
     telefono: Mapped[str] = mapped_column(String(20), nullable=False)
     nombre: Mapped[str] = mapped_column(String(50), nullable=False)
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -41,6 +43,8 @@ class Cliente(db.Model):
             "apellido": self.apellido,
             "email": self.email,
             "direccion": self.direccion,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
             "telefono": self.telefono
         }
 

@@ -2,6 +2,24 @@ import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
+// Utilidades de token seguras
+const tokenUtils = {
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+  getRole: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.role : null;
+  }
+};
+
 export const Supervisor = () => {
     const { store, dispatch } = useGlobalReducer();
     const navigate = useNavigate();
@@ -62,7 +80,7 @@ export const Supervisor = () => {
         <div className="container py-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2 className="mb-0">Gestión de Supervisores</h2>
-                <button className="btn btn-secondary" onClick={() => navigate(`/${store.auth.role}`)}>Volver</button>
+                <button className="btn btn-secondary" onClick={() => navigate(`/${tokenUtils.getRole(store.auth.token)}`)}>Volver</button>
             </div>
 
             {store?.api?.error && (

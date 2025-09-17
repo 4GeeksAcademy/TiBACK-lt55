@@ -2,6 +2,24 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 
+// Utilidades de token seguras
+const tokenUtils = {
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+  getRole: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.role : null;
+  }
+};
+
 export function ProtectedRoute({ children, allowedRoles = [] }) {
     const { store, hasRole } = useGlobalReducer();
 
@@ -21,7 +39,7 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
         return <Navigate to="/auth" replace />;
     }
 
-    // Si tiene roles específicos y el usuario no tiene el rol correcto
+    // SEGURIDAD: Verificar rol usando token, no estado local
     if (allowedRoles.length > 0 && !hasRole(allowedRoles)) {
         return <Navigate to="/" replace />;
     }
