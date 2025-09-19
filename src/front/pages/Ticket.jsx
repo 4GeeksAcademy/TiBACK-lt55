@@ -118,6 +118,7 @@ export const Ticket = () => {
                                         <th>Estado</th>
                                         <th>Título</th>
                                         <th>Prioridad</th>
+                                        <th>Imágenes</th>
                                         <th>Fecha Creación</th>
                                         <th>Acciones</th>
                                     </tr>
@@ -142,6 +143,24 @@ export const Ticket = () => {
                                             </td>
                                             <td>
                                                 <span className={getPrioridadBadgeClass(ticket.prioridad)}>{ticket.prioridad}</span>
+                                            </td>
+                                            <td>
+                                                {ticket.img_urls && ticket.img_urls.length > 0 ? (
+                                                    <div className="d-flex align-items-center">
+                                                        <img
+                                                            src={ticket.img_urls[0]}
+                                                            alt="Ticket"
+                                                            style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }}
+                                                        />
+                                                        {ticket.img_urls.length > 1 && (
+                                                            <span className="badge bg-secondary ms-2">
+                                                                +{ticket.img_urls.length - 1}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    "Sin imágenes"
+                                                )}
                                             </td>
                                             <td>{ticket.fecha_creacion ? new Date(ticket.fecha_creacion).toLocaleString() : ''}</td>
                                             <td>

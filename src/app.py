@@ -11,13 +11,28 @@ from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
 
+
 # from models import Person
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
 static_file_dir = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), '../dist/')
 app = Flask(__name__)
+
+# Configurar Cloudinary
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dda53mpsn"),
+    api_key=os.getenv("CLOUDINARY_API_KEY", "468757167358985"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET", "tZIEHxaJWsxR2g-YpeHiT-NukUQ"),
+    secure=True
+)
+
 app.url_map.strict_slashes = False
+
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")

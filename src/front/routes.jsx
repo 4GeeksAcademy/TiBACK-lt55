@@ -42,7 +42,7 @@ import { VerAdministrador } from "./pages/VerAdministrador";
 
 import { Ticket } from "./pages/Ticket";
 import { VerTicket } from "./pages/VerTicket";
-import { ActualizarTicket } from "./pages/ActualizarTicket";
+import  ActualizarTicket  from "./pages/ActualizarTicket";
 import AgregarTicket from "./pages/AgregarTicket";
 
 import { Gestion } from "./pages/Gestion";
@@ -52,7 +52,7 @@ import { ActualizarGestion } from "./pages/ActualizarGestion";
 
 import { AuthForm } from "./authentication/AuthForm";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { ClientePage } from "./protectedViewsRol/cliente/ClientePage";
+import  ClientePage  from "./protectedViewsRol/cliente/ClientePage";
 import { AnalistaPage } from "./protectedViewsRol/analista/AnalistaPage";
 import { SupervisorPage } from "./protectedViewsRol/supervisor/SupervisorPage";
 import { AdministradorPage } from "./protectedViewsRol/administrador/AdministradorPage";

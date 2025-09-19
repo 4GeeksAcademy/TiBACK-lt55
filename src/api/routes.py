@@ -11,7 +11,10 @@ from api.jwt_utils import (
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
 
+from cloudinary.uploader import upload
+
 from datetime import datetime
+
 api = Blueprint('api', __name__)
 
 # Allow CORS requests to this API
@@ -539,7 +542,7 @@ def delete_administrador(id):
         return jsonify({"message": "Administrador eliminado"}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500
+        return jsonify({"message": f"Error al eliminar: {str(e)}"}), 500 
 
 
 # Tickets
@@ -554,9 +557,15 @@ def listar_tickets():
 @api.route('/tickets', methods=['POST'])
 @require_role(['cliente', 'administrador'])
 def create_ticket():
-    body = request.get_json(silent=True) or {}
+    # Detecta si es multipart/form-data (con archivo) o JSON
+    if request.content_type.startswith('multipart/form-data'):
+        body = request.form.to_dict()
+    else:
+        body = request.get_json(silent=True) or {}
+
     user = get_user_from_token()
 
+    # Campos requeridos para clientes
     if user['role'] == 'cliente':
         required = ["titulo", "descripcion", "prioridad"]
         missing = [k for k in required if not body.get(k)]
@@ -569,17 +578,31 @@ def create_ticket():
             titulo=body['titulo'],
             descripcion=body['descripcion'],
             fecha_creacion=datetime.now(),
-            prioridad=body['prioridad']
+            prioridad=body['prioridad'],
+            img_urls=[]  # lista vacía para múltiples imágenes
         )
+
+        # Subir imágenes si vienen
+        if "imagenes" in request.files:  # múltiples
+            archivos = request.files.getlist("imagenes")
+            for archivo in archivos:
+                resultado = upload(archivo)
+                ticket.img_urls.append(resultado["secure_url"])
+        elif "imagen" in request.files:  # una sola
+            archivo = request.files["imagen"]
+            resultado = upload(archivo)
+            ticket.img_urls.append(resultado["secure_url"])
+
         db.session.add(ticket)
         db.session.commit()
         return jsonify(ticket.serialize()), 201
 
-    required = ["id_cliente", "estado", "titulo",
-                "descripcion", "fecha_creacion", "prioridad"]
+    # Para admin que crea tickets con JSON
+    required = ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion", "prioridad"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return jsonify({"message": f"Faltan campos: {', '.join(missing)}"}), 400
+
     try:
         ticket = Ticket(
             id_cliente=body["id_cliente"],
@@ -588,7 +611,20 @@ def create_ticket():
             descripcion=body["descripcion"],
             fecha_creacion=datetime.fromisoformat(body["fecha_creacion"]),
             prioridad=body["prioridad"],
+            img_urls=[]
         )
+
+        # Subir imágenes si vienen
+        if "imagenes" in request.files:
+            archivos = request.files.getlist("imagenes")
+            for archivo in archivos:
+                resultado = upload(archivo)
+                ticket.img_urls.append(resultado["secure_url"])
+        elif "imagen" in request.files:
+            archivo = request.files["imagen"]
+            resultado = upload(archivo)
+            ticket.img_urls.append(resultado["secure_url"])
+
         db.session.add(ticket)
         db.session.commit()
         return jsonify(ticket.serialize()), 201
@@ -612,11 +648,17 @@ def get_ticket(id):
 @api.route('/tickets/<int:id>', methods=['PUT'])
 @require_role(['cliente', 'analista', 'supervisor', 'administrador'])
 def update_ticket(id):
-    body = request.get_json(silent=True) or {}
+    if request.content_type.startswith('multipart/form-data'):
+        body = request.form.to_dict()
+    else:
+        body = request.get_json(silent=True) or {}
+
     ticket = db.session.get(Ticket, id)
     if not ticket:
         return jsonify({"message": "Ticket no encontrado"}), 404
+
     try:
+        # Actualizar campos normales
         for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion",
                       "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion"]:
             if field in body:
@@ -624,6 +666,18 @@ def update_ticket(id):
                 if field in ["fecha_creacion", "fecha_cierre", "fecha_evaluacion"] and value:
                     value = datetime.fromisoformat(value)
                 setattr(ticket, field, value)
+
+        # Subir nuevas imágenes si vienen
+        if "imagenes" in request.files:  # múltiples
+            archivos = request.files.getlist("imagenes")
+            for archivo in archivos:
+                resultado = upload(archivo)
+                ticket.img_urls.append(resultado["secure_url"])
+        elif "imagen" in request.files:  # una sola
+            archivo = request.files["imagen"]
+            resultado = upload(archivo)
+            ticket.img_urls.append(resultado["secure_url"])
+
         db.session.commit()
         return jsonify(ticket.serialize()), 200
     except IntegrityError:
@@ -632,7 +686,6 @@ def update_ticket(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
-
 
 @api.route('/tickets/<int:id>', methods=['DELETE'])
 @require_role(['administrador'])

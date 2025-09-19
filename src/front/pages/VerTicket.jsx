@@ -106,7 +106,30 @@ export const VerTicket = () => {
                     <p><strong>Descripción:</strong> {ticket.descripcion}</p>
                     <p><strong>Comentario:</strong> {ticket.comentario || "Sin comentarios"}</p>
                 </div>
-            </div>
+                <div className="col-12 mb-3">
+                    <p><strong>Imágenes:</strong></p>
+                {ticket.img_urls && ticket.img_urls.length > 0 ? (
+                    <div className="d-flex flex-wrap gap-3 mt-2">
+                        {ticket.img_urls.map((url, idx) => (
+                            <img
+                                key={idx}
+                                src={url}
+                                alt={`Imagen ${idx + 1}`}
+                                style={{
+                                    width: "200px",
+                                    height: "200px",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)"
+                                }}
+                            />
+                         ))}
+                    </div>
+                ) : (
+                    <p className="text-muted">No hay imágenes adjuntas</p>
+                )}
+                </div>
+                </div>
             <div className="mt-3">
                 <button className="btn btn-secondary me-2" onClick={() => navigate("/tickets")}>
                     <i className="fas fa-arrow-left"></i> Volver

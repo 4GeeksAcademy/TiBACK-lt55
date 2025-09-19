@@ -3,6 +3,7 @@ from sqlalchemy import String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List
+from sqlalchemy.dialects.postgresql import JSON
 
 db = SQLAlchemy()
 
@@ -187,6 +188,7 @@ class Ticket(db.Model):
     calificacion: Mapped[int] = mapped_column(nullable=True)
     comentario: Mapped[str] = mapped_column(String(500), nullable=True)
     fecha_evaluacion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    img_urls = db.Column(JSON, nullable=True)
     cliente = relationship("Cliente", back_populates="tickets")
 
     def serialize(self):
@@ -216,6 +218,7 @@ class Ticket(db.Model):
             "calificacion": self.calificacion,
             "comentario": self.comentario,
             "fecha_evaluacion": self.fecha_evaluacion.isoformat() if self.fecha_evaluacion else None,
+            "img_urls": self.img_urls or [],
             "cliente": self.cliente.serialize() if self.cliente else None,
             "asignacion_actual": asignacion_actual,
             "comentarios": [c.serialize() for c in self.comentarios] if hasattr(self, 'comentarios') else []

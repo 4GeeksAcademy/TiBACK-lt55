@@ -40,7 +40,7 @@ export function SupervisorPage() {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    }
+                    } 
                 });
 
                 if (ticketsResponse.ok) {
