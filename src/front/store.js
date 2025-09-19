@@ -1,4 +1,5 @@
 import { string } from "prop-types";
+import { io } from 'socket.io-client';
 
 // Utilidades de token seguras - SOLO TOKEN COMO FUENTE DE VERDAD
 const tokenUtils = {
@@ -63,6 +64,13 @@ export const initialStore = () => {
       token: null,
       isAuthenticated: false,
       isLoading: true
+    },
+
+    // Estado de WebSocket
+    websocket: {
+      socket: null,
+      connected: false,
+      notifications: []
     },
 
       // Estado global para Clientes
@@ -358,6 +366,111 @@ export const authActions = {
     
     const userRole = tokenUtils.getRole(token);
     return allowedRoles.includes(userRole);
+  },
+
+  // Funciones de WebSocket
+  connectWebSocket: (dispatch, token) => {
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      if (!backendUrl) return;
+
+      const socket = io(backendUrl, {
+        transports: ['websocket', 'polling'],
+        auth: {
+          token: token
+        }
+      });
+
+      socket.on('connect', () => {
+        console.log('WebSocket conectado');
+        dispatch({ type: 'websocket_connected', payload: socket });
+      });
+
+      socket.on('disconnect', () => {
+        console.log('WebSocket desconectado');
+        dispatch({ type: 'websocket_disconnected' });
+      });
+
+      // Eventos de tickets
+      socket.on('nuevo_ticket', (data) => {
+        console.log('Nuevo ticket recibido:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+      });
+
+      socket.on('ticket_actualizado', (data) => {
+        console.log('Ticket actualizado:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+      });
+
+      socket.on('ticket_asignado', (data) => {
+        console.log('📥 TICKET ASIGNADO/RASIGNADO RECIBIDO:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+      });
+
+      socket.on('nuevo_comentario', (data) => {
+        console.log('Nuevo comentario:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'comentarios_add', payload: data.comentario });
+      });
+
+      socket.on('ticket_eliminado', (data) => {
+        console.log('Ticket eliminado:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'tickets_remove', payload: data.ticket_id });
+      });
+
+      socket.on('ticket_escalado', (data) => {
+        console.log('🚨 TICKET ESCALADO RECIBIDO:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+      });
+
+      socket.on('ticket_iniciado', (data) => {
+        console.log('Ticket iniciado:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+      });
+
+      // Eventos de analistas
+      socket.on('analista_creado', (data) => {
+        console.log('📥 ANALISTA CREADO RECIBIDO:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'analistas_add', payload: data.analista });
+      });
+
+      return socket;
+    } catch (error) {
+      console.error('Error conectando WebSocket:', error);
+      return null;
+    }
+  },
+
+  disconnectWebSocket: (dispatch, socket) => {
+    if (socket) {
+      socket.disconnect();
+      dispatch({ type: 'websocket_disconnected' });
+    }
+  },
+
+  joinRoom: (socket, role, userId) => {
+    if (socket) {
+      // Unirse a la sala según el rol
+      if (role === 'supervisor') {
+        socket.emit('join_room', 'supervisores');
+      } else if (role === 'administrador') {
+        socket.emit('join_room', 'supervisores');
+        socket.emit('join_room', 'administradores');
+      } else if (role === 'analista') {
+        socket.emit('join_room', `analista_${userId}`);
+        socket.emit('join_room', 'analistas'); // Sala general de analistas
+      } else if (role === 'cliente') {
+        socket.emit('join_room', `cliente_${userId}`);
+        socket.emit('join_room', 'clientes'); // Sala general de clientes
+      }
+    }
   }
 };  
 
@@ -408,6 +521,36 @@ export default function storeReducer(store, action = {}) {
           token: action.payload.token,
           isAuthenticated: !!action.payload.token,
           isLoading: false
+        }
+      };
+
+    // WebSocket cases
+    case 'websocket_connected':
+      return {
+        ...store,
+        websocket: {
+          ...store.websocket,
+          socket: action.payload,
+          connected: true
+        }
+      };
+
+    case 'websocket_disconnected':
+      return {
+        ...store,
+        websocket: {
+          ...store.websocket,
+          socket: null,
+          connected: false
+        }
+      };
+
+    case 'websocket_notification':
+      return {
+        ...store,
+        websocket: {
+          ...store.websocket,
+          notifications: [...store.websocket.notifications, action.payload]
         }
       };
 
