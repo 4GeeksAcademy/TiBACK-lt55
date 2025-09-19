@@ -55,26 +55,57 @@ export function AuthForm() {
         e.preventDefault();
         setError('');
 
-
         try {
             let result;
 
             if (isLogin) {
                 result = await login(formData.email, formData.password, formData.role);
             } else {
-
-                const registerData = {
-                    nombre: formData.nombre,
-                    apellido: formData.apellido,
-                    email: formData.email,
-                    password: formData.password,
-                    direccion: formData.direccion,
-                    telefono: formData.telefono,
-                    role: 'cliente',
-                    latitude: locationData.lat,
-                    longitude: locationData.lng
-                };
-                result = await register(registerData);
+                // Para clientes, solo registrar email y contraseña inicialmente
+                if (formData.role === 'cliente') {
+                    // Crear cliente básico solo con email y contraseña
+                    const basicClientData = {
+                        email: formData.email,
+                        password: formData.password,
+                        role: 'cliente',
+                        nombre: 'Pendiente',
+                        apellido: 'Pendiente',
+                        direccion: 'Pendiente',
+                        telefono: '0000000000'
+                    };
+                    result = await register(basicClientData);
+                    
+                    if (result.success) {
+                        // Después del registro básico, ir directo al login
+                        setError('');
+                        alert('Cliente registrado exitosamente. Por favor inicia sesión con tus credenciales.');
+                        setIsLogin(true);
+                        setFormData({
+                            nombre: '',
+                            apellido: '',
+                            email: formData.email, // Mantener el email para facilitar el login
+                            password: '',
+                            direccion: '',
+                            telefono: '',
+                            role: 'cliente'
+                        });
+                        return;
+                    }
+                } else {
+                    // Para otros roles, registro completo
+                    const registerData = {
+                        nombre: formData.nombre,
+                        apellido: formData.apellido,
+                        email: formData.email,
+                        password: formData.password,
+                        direccion: formData.direccion,
+                        telefono: formData.telefono,
+                        role: formData.role,
+                        latitude: locationData.lat,
+                        longitude: locationData.lng
+                    };
+                    result = await register(registerData);
+                }
             }
 
             if (result.success) {
@@ -91,10 +122,11 @@ export function AuthForm() {
                         navigate('/administrador');
                     }
                 } else {
-                    // Para registro, mostrar mensaje de éxito y cambiar a login
+                    // Para registro completo, mostrar mensaje de éxito y cambiar a login
                     setError('');
                     alert('Cliente registrado exitosamente. Por favor inicia sesión con tus credenciales.');
                     setIsLogin(true);
+                    setIsClientInfoStep(false);
                     setFormData({
                         nombre: '',
                         apellido: '',
@@ -109,8 +141,8 @@ export function AuthForm() {
                 setError(result.error);
             }
         } catch (err) {
-            setError('Error inesperado. Inténtalo de nuevo.');
-
+            console.error('Error en handleSubmit:', err);
+            setError(`Error inesperado: ${err.message}`);
         }
     };
 
@@ -171,7 +203,7 @@ export function AuthForm() {
                             )}
 
                             <form onSubmit={handleSubmit}>
-                                {!isLogin && (
+                                {!isLogin && formData.role !== 'cliente' && (
                                     <>
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
@@ -223,6 +255,7 @@ export function AuthForm() {
                                         </div>
                                     </>
                                 )}
+
 
                                 <div className="mb-3">
                                     <label htmlFor="email" className="form-label">Email *</label>

@@ -1,12 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
+import RecomendacionModal from '../../components/RecomendacionModal';
+
+// Utilidades de token seguras
+const tokenUtils = {
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+  getUserId: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.user_id : null;
+  },
+  getRole: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.role : null;
+  }
+};
 
 export function AnalistaPage() {
-    const { store, logout } = useGlobalReducer();
+    const { store, logout, connectWebSocket, disconnectWebSocket, joinRoom } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [userData, setUserData] = useState(null);
+    const [showRecomendacionModal, setShowRecomendacionModal] = useState(false);
+    const [recomendacion, setRecomendacion] = useState(null);
+    const [loadingRecomendacion, setLoadingRecomendacion] = useState(false);
+    const [errorRecomendacion, setErrorRecomendacion] = useState('');
+    const [ticketSeleccionado, setTicketSeleccionado] = useState(null);
 
     // Función helper para actualizar tickets sin recargar la página
     const actualizarTickets = async () => {
@@ -26,6 +55,73 @@ export function AnalistaPage() {
             console.error('Error al actualizar tickets:', err);
         }
     };
+
+    // Cargar datos del usuario
+    useEffect(() => {
+        const cargarDatosUsuario = async () => {
+            try {
+                const token = store.auth.token;
+                const userId = tokenUtils.getUserId(token);
+                
+                if (userId) {
+                    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analistas/${userId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        setUserData(data);
+                    }
+                }
+            } catch (err) {
+                console.error('Error al cargar datos del usuario:', err);
+            }
+        };
+
+        if (store.auth.isAuthenticated && store.auth.token) {
+            cargarDatosUsuario();
+        }
+    }, [store.auth.isAuthenticated, store.auth.token]);
+
+    // Conectar WebSocket cuando el usuario esté autenticado
+    useEffect(() => {
+        if (store.auth.isAuthenticated && store.auth.token && !store.websocket.connected) {
+            const socket = connectWebSocket(store.auth.token);
+            if (socket) {
+                const userId = tokenUtils.getUserId(store.auth.token);
+                const role = tokenUtils.getRole(store.auth.token);
+                joinRoom(socket, role, userId);
+            }
+        }
+
+        // Cleanup al desmontar
+        return () => {
+            if (store.websocket.socket) {
+                disconnectWebSocket(store.websocket.socket);
+            }
+        };
+    }, [store.auth.isAuthenticated, store.auth.token]);
+
+    // Actualizar tickets cuando lleguen notificaciones WebSocket
+    useEffect(() => {
+        if (store.websocket.notifications.length > 0) {
+            const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
+            console.log('🔔 ANALISTA - Notificación recibida:', lastNotification);
+            
+            // Actualización inmediata para eventos específicos (sin esperar)
+            if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado') {
+                console.log('⚡ ANALISTA - Actualización inmediata por notificación:', lastNotification.tipo);
+                // Los datos ya están en el store por el WebSocket - actualización instantánea
+            }
+            
+            // Sincronización con servidor en segundo plano para TODOS los eventos
+            console.log('🔄 ANALISTA - Sincronizando con servidor en segundo plano:', lastNotification.tipo);
+            actualizarTickets();
+        }
+    }, [store.websocket.notifications]);
 
     // Cargar tickets asignados al analista
     useEffect(() => {
@@ -143,6 +239,43 @@ export function AnalistaPage() {
         }
     };
 
+    const generarRecomendacion = async (ticket) => {
+        try {
+            setLoadingRecomendacion(true);
+            setErrorRecomendacion('');
+            setTicketSeleccionado(ticket);
+            setShowRecomendacionModal(true);
+
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticket.id}/recomendacion-ia`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al generar recomendación');
+            }
+
+            const data = await response.json();
+            setRecomendacion(data.recomendacion);
+        } catch (err) {
+            setErrorRecomendacion(err.message);
+        } finally {
+            setLoadingRecomendacion(false);
+        }
+    };
+
+    const cerrarModalRecomendacion = () => {
+        setShowRecomendacionModal(false);
+        setRecomendacion(null);
+        setErrorRecomendacion('');
+        setTicketSeleccionado(null);
+    };
+
     const getEstadoColor = (estado) => {
         switch (estado.toLowerCase()) {
             case 'creado': return 'badge bg-secondary';
@@ -173,8 +306,20 @@ export function AnalistaPage() {
                         <div className="card-body d-flex justify-content-between align-items-center">
                             <div>
                                 <h2 className="mb-1">Panel de Analista</h2>
-                                <p className="text-muted mb-0">Bienvenido, {store.auth.user?.nombre} {store.auth.user?.apellido}</p>
-                                <small className="text-info">Especialidad: {store.auth.user?.especialidad}</small>
+                                <p className="text-muted mb-0">Bienvenido, {userData?.nombre} {userData?.apellido}</p>
+                                <small className="text-info">Especialidad: {userData?.especialidad}</small>
+                                <div className="mt-2 d-flex align-items-center">
+                                    <span className={`badge ${store.websocket.connected ? 'bg-success' : 'bg-danger'} me-2`}>
+                                        <i className={`fas ${store.websocket.connected ? 'fa-wifi' : 'fa-wifi-slash'} me-1`}></i>
+                                        {store.websocket.connected ? 'Conectado' : 'Desconectado'}
+                                    </span>
+                                    {store.websocket.notifications.length > 0 && (
+                                        <span className="badge bg-info">
+                                            <i className="fas fa-bell me-1"></i>
+                                            {store.websocket.notifications.length} notificaciones
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                             <div className="d-flex gap-2">
                                 <Link to="/analistas" className="btn btn-primary">Ir al CRUD</Link>
@@ -324,6 +469,14 @@ export function AnalistaPage() {
                                                               >
                                                                   <i className="fas fa-eye"></i> Ver Comentarios
                                                               </button>
+                                                              <button
+                                                                  className="btn btn-info btn-sm"
+                                                                  onClick={() => generarRecomendacion(ticket)}
+                                                                  title="Generar recomendación con IA"
+                                                                  disabled={loadingRecomendacion}
+                                                              >
+                                                                  <i className="fas fa-robot"></i> IA
+                                                              </button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -336,6 +489,15 @@ export function AnalistaPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Recomendación IA */}
+            <RecomendacionModal
+                isOpen={showRecomendacionModal}
+                onClose={cerrarModalRecomendacion}
+                recomendacion={recomendacion}
+                loading={loadingRecomendacion}
+                error={errorRecomendacion}
+            />
         </div>
     );
 }

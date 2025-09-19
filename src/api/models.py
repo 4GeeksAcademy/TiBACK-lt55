@@ -24,7 +24,7 @@ class User(db.Model):
 
 class Cliente(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    direccion: Mapped[str] = mapped_column(String(120), nullable=False)
+    direccion: Mapped[str] = mapped_column(String(500), nullable=False)
     latitude: Mapped[float] = mapped_column(nullable=True)
     longitude: Mapped[float] = mapped_column(nullable=True)
     telefono: Mapped[str] = mapped_column(String(20), nullable=False)
