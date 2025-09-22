@@ -60,7 +60,7 @@ export const Asignacion = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="mb-0">Lista de Asignaciones</h2>
                 <div className="d-flex gap-2">
-                    <button className="btn btn-secondary" onClick={() => navigate(`/${store.auth.role}`)}>Volver</button>
+                    <button className="btn btn-secondary" onClick={() => navigate(`/administrador`)}>Volver</button>
                     <button
                         className="btn btn-primary"
                         onClick={() => navigate('/agregar-asignacion')}

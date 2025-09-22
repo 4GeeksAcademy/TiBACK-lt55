@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 
 // Utilidades de token seguras
@@ -22,6 +22,16 @@ const tokenUtils = {
 
 export function ProtectedRoute({ children, allowedRoles = [] }) {
     const { store, hasRole } = useGlobalReducer();
+    const location = useLocation();
+
+    // Función para determinar el rol basado en la ruta
+    const getRoleFromPath = (pathname) => {
+        if (pathname.startsWith('/cliente')) return 'cliente';
+        if (pathname.startsWith('/analista')) return 'analista';
+        if (pathname.startsWith('/supervisor')) return 'supervisor';
+        if (pathname.startsWith('/administrador')) return 'administrador';
+        return 'cliente'; // Default fallback
+    };
 
     // Si está cargando, mostrar loading
     if (store.auth.isLoading) {
@@ -34,9 +44,10 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
         );
     }
 
-    // Si no está autenticado, redirigir al login
+    // Si no está autenticado, redirigir al login con el rol correspondiente
     if (!store.auth.isAuthenticated) {
-        return <Navigate to="/auth" replace />;
+        const role = getRoleFromPath(location.pathname);
+        return <Navigate to={`/auth?role=${role}`} replace />;
     }
 
     // SEGURIDAD: Verificar rol usando token, no estado local
