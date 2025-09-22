@@ -47,30 +47,34 @@ export const Navbar = () => {
 
 
 
-					<Link to="/clientes">
-						<button className="btn btn-outline-secondary">Clientes</button>
-					</Link>
-					<Link to="/analistas">
-						<button className="btn btn-outline-secondary">Analistas</button>
-					</Link>
-					<Link to="/supervisores">
-						<button className="btn btn-outline-secondary">Supervisores</button>
-					</Link>
-					<Link to="/administradores">
-						<button className="btn btn-outline-secondary me-4">Administradores</button>
-					</Link>
-					<Link to="/gestiones">
-						<button className="btn btn-outline-secondary">Gestiones</button>
-					</Link>
-					<Link to="/tickets">
-						<button className="btn btn-outline-secondary">Tickets</button>
-					</Link>
-					<Link to="/comentarios">
-						<button className="btn btn-outline-secondary">Comentarios</button>
-					</Link>
-					<Link to="/asignaciones">
-						<button className="btn btn-outline-secondary ">Asignaciones</button>
-					</Link>
+					{role === 'administrador' && (
+						<>
+							<Link to="/clientes">
+								<button className="btn btn-outline-secondary">Clientes</button>
+							</Link>
+							<Link to="/analistas">
+								<button className="btn btn-outline-secondary">Analistas</button>
+							</Link>
+							<Link to="/supervisores">
+								<button className="btn btn-outline-secondary">Supervisores</button>
+							</Link>
+							<Link to="/administradores">
+								<button className="btn btn-outline-secondary me-4">Administradores</button>
+							</Link>
+							<Link to="/gestiones">
+								<button className="btn btn-outline-secondary">Gestiones</button>
+							</Link>
+							<Link to="/tickets">
+								<button className="btn btn-outline-secondary">Tickets</button>
+							</Link>
+							<Link to="/comentarios">
+								<button className="btn btn-outline-secondary">Comentarios</button>
+							</Link>
+							<Link to="/asignaciones">
+								<button className="btn btn-outline-secondary ">Asignaciones</button>
+							</Link>
+						</>
+					)}
 
 				</div>
 			</div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 import GoogleMapsLocation from '../../components/GoogleMapsLocation';
 
@@ -26,13 +26,15 @@ const tokenUtils = {
 };
 
 export function ClientePage() {
-    const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom } = useGlobalReducer();
+    const navigate = useNavigate();
+    const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showInfoForm, setShowInfoForm] = useState(false);
     const [updatingInfo, setUpdatingInfo] = useState(false);
     const [userData, setUserData] = useState(null);
+    const [solicitudesReapertura, setSolicitudesReapertura] = useState(new Set());
     const [infoData, setInfoData] = useState({
         nombre: '',
         apellido: '',
@@ -58,6 +60,17 @@ export function ClientePage() {
             if (ticketsResponse.ok) {
                 const ticketsData = await ticketsResponse.json();
                 setTickets(ticketsData);
+                
+                // Limpiar solicitudes de reapertura para tickets que ya no están en estado 'solucionado'
+                setSolicitudesReapertura(prev => {
+                    const newSet = new Set();
+                    ticketsData.forEach(ticket => {
+                        if (ticket.estado.toLowerCase() === 'solucionado' && prev.has(ticket.id)) {
+                            newSet.add(ticket.id);
+                        }
+                    });
+                    return newSet;
+                });
             }
         } catch (err) {
             console.error('Error al actualizar tickets:', err);
@@ -83,20 +96,53 @@ export function ClientePage() {
         };
     }, [store.auth.isAuthenticated, store.auth.token]);
 
+    // Unirse automáticamente a los rooms de tickets del cliente
+    useEffect(() => {
+        if (store.websocket.socket && tickets.length > 0) {
+            tickets.forEach(ticket => {
+                joinTicketRoom(store.websocket.socket, ticket.id);
+            });
+        }
+    }, [store.websocket.socket, tickets]);
+
     // Actualizar tickets cuando lleguen notificaciones WebSocket
     useEffect(() => {
         if (store.websocket.notifications.length > 0) {
             const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
             console.log('🔔 CLIENTE - Notificación recibida:', lastNotification);
             
-            // Actualización inmediata para eventos específicos (sin esperar)
-            if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado') {
-                console.log('⚡ CLIENTE - Actualización inmediata por notificación:', lastNotification.tipo);
+            // Manejo específico para tickets eliminados - sincronización inmediata
+            if (lastNotification.tipo === 'eliminado' || lastNotification.tipo === 'ticket_eliminado') {
+                console.log('🗑️ CLIENTE - TICKET ELIMINADO DETECTADO:', lastNotification);
+                
+                // Remover inmediatamente de la lista de tickets
+                if (lastNotification.ticket_id) {
+                    setTickets(prev => {
+                        const ticketRemovido = prev.find(t => t.id === lastNotification.ticket_id);
+                        if (ticketRemovido) {
+                            console.log('🗑️ CLIENTE - Ticket eliminado removido de lista:', ticketRemovido.titulo);
+                        }
+                        return prev.filter(ticket => ticket.id !== lastNotification.ticket_id);
+                    });
+                    
+                    // También remover de las solicitudes de reapertura si existe
+                    setSolicitudesReapertura(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(lastNotification.ticket_id);
+                        return newSet;
+                    });
+                }
+                return; // No continuar con el resto de la lógica
+            }
+            
+            // Actualización ULTRA RÁPIDA para todos los eventos críticos
+            if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado' || lastNotification.tipo === 'creado') {
+                console.log('⚡ CLIENTE - ACTUALIZACIÓN INMEDIATA:', lastNotification.tipo);
                 // Los datos ya están en el store por el WebSocket - actualización instantánea
             }
             
-            // Sincronización con servidor en segundo plano para TODOS los eventos
-            console.log('🔄 CLIENTE - Sincronizando con servidor en segundo plano:', lastNotification.tipo);
+            // Sincronización ULTRA RÁPIDA con servidor para TODOS los eventos
+            console.log('⚡ CLIENTE - SINCRONIZACIÓN INMEDIATA:', lastNotification.tipo);
             actualizarTickets();
         }
     }, [store.websocket.notifications]);
@@ -182,8 +228,28 @@ export function ClientePage() {
                 throw new Error('Error al crear ticket');
             }
 
+             // Limpiar el formulario después de crear el ticket exitosamente
+            e.target.reset();
+
             // Actualizar tickets sin recargar la página
             await actualizarTickets();
+            
+            // Unirse al room del nuevo ticket
+            if (store.websocket.socket) {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
+                    headers: {
+                        'Authorization': `Bearer ${store.auth.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    const ticketsData = await response.json();
+                    const nuevoTicket = ticketsData[ticketsData.length - 1]; // El último ticket creado
+                    if (nuevoTicket) {
+                        joinTicketRoom(store.websocket.socket, nuevoTicket.id);
+                    }
+                }
+            }
         } catch (err) {
             setError(err.message);
         }
@@ -210,7 +276,7 @@ export function ClientePage() {
         }
     };
 
-    const evaluarTicket = async (ticketId, calificacion, comentario) => {
+    const evaluarTicket = async (ticketId, calificacion) => {
         try {
             const token = store.auth.token;
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/evaluar`, {
@@ -219,7 +285,7 @@ export function ClientePage() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ calificacion, comentario })
+                body: JSON.stringify({ calificacion })
             });
 
             if (!response.ok) {
@@ -249,9 +315,11 @@ export function ClientePage() {
                 throw new Error('Error al solicitar reapertura');
             }
 
+            // Agregar el ticket a las solicitudes de reapertura pendientes
+            setSolicitudesReapertura(prev => new Set([...prev, ticketId]));
+
             // Actualizar tickets sin recargar la página
             await actualizarTickets();
-            alert('Solicitud de reapertura enviada al supervisor');
         } catch (err) {
             setError(err.message);
         }
@@ -288,8 +356,6 @@ export function ClientePage() {
                 alert('Debes proporcionar una calificación válida entre 1 y 5');
                 return;
             }
-            
-            const comentario = prompt('Comentario (opcional):') || '';
 
             const token = store.auth.token;
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
@@ -300,8 +366,7 @@ export function ClientePage() {
                 },
                 body: JSON.stringify({ 
                     estado: 'cerrado',
-                    calificacion: parseInt(calificacion),
-                    comentario: comentario
+                    calificacion: parseInt(calificacion)
                 })
             });
 
@@ -402,6 +467,41 @@ export function ClientePage() {
         }
     };
 
+    const generarRecomendacion = (ticket) => {
+        // Redirigir a la vista de recomendación IA
+        navigate(`/ticket/${ticket.id}/recomendacion-ia`);
+    };
+
+    // Función para verificar si un ticket tiene analista asignado
+    const tieneAnalistaAsignado = (ticket) => {
+        return ticket.asignacion_actual && ticket.asignacion_actual.analista;
+    };
+
+    // Función para obtener el nombre del analista asignado
+    const getAnalistaAsignado = (ticket) => {
+        if (tieneAnalistaAsignado(ticket)) {
+            const analista = ticket.asignacion_actual.analista;
+            return `${analista.nombre} ${analista.apellido}`;
+        }
+        return null;
+    };
+
+    // Función para obtener la fecha de asignación
+    const getFechaAsignacion = (ticket) => {
+        if (tieneAnalistaAsignado(ticket)) {
+            const fecha = ticket.asignacion_actual.fecha_asignacion;
+            return new Date(fecha).toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        return null;
+    };
+
+
     return (
         <div className="container py-4">
             {/* Header con información del usuario */}
@@ -414,17 +514,11 @@ export function ClientePage() {
                                     Bienvenido, {userData?.nombre === 'Pendiente' ? 'Cliente' : userData?.nombre} {userData?.apellido === 'Pendiente' ? '' : userData?.apellido}
                                 </h2>
                                 <p className="text-muted mb-0">Panel de Cliente - Gestión de Tickets</p>
-                                <div className="mt-2 d-flex align-items-center">
-                                    <span className={`badge ${store.websocket.connected ? 'bg-success' : 'bg-danger'} me-2`}>
-                                        <i className={`fas ${store.websocket.connected ? 'fa-wifi' : 'fa-wifi-slash'} me-1`}></i>
-                                        {store.websocket.connected ? 'Conectado' : 'Desconectado'}
+                                <div className="mt-2">
+                                    <span className="badge bg-success">
+                                        <i className="fas fa-wifi me-1"></i>
+                                        Conectado
                                     </span>
-                                    {store.websocket.notifications.length > 0 && (
-                                        <span className="badge bg-info">
-                                            <i className="fas fa-bell me-1"></i>
-                                            {store.websocket.notifications.length} notificaciones
-                                        </span>
-                                    )}
                                 </div>
                                 {userData?.direccion && userData.direccion !== 'Pendiente' && (
                                     <div className="mt-2">
@@ -690,6 +784,7 @@ export function ClientePage() {
                                                 <th>Título</th>
                                                 <th>Estado</th>
                                                 <th>Prioridad</th>
+                                                <th>Asignado a</th>
                                                 <th>Fecha Creación</th>
                                                 <th>Calificación</th>
                                                 <th>Acciones</th>
@@ -712,14 +807,43 @@ export function ClientePage() {
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <span className={getEstadoColor(ticket.estado)}>
-                                                            {ticket.estado}
-                                                        </span>
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <span className={getEstadoColor(ticket.estado)}>
+                                                                {ticket.estado}
+                                                            </span>
+                                                            {tieneAnalistaAsignado(ticket) && (
+                                                                <span 
+                                                                    className="badge bg-success" 
+                                                                    title={`Asignado a ${getAnalistaAsignado(ticket)}`}
+                                                                >
+                                                                    <i className="fas fa-user-tie me-1"></i>
+                                                                    Analista
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td>
                                                         <span className={getPrioridadColor(ticket.prioridad)}>
                                                             {ticket.prioridad}
                                                         </span>
+                                                    </td>
+                                                    <td>
+                                                        {tieneAnalistaAsignado(ticket) ? (
+                                                            <div className="d-flex align-items-center gap-2">
+                                                                <span className="badge bg-success">
+                                                                    <i className="fas fa-user-tie me-1"></i>
+                                                                    {getAnalistaAsignado(ticket)}
+                                                                </span>
+                                                                <small className="text-muted">
+                                                                    {getFechaAsignacion(ticket)}
+                                                                </small>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-muted">
+                                                                <i className="fas fa-clock me-1"></i>
+                                                                Sin asignar
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     <td>
                                                         {new Date(ticket.fecha_creacion).toLocaleDateString()}
@@ -741,7 +865,7 @@ export function ClientePage() {
                                                     </td>
                                                     <td>
                                                         <div className="btn-group" role="group">
-                                                            {ticket.estado.toLowerCase() === 'solucionado' && (
+                                                            {ticket.estado.toLowerCase() === 'solucionado' && !solicitudesReapertura.has(ticket.id) && (
                                                                 <>
                                                                     <button
                                                                         className="btn btn-success btn-sm"
@@ -759,14 +883,19 @@ export function ClientePage() {
                                                                     </button>
                                                                 </>
                                                             )}
+                                                            {ticket.estado.toLowerCase() === 'solucionado' && solicitudesReapertura.has(ticket.id) && (
+                                                                <div className="alert alert-warning py-2 px-3 mb-0" role="alert">
+                                                                    <i className="fas fa-clock me-1"></i>
+                                                                    <strong>Solicitud enviada</strong>
+                                                                </div>
+                                                            )}
                                                             {ticket.estado.toLowerCase() === 'cerrado' && !ticket.calificacion && (
                                                                 <button
                                                                     className="btn btn-warning btn-sm"
                                                                     onClick={() => {
                                                                         const calificacion = prompt('Califica el servicio (1-5):');
-                                                                        const comentario = prompt('Comentario (opcional):');
                                                                         if (calificacion && calificacion >= 1 && calificacion <= 5) {
-                                                                            evaluarTicket(ticket.id, parseInt(calificacion), comentario || '');
+                                                                            evaluarTicket(ticket.id, parseInt(calificacion));
                                                                         }
                                                                     }}
                                                                     title="Evaluar ticket"
@@ -774,6 +903,40 @@ export function ClientePage() {
                                                                     <i className="fas fa-star"></i> Evaluar
                                                                 </button>
                                                             )}
+                                                            <Link
+                                                                to={`/ticket/${ticket.id}/comentarios`}
+                                                                className="btn btn-info btn-sm"
+                                                                title="Ver y agregar comentarios"
+                                                            >
+                                                                <i className="fas fa-comments"></i> Comentar
+                                                            </Link>
+                                                            <button
+                                                                className="btn btn-warning btn-sm"
+                                                                onClick={() => generarRecomendacion(ticket)}
+                                                                title="Generar recomendación con IA"
+                                                            >
+                                                                <i className="fas fa-robot"></i> IA
+                                                            </button>
+                                                            <Link
+                                                                to={`/ticket/${ticket.id}/chat-analista-cliente`}
+                                                                className={`btn btn-sm ${
+                                                                    tieneAnalistaAsignado(ticket) 
+                                                                        ? 'btn-success' 
+                                                                        : 'btn-primary'
+                                                                }`}
+                                                                title={
+                                                                    tieneAnalistaAsignado(ticket) 
+                                                                        ? `Chat con ${getAnalistaAsignado(ticket)} - Asignado el ${getFechaAsignacion(ticket)}` 
+                                                                        : "Chat con analista - Sin asignar"
+                                                                }
+                                                            >
+                                                                <i className={`fas ${
+                                                                    tieneAnalistaAsignado(ticket) 
+                                                                        ? 'fa-signal' 
+                                                                        : 'fa-comments'
+                                                                }`}></i> 
+                                                                {tieneAnalistaAsignado(ticket) ? ' Conectado' : ' Chat'}
+                                                            </Link>
                                                             {ticket.estado.toLowerCase() === 'cerrado' && ticket.calificacion && (
                                                                 <button
                                                                     className="btn btn-danger btn-sm"
@@ -795,6 +958,7 @@ export function ClientePage() {
                     </div>
                 </div>
             </div>
+
         </div>
     );
 }

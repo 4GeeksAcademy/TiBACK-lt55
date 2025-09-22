@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
-import RecomendacionModal from '../../components/RecomendacionModal';
 
 // Utilidades de token seguras
 const tokenUtils = {
@@ -26,6 +25,7 @@ const tokenUtils = {
 };
 
 export function AdministradorPage() {
+    const navigate = useNavigate();
     const { store, logout, connectWebSocket, disconnectWebSocket, joinRoom } = useGlobalReducer();
     const [stats, setStats] = useState({
         totalTickets: 0,
@@ -39,11 +39,6 @@ export function AdministradorPage() {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [showRecomendacionModal, setShowRecomendacionModal] = useState(false);
-    const [recomendacion, setRecomendacion] = useState(null);
-    const [loadingRecomendacion, setLoadingRecomendacion] = useState(false);
-    const [errorRecomendacion, setErrorRecomendacion] = useState('');
-    const [ticketSeleccionado, setTicketSeleccionado] = useState(null);
 
     // Conectar WebSocket cuando el usuario esté autenticado
     useEffect(() => {
@@ -159,42 +154,11 @@ export function AdministradorPage() {
         }
     };
 
-    const generarRecomendacion = async (ticket) => {
-        try {
-            setLoadingRecomendacion(true);
-            setErrorRecomendacion('');
-            setTicketSeleccionado(ticket);
-            setShowRecomendacionModal(true);
-
-            const token = store.auth.token;
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticket.id}/recomendacion-ia`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al generar recomendación');
-            }
-
-            const data = await response.json();
-            setRecomendacion(data.recomendacion);
-        } catch (err) {
-            setErrorRecomendacion(err.message);
-        } finally {
-            setLoadingRecomendacion(false);
-        }
+    const generarRecomendacion = (ticket) => {
+        // Redirigir a la vista de recomendación IA
+        navigate(`/ticket/${ticket.id}/recomendacion-ia`);
     };
 
-    const cerrarModalRecomendacion = () => {
-        setShowRecomendacionModal(false);
-        setRecomendacion(null);
-        setErrorRecomendacion('');
-        setTicketSeleccionado(null);
-    };
 
     // Cargar estadísticas del sistema
     useEffect(() => {
@@ -211,17 +175,11 @@ export function AdministradorPage() {
                             <div>
                                 <h2 className="mb-1">Panel de Administración</h2>
                                 <p className="text-muted mb-0">Bienvenido, {store.auth.user?.email}</p>
-                                <div className="mt-2 d-flex align-items-center">
-                                    <span className={`badge ${store.websocket.connected ? 'bg-success' : 'bg-danger'} me-2`}>
-                                        <i className={`fas ${store.websocket.connected ? 'fa-wifi' : 'fa-wifi-slash'} me-1`}></i>
-                                        {store.websocket.connected ? 'Conectado' : 'Desconectado'}
+                                <div className="mt-2">
+                                    <span className="badge bg-success">
+                                        <i className="fas fa-wifi me-1"></i>
+                                        Conectado
                                     </span>
-                                    {store.websocket.notifications.length > 0 && (
-                                        <span className="badge bg-info">
-                                            <i className="fas fa-bell me-1"></i>
-                                            {store.websocket.notifications.length} notificaciones
-                                        </span>
-                                    )}
                                 </div>
                             </div>
                             <div className="d-flex gap-2">
@@ -467,14 +425,6 @@ export function AdministradorPage() {
                 </div>
             </div>
 
-            {/* Modal de Recomendación IA */}
-            <RecomendacionModal
-                isOpen={showRecomendacionModal}
-                onClose={cerrarModalRecomendacion}
-                recomendacion={recomendacion}
-                loading={loadingRecomendacion}
-                error={errorRecomendacion}
-            />
         </div>
     );
 }
