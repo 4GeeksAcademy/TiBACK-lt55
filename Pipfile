@@ -22,6 +22,9 @@ sqlalchemy = "*"
 flask-admin = "*"
 diagram = "*"
 pyjwt = "*"
+flask-socketio = "==5.3.6"
+python-socketio = "==5.8.0"
+requests = "==2.31.0"
 
 [requires]
 python_version = "3.13"

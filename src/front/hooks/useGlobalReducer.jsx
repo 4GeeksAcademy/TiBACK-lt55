@@ -35,7 +35,11 @@ export function StoreProvider({ children }) {
         logout: () => authActions.logout(dispatch),
         refresh: () => authActions.refresh(dispatch),
         hasRole: (allowedRoles) => authActions.hasRole(store.auth.token, allowedRoles),
-        isTokenExpiringSoon: authActions.isTokenExpiringSoon
+        isTokenExpiringSoon: authActions.isTokenExpiringSoon,
+        // WebSocket functions
+        connectWebSocket: (token) => authActions.connectWebSocket(dispatch, token),
+        disconnectWebSocket: (socket) => authActions.disconnectWebSocket(dispatch, socket),
+        joinRoom: (socket, role, userId) => authActions.joinRoom(socket, role, userId)
     }}>
         {children}
     </StoreContext.Provider>

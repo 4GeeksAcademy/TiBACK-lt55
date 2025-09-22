@@ -1,9 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
+import RecomendacionModal from '../../components/RecomendacionModal';
+
+// Utilidades de token seguras
+const tokenUtils = {
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+  getUserId: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.user_id : null;
+  },
+  getRole: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.role : null;
+  }
+};
 
 export function AdministradorPage() {
-    const { store, logout } = useGlobalReducer();
+    const { store, logout, connectWebSocket, disconnectWebSocket, joinRoom } = useGlobalReducer();
     const [stats, setStats] = useState({
         totalTickets: 0,
         ticketsCreados: 0,
@@ -16,85 +39,165 @@ export function AdministradorPage() {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showRecomendacionModal, setShowRecomendacionModal] = useState(false);
+    const [recomendacion, setRecomendacion] = useState(null);
+    const [loadingRecomendacion, setLoadingRecomendacion] = useState(false);
+    const [errorRecomendacion, setErrorRecomendacion] = useState('');
+    const [ticketSeleccionado, setTicketSeleccionado] = useState(null);
+
+    // Conectar WebSocket cuando el usuario esté autenticado
+    useEffect(() => {
+        if (store.auth.isAuthenticated && store.auth.token && !store.websocket.connected) {
+            const socket = connectWebSocket(store.auth.token);
+            if (socket) {
+                const userId = tokenUtils.getUserId(store.auth.token);
+                const role = tokenUtils.getRole(store.auth.token);
+                joinRoom(socket, role, userId);
+            }
+        }
+
+        // Cleanup al desmontar
+        return () => {
+            if (store.websocket.socket) {
+                disconnectWebSocket(store.websocket.socket);
+            }
+        };
+    }, [store.auth.isAuthenticated, store.auth.token]);
+
+    // Actualizar estadísticas cuando lleguen notificaciones WebSocket
+    useEffect(() => {
+        if (store.websocket.notifications.length > 0) {
+            const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
+            console.log('🔔 ADMINISTRADOR - Notificación recibida:', lastNotification);
+            
+            // Actualización inmediata para eventos específicos (sin esperar)
+            if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado') {
+                console.log('⚡ ADMINISTRADOR - Actualización inmediata por notificación:', lastNotification.tipo);
+                // Los datos ya están en el store por el WebSocket - actualización instantánea
+            }
+            
+            // Sincronización con servidor en segundo plano para TODOS los eventos
+            console.log('🔄 ADMINISTRADOR - Sincronizando estadísticas con servidor en segundo plano:', lastNotification.tipo);
+            cargarEstadisticas();
+        }
+    }, [store.websocket.notifications]);
+
+    // Función para cargar estadísticas
+    const cargarEstadisticas = async () => {
+        try {
+            setLoading(true);
+            const token = store.auth.token;
+
+            // Cargar tickets
+            const ticketsResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (ticketsResponse.ok) {
+                const tickets = await ticketsResponse.json();
+                const ticketsCreados = tickets.filter(t => t.estado.toLowerCase() === 'creado').length;
+                const ticketsEnProceso = tickets.filter(t => t.estado.toLowerCase() === 'en_proceso').length;
+                const ticketsSolucionados = tickets.filter(t => t.estado.toLowerCase() === 'solucionado').length;
+                const ticketsCerrados = tickets.filter(t => t.estado.toLowerCase() === 'cerrado').length;
+
+                setStats(prev => ({
+                    ...prev,
+                    totalTickets: tickets.length,
+                    ticketsCreados,
+                    ticketsEnProceso,
+                    ticketsSolucionados,
+                    ticketsCerrados
+                }));
+            }
+
+            // Cargar clientes
+            const clientesResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (clientesResponse.ok) {
+                const clientes = await clientesResponse.json();
+                setStats(prev => ({ ...prev, totalClientes: clientes.length }));
+            }
+
+            // Cargar analistas
+            const analistasResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analistas`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (analistasResponse.ok) {
+                const analistas = await analistasResponse.json();
+                setStats(prev => ({ ...prev, totalAnalistas: analistas.length }));
+            }
+
+            // Cargar supervisores
+            const supervisoresResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/supervisores`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (supervisoresResponse.ok) {
+                const supervisores = await supervisoresResponse.json();
+                setStats(prev => ({ ...prev, totalSupervisores: supervisores.length }));
+            }
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const generarRecomendacion = async (ticket) => {
+        try {
+            setLoadingRecomendacion(true);
+            setErrorRecomendacion('');
+            setTicketSeleccionado(ticket);
+            setShowRecomendacionModal(true);
+
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticket.id}/recomendacion-ia`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al generar recomendación');
+            }
+
+            const data = await response.json();
+            setRecomendacion(data.recomendacion);
+        } catch (err) {
+            setErrorRecomendacion(err.message);
+        } finally {
+            setLoadingRecomendacion(false);
+        }
+    };
+
+    const cerrarModalRecomendacion = () => {
+        setShowRecomendacionModal(false);
+        setRecomendacion(null);
+        setErrorRecomendacion('');
+        setTicketSeleccionado(null);
+    };
 
     // Cargar estadísticas del sistema
     useEffect(() => {
-        const cargarEstadisticas = async () => {
-            try {
-                setLoading(true);
-                const token = store.auth.token;
-
-                // Cargar tickets
-                const ticketsResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (ticketsResponse.ok) {
-                    const tickets = await ticketsResponse.json();
-                    const ticketsCreados = tickets.filter(t => t.estado.toLowerCase() === 'creado').length;
-                    const ticketsEnProceso = tickets.filter(t => t.estado.toLowerCase() === 'en_proceso').length;
-                    const ticketsSolucionados = tickets.filter(t => t.estado.toLowerCase() === 'solucionado').length;
-                    const ticketsCerrados = tickets.filter(t => t.estado.toLowerCase() === 'cerrado').length;
-
-                    setStats(prev => ({
-                        ...prev,
-                        totalTickets: tickets.length,
-                        ticketsCreados,
-                        ticketsEnProceso,
-                        ticketsSolucionados,
-                        ticketsCerrados
-                    }));
-                }
-
-                // Cargar clientes
-                const clientesResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (clientesResponse.ok) {
-                    const clientes = await clientesResponse.json();
-                    setStats(prev => ({ ...prev, totalClientes: clientes.length }));
-                }
-
-                // Cargar analistas
-                const analistasResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analistas`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (analistasResponse.ok) {
-                    const analistas = await analistasResponse.json();
-                    setStats(prev => ({ ...prev, totalAnalistas: analistas.length }));
-                }
-
-                // Cargar supervisores
-                const supervisoresResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/supervisores`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (supervisoresResponse.ok) {
-                    const supervisores = await supervisoresResponse.json();
-                    setStats(prev => ({ ...prev, totalSupervisores: supervisores.length }));
-                }
-
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         cargarEstadisticas();
     }, [store.auth.token]);
 
@@ -108,6 +211,18 @@ export function AdministradorPage() {
                             <div>
                                 <h2 className="mb-1">Panel de Administración</h2>
                                 <p className="text-muted mb-0">Bienvenido, {store.auth.user?.email}</p>
+                                <div className="mt-2 d-flex align-items-center">
+                                    <span className={`badge ${store.websocket.connected ? 'bg-success' : 'bg-danger'} me-2`}>
+                                        <i className={`fas ${store.websocket.connected ? 'fa-wifi' : 'fa-wifi-slash'} me-1`}></i>
+                                        {store.websocket.connected ? 'Conectado' : 'Desconectado'}
+                                    </span>
+                                    {store.websocket.notifications.length > 0 && (
+                                        <span className="badge bg-info">
+                                            <i className="fas fa-bell me-1"></i>
+                                            {store.websocket.notifications.length} notificaciones
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                             <div className="d-flex gap-2">
                                 <Link to="/administradores" className="btn btn-primary">
@@ -351,6 +466,15 @@ export function AdministradorPage() {
                     </Link>
                 </div>
             </div>
+
+            {/* Modal de Recomendación IA */}
+            <RecomendacionModal
+                isOpen={showRecomendacionModal}
+                onClose={cerrarModalRecomendacion}
+                recomendacion={recomendacion}
+                loading={loadingRecomendacion}
+                error={errorRecomendacion}
+            />
         </div>
     );
 }
