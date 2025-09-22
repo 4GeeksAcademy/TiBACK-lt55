@@ -557,7 +557,7 @@ def listar_tickets():
 @api.route('/tickets', methods=['POST'])
 @require_role(['cliente', 'administrador'])
 def create_ticket():
-    # Detecta si es multipart/form-data (con archivo) o JSON
+    # Detecta si es JSON o multipart, pero para clientes usaremos JSON con img_urls
     if request.content_type.startswith('multipart/form-data'):
         body = request.form.to_dict()
     else:
@@ -565,7 +565,7 @@ def create_ticket():
 
     user = get_user_from_token()
 
-    # Campos requeridos para clientes
+    # --- Clientes ---
     if user['role'] == 'cliente':
         required = ["titulo", "descripcion", "prioridad"]
         missing = [k for k in required if not body.get(k)]
@@ -579,25 +579,14 @@ def create_ticket():
             descripcion=body['descripcion'],
             fecha_creacion=datetime.now(),
             prioridad=body['prioridad'],
-            img_urls=[]  # lista vacía para múltiples imágenes
+            img_urls=body.get('img_urls', [])  # 👈 ahora toma los URLs enviados desde frontend
         )
-
-        # Subir imágenes si vienen
-        if "imagenes" in request.files:  # múltiples
-            archivos = request.files.getlist("imagenes")
-            for archivo in archivos:
-                resultado = upload(archivo)
-                ticket.img_urls.append(resultado["secure_url"])
-        elif "imagen" in request.files:  # una sola
-            archivo = request.files["imagen"]
-            resultado = upload(archivo)
-            ticket.img_urls.append(resultado["secure_url"])
 
         db.session.add(ticket)
         db.session.commit()
         return jsonify(ticket.serialize()), 201
 
-    # Para admin que crea tickets con JSON
+    # --- Administrador ---
     required = ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion", "prioridad"]
     missing = [k for k in required if not body.get(k)]
     if missing:
@@ -611,19 +600,8 @@ def create_ticket():
             descripcion=body["descripcion"],
             fecha_creacion=datetime.fromisoformat(body["fecha_creacion"]),
             prioridad=body["prioridad"],
-            img_urls=[]
+            img_urls=body.get("img_urls", [])  # 👈 mismo cambio aquí
         )
-
-        # Subir imágenes si vienen
-        if "imagenes" in request.files:
-            archivos = request.files.getlist("imagenes")
-            for archivo in archivos:
-                resultado = upload(archivo)
-                ticket.img_urls.append(resultado["secure_url"])
-        elif "imagen" in request.files:
-            archivo = request.files["imagen"]
-            resultado = upload(archivo)
-            ticket.img_urls.append(resultado["secure_url"])
 
         db.session.add(ticket)
         db.session.commit()
@@ -636,50 +614,114 @@ def create_ticket():
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
 
+
 @api.route('/tickets/<int:id>', methods=['GET'])
 @require_role(['cliente', 'analista', 'supervisor', 'administrador'])
 def get_ticket(id):
     ticket = db.session.get(Ticket, id)
     if not ticket:
         return jsonify({"message": "Ticket no encontrado"}), 404
-    return jsonify(ticket.serialize()), 200
 
+    # Seguridad para clientes: solo ver sus tickets
+    user = get_user_from_token()
+    if user['role'] == 'cliente' and ticket.id_cliente != user['id']:
+        return jsonify({"message": "Acceso no autorizado"}), 403
+
+    # Normalizar img_urls
+    serialized_ticket = ticket.serialize()
+    if 'img_urls' not in serialized_ticket or not isinstance(serialized_ticket['img_urls'], list):
+        serialized_ticket['img_urls'] = []
+
+    return jsonify(serialized_ticket), 200
 
 @api.route('/tickets/<int:id>', methods=['PUT'])
 @require_role(['cliente', 'analista', 'supervisor', 'administrador'])
 def update_ticket(id):
-    if request.content_type.startswith('multipart/form-data'):
-        body = request.form.to_dict()
-    else:
-        body = request.get_json(silent=True) or {}
-
     ticket = db.session.get(Ticket, id)
     if not ticket:
         return jsonify({"message": "Ticket no encontrado"}), 404
 
-    try:
-        # Actualizar campos normales
-        for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion",
-                      "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion"]:
-            if field in body:
-                value = body[field]
-                if field in ["fecha_creacion", "fecha_cierre", "fecha_evaluacion"] and value:
-                    value = datetime.fromisoformat(value)
-                setattr(ticket, field, value)
+    user = get_user_from_token()
 
-        # Subir nuevas imágenes si vienen
-        if "imagenes" in request.files:  # múltiples
-            archivos = request.files.getlist("imagenes")
-            for archivo in archivos:
+    # Cliente solo puede actualizar sus propios tickets
+    if user['role'] == 'cliente' and ticket.id_cliente != user['id']:
+        return jsonify({"message": "Acceso no autorizado"}), 403
+
+    # Detectar si es multipart/form-data
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        body = request.form.to_dict()
+    else:
+        body = request.get_json(silent=True) or {}
+
+    # Asegurarse de que img_urls sea siempre una lista
+    if ticket.img_urls is None:
+        ticket.img_urls = []
+
+    try:
+        if user['role'] == 'cliente':
+            # Campos permitidos para cliente
+            ticket.titulo = body.get("titulo", ticket.titulo)
+            ticket.descripcion = body.get("descripcion", ticket.descripcion)
+
+            # Manejo de imágenes
+            if "imagenes" in request.files:
+                archivos = request.files.getlist("imagenes")
+                nuevas_urls = []
+                for archivo in archivos:
+                    resultado = upload(archivo)
+                    nuevas_urls.append(resultado["secure_url"])
+                ticket.img_urls = nuevas_urls
+            elif "imagen" in request.files:
+                archivo = request.files["imagen"]
                 resultado = upload(archivo)
-                ticket.img_urls.append(resultado["secure_url"])
-        elif "imagen" in request.files:  # una sola
-            archivo = request.files["imagen"]
-            resultado = upload(archivo)
-            ticket.img_urls.append(resultado["secure_url"])
+                ticket.img_urls = [resultado["secure_url"]]
+            elif "img_urls" in body:
+                urls = body["img_urls"]
+                if isinstance(urls, str):
+                    try:
+                        urls = json.loads(urls)
+                    except:
+                        urls = [urls]
+                if not isinstance(urls, list):
+                    urls = [urls]
+                ticket.img_urls = urls  # 🔥 reemplazo total
+
+        else:
+            # Admin/analista/supervisor pueden actualizar todo
+            for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion",
+                          "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion"]:
+                if field in body:
+                    value = body[field]
+                    if field in ["fecha_creacion", "fecha_cierre", "fecha_evaluacion"] and value:
+                        value = datetime.fromisoformat(value)
+                    setattr(ticket, field, value)
+
+            # Manejo de imágenes
+            if "imagenes" in request.files:
+                archivos = request.files.getlist("imagenes")
+                nuevas_urls = []
+                for archivo in archivos:
+                    resultado = upload(archivo)
+                    nuevas_urls.append(resultado["secure_url"])
+                ticket.img_urls = nuevas_urls
+            elif "imagen" in request.files:
+                archivo = request.files["imagen"]
+                resultado = upload(archivo)
+                ticket.img_urls = [resultado["secure_url"]]
+            elif "img_urls" in body:
+                urls = body["img_urls"]
+                if isinstance(urls, str):
+                    try:
+                        urls = json.loads(urls)
+                    except:
+                        urls = [urls]
+                if not isinstance(urls, list):
+                    urls = [urls]
+                ticket.img_urls = urls  # 🔥 reemplazo total
 
         db.session.commit()
         return jsonify(ticket.serialize()), 200
+
     except IntegrityError:
         db.session.rollback()
         return jsonify({"message": "Error de integridad en la base de datos"}), 400
@@ -687,29 +729,27 @@ def update_ticket(id):
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
 
+
 @api.route('/tickets/<int:id>', methods=['DELETE'])
-@require_role(['administrador'])
+@require_role(['administrador', 'cliente'])
 def delete_ticket(id):
     ticket = db.session.get(Ticket, id)
     if not ticket:
         return jsonify({"message": "Ticket no encontrado"}), 404
+
+    user = get_user_from_token()
+
+    # Clientes solo pueden borrar sus propios tickets
+    if user['role'] == 'cliente' and ticket.id_cliente != user['id']:
+        return jsonify({"message": "Acceso no autorizado"}), 403
+
     try:
-        # Eliminar asignaciones relacionadas primero
-        asignaciones = Asignacion.query.filter_by(id_ticket=id).all()
-        for asignacion in asignaciones:
-            db.session.delete(asignacion)
-        
-        # Eliminar comentarios relacionados
-        comentarios = Comentarios.query.filter_by(id_ticket=id).all()
-        for comentario in comentarios:
-            db.session.delete(comentario)
-        
-        # Eliminar gestiones relacionadas
-        gestiones = Gestion.query.filter_by(id_ticket=id).all()
-        for gestion in gestiones:
-            db.session.delete(gestion)
-        
-        # Finalmente eliminar el ticket
+        # Eliminar asignaciones, comentarios y gestiones relacionados
+        Asignacion.query.filter_by(id_ticket=id).delete()
+        Comentarios.query.filter_by(id_ticket=id).delete()
+        Gestion.query.filter_by(id_ticket=id).delete()
+
+        # Eliminar el ticket
         db.session.delete(ticket)
         db.session.commit()
         return jsonify({"message": "Ticket eliminado"}), 200

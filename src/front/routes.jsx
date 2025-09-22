@@ -42,6 +42,7 @@ import { VerAdministrador } from "./pages/VerAdministrador";
 
 import { Ticket } from "./pages/Ticket";
 import { VerTicket } from "./pages/VerTicket";
+import VerTicketCliente from "./pages/VerTicketCliente";
 import  ActualizarTicket  from "./pages/ActualizarTicket";
 import AgregarTicket from "./pages/AgregarTicket";
 
@@ -56,6 +57,7 @@ import  ClientePage  from "./protectedViewsRol/cliente/ClientePage";
 import { AnalistaPage } from "./protectedViewsRol/analista/AnalistaPage";
 import { SupervisorPage } from "./protectedViewsRol/supervisor/SupervisorPage";
 import { AdministradorPage } from "./protectedViewsRol/administrador/AdministradorPage";
+import ActualizarTicketCliente from "./pages/ActualizarTicketCliente";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -269,6 +271,28 @@ export const router = createBrowserRouter(
           <VerGestion />
         </ProtectedRoute>
       } />
+
+      <Route path="/tickets/:id" element={
+        <ProtectedRoute allowedRoles={["cliente"]}>
+          <VerTicketCliente />
+        </ProtectedRoute>
+      } />
+
+      <Route
+        path="/actualizar-ticket-cliente/:id"
+        element={
+          <ProtectedRoute allowedRoles={["cliente"]}>
+            <ActualizarTicketCliente />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="/ver-ticket-cliente/:id" element={
+        <ProtectedRoute allowedRoles={["cliente"]}>
+          <VerTicketCliente />
+        </ProtectedRoute>
+      } />
     </Route>
+
   )
 );

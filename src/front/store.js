@@ -646,7 +646,7 @@ export default function storeReducer(store, action = {}) {
       return { ...store, gestiones: [...store.gestiones, action.payload], api: { loading: false, error: null } };
     case 'gestiones_upsert': {
       const t = action.payload;
-      const exists = store.gestiones.some(x => x.id === t.id);
+      const exists = store.gestiones.some(x => x.id === t.id); 
       return {
         ...store,
         gestiones: exists ? store.gestiones.map(x => x.id === t.id ? t : x) : [...store.gestiones, t],
