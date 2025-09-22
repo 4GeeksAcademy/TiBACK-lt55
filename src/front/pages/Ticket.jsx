@@ -2,8 +2,30 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
+// Utilidades de token seguras
+const tokenUtils = {
+  decodeToken: (token) => {
+    try {
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      return JSON.parse(atob(parts[1]));
+    } catch (error) {
+      return null;
+    }
+  },
+  getUserId: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.user_id : null;
+  },
+  getRole: (token) => {
+    const payload = tokenUtils.decodeToken(token);
+    return payload ? payload.role : null;
+  }
+};
+
 export const Ticket = () => {
-    const { store, dispatch } = useGlobalReducer();
+    const { store, dispatch, connectWebSocket, disconnectWebSocket, joinRoom } = useGlobalReducer();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
     const navigate = useNavigate();
 
@@ -53,6 +75,43 @@ export const Ticket = () => {
             .finally(() => setLoading(false));
     };
 
+    // Conectar WebSocket cuando el usuario esté autenticado
+    useEffect(() => {
+        if (store.auth.isAuthenticated && store.auth.token && !store.websocket.connected) {
+            const socket = connectWebSocket(store.auth.token);
+            if (socket) {
+                const userId = tokenUtils.getUserId(store.auth.token);
+                const role = tokenUtils.getRole(store.auth.token);
+                joinRoom(socket, role, userId);
+            }
+        }
+
+        // Cleanup al desmontar
+        return () => {
+            if (store.websocket.socket) {
+                disconnectWebSocket(store.websocket.socket);
+            }
+        };
+    }, [store.auth.isAuthenticated, store.auth.token]);
+
+    // Actualizar lista de tickets cuando lleguen notificaciones WebSocket
+    useEffect(() => {
+        if (store.websocket.notifications.length > 0) {
+            const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
+            console.log('🔔 TICKETS - Notificación recibida:', lastNotification);
+            
+            // Si es un evento relacionado con tickets, recargar la lista
+            if (lastNotification.tipo === 'creado' || 
+                lastNotification.tipo === 'actualizado' || 
+                lastNotification.tipo === 'asignado' || 
+                lastNotification.tipo === 'eliminado' ||
+                lastNotification.tipo === 'ticket_creado') {
+                console.log('⚡ TICKETS - Recargando lista por notificación:', lastNotification.tipo);
+                listarTodosLosTickets();
+            }
+        }
+    }, [store.websocket.notifications]);
+
     useEffect(() => {
           if (!store.tickets || store.tickets.length === 0) {
             listarTodosLosTickets();
@@ -84,8 +143,18 @@ export const Ticket = () => {
     return (
         <div className="container py-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <h2 className="mb-0">Gestión de Tickets</h2>
-                <button className="btn btn-secondary" onClick={() => navigate(`/${store.auth.role}`)}>Volver</button>
+                <div>
+                    <h2 className="mb-0">Gestión de Tickets</h2>
+                    {store.websocket.connected && (
+                        <div className="d-flex align-items-center mt-1">
+                            <span className="badge bg-success me-2">
+                                <i className="fas fa-wifi me-1"></i>
+                                Conectado
+                            </span>
+                        </div>
+                    )}
+                </div>
+                <button className="btn btn-secondary" onClick={() => navigate(`/administrador`)}>Volver</button>
             </div>
 
             {store?.api?.error && (

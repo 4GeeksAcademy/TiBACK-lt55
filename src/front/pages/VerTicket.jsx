@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const VerTicket = () => {
-    const { store, dispatch } = useGlobalReducer();
+    const { store, dispatch, joinTicketRoom, leaveTicketRoom } = useGlobalReducer();
     const { id } = useParams();
     const navigate = useNavigate();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
@@ -46,6 +46,19 @@ export const VerTicket = () => {
             cargarTicket();
         }
     }, [id]);
+
+    // Efecto para unirse al room del ticket cuando se carga
+    useEffect(() => {
+        if (id && store.websocket.socket && store.websocket.connected) {
+            // Unirse al room del ticket
+            joinTicketRoom(store.websocket.socket, parseInt(id));
+            
+            // Cleanup: salir del room cuando el componente se desmonte
+            return () => {
+                leaveTicketRoom(store.websocket.socket, parseInt(id));
+            };
+        }
+    }, [id, store.websocket.socket, store.websocket.connected, joinTicketRoom, leaveTicketRoom]);
 
     const getEstadoClase = (estado) => {
         switch (estado?.toLowerCase()) {

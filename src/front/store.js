@@ -374,11 +374,19 @@ export const authActions = {
       const backendUrl = import.meta.env.VITE_BACKEND_URL;
       if (!backendUrl) return;
 
+      // Verificar si ya hay una conexión activa
+      const currentSocket = dispatch.getState?.()?.websocket?.socket;
+      if (currentSocket && currentSocket.connected) {
+        console.log('WebSocket ya conectado, reutilizando conexión');
+        return currentSocket;
+      }
+
       const socket = io(backendUrl, {
         transports: ['websocket', 'polling'],
         auth: {
           token: token
-        }
+        },
+        forceNew: true // Forzar nueva conexión
       });
 
       socket.on('connect', () => {
@@ -393,45 +401,114 @@ export const authActions = {
 
       // Eventos de tickets
       socket.on('nuevo_ticket', (data) => {
-        console.log('Nuevo ticket recibido:', data);
+        console.log('⚡ NUEVO TICKET RECIBIDO:', data);
         dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+        // Para administradores, agregar el ticket completo al store
+        if (data.ticket) {
+          dispatch({ type: 'tickets_upsert', payload: data.ticket });
+        } else {
+          // Convertir datos de notificación a formato de ticket
+          const ticketData = {
+            id: data.ticket_id,
+            estado: data.ticket_estado,
+            titulo: data.ticket_titulo,
+            prioridad: data.ticket_prioridad,
+            id_cliente: data.cliente_id,
+            fecha_creacion: data.timestamp
+          };
+          dispatch({ type: 'tickets_upsert', payload: ticketData });
+        }
+      });
+
+      socket.on('nuevo_ticket_disponible', (data) => {
+        console.log('⚡ NUEVO TICKET DISPONIBLE PARA ASIGNACIÓN:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        // Convertir datos de notificación a formato de ticket
+        const ticketData = {
+          id: data.ticket_id,
+          estado: data.ticket_estado,
+          titulo: data.ticket_titulo,
+          prioridad: data.ticket_prioridad,
+          id_cliente: data.cliente_id,
+          fecha_creacion: data.timestamp
+        };
+        dispatch({ type: 'tickets_upsert', payload: ticketData });
       });
 
       socket.on('ticket_actualizado', (data) => {
-        console.log('Ticket actualizado:', data);
+        console.log('⚡ TICKET ACTUALIZADO:', data);
         dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+        // Si tiene ticket completo, usarlo; si no, convertir datos de notificación
+        if (data.ticket) {
+          dispatch({ type: 'tickets_upsert', payload: data.ticket });
+        } else if (data.ticket_id) {
+          const ticketData = {
+            id: data.ticket_id,
+            estado: data.ticket_estado || data.nuevo_estado,
+            titulo: data.ticket_titulo,
+            prioridad: data.ticket_prioridad,
+            id_cliente: data.cliente_id,
+            fecha_creacion: data.timestamp
+          };
+          dispatch({ type: 'tickets_upsert', payload: ticketData });
+        }
       });
 
       socket.on('ticket_asignado', (data) => {
-        console.log('📥 TICKET ASIGNADO/RASIGNADO RECIBIDO:', data);
+        console.log('⚡ TICKET ASIGNADO:', data);
         dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+        // Si tiene ticket completo, usarlo; si no, convertir datos de notificación
+        if (data.ticket) {
+          dispatch({ type: 'tickets_upsert', payload: data.ticket });
+        } else if (data.ticket_id) {
+          const ticketData = {
+            id: data.ticket_id,
+            estado: data.ticket_estado,
+            titulo: data.ticket_titulo,
+            prioridad: data.ticket_prioridad,
+            id_cliente: data.cliente_id,
+            fecha_creacion: data.timestamp
+          };
+          dispatch({ type: 'tickets_upsert', payload: ticketData });
+        }
       });
 
       socket.on('nuevo_comentario', (data) => {
-        console.log('Nuevo comentario:', data);
+        console.log('💬 NUEVO COMENTARIO EN TICKET:', data);
         dispatch({ type: 'websocket_notification', payload: data });
         dispatch({ type: 'comentarios_add', payload: data.comentario });
       });
 
       socket.on('ticket_eliminado', (data) => {
-        console.log('Ticket eliminado:', data);
+        console.log('🗑️ TICKET ELIMINADO:', data);
         dispatch({ type: 'websocket_notification', payload: data });
         dispatch({ type: 'tickets_remove', payload: data.ticket_id });
       });
 
-      socket.on('ticket_escalado', (data) => {
-        console.log('🚨 TICKET ESCALADO RECIBIDO:', data);
-        dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+      // Eventos de confirmación de rooms
+      socket.on('joined_ticket', (data) => {
+        console.log('✅ UNIDO AL ROOM DEL TICKET:', data);
       });
 
-      socket.on('ticket_iniciado', (data) => {
-        console.log('Ticket iniciado:', data);
-        dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'tickets_upsert', payload: data.ticket });
+      socket.on('left_ticket', (data) => {
+        console.log('❌ SALIDO DEL ROOM DEL TICKET:', data);
+      });
+
+      // Eventos de confirmación de chats específicos
+      socket.on('joined_chat_supervisor_analista', (data) => {
+        console.log('✅ UNIDO AL CHAT SUPERVISOR-ANALISTA:', data);
+      });
+
+      socket.on('left_chat_supervisor_analista', (data) => {
+        console.log('❌ SALIDO DEL CHAT SUPERVISOR-ANALISTA:', data);
+      });
+
+      socket.on('joined_chat_analista_cliente', (data) => {
+        console.log('✅ UNIDO AL CHAT ANALISTA-CLIENTE:', data);
+      });
+
+      socket.on('left_chat_analista_cliente', (data) => {
+        console.log('❌ SALIDO DEL CHAT ANALISTA-CLIENTE:', data);
       });
 
       // Eventos de analistas
@@ -439,6 +516,67 @@ export const authActions = {
         console.log('📥 ANALISTA CREADO RECIBIDO:', data);
         dispatch({ type: 'websocket_notification', payload: data });
         dispatch({ type: 'analistas_add', payload: data.analista });
+      });
+
+      socket.on('analista_eliminado', (data) => {
+        console.log('🗑️ ANALISTA ELIMINADO RECIBIDO:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'analistas_remove', payload: data.analista_id });
+      });
+
+      socket.on('solicitud_reapertura', (data) => {
+        console.log('🔄 SOLICITUD DE REAPERTURA RECIBIDA:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        // No actualizar tickets aquí, solo es una notificación
+      });
+
+      // Evento de ticket escalado
+      socket.on('ticket_escalado', (data) => {
+        console.log('📈 TICKET ESCALADO RECIBIDO:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        // No actualizar tickets aquí, solo es una notificación
+      });
+
+      // Evento de ticket reabierto
+      socket.on('ticket_reabierto', (data) => {
+        console.log('🔄 TICKET REABIERTO RECIBIDO:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        // No actualizar tickets aquí, solo es una notificación
+      });
+
+      // Evento de ticket cerrado
+      socket.on('ticket_cerrado', (data) => {
+        console.log('✅ TICKET CERRADO RECIBIDO:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        // Para tickets cerrados, actualizar el estado pero no agregar a la lista activa
+        if (data.ticket_id) {
+          const ticketData = {
+            id: data.ticket_id,
+            estado: data.ticket_estado || 'cerrado',
+            titulo: data.ticket_titulo,
+            prioridad: data.ticket_prioridad,
+            id_cliente: data.cliente_id,
+            fecha_creacion: data.timestamp,
+            fecha_cierre: data.timestamp
+          };
+          dispatch({ type: 'tickets_upsert', payload: ticketData });
+        }
+      });
+
+      // Evento de ticket asignado específicamente a mí (analista)
+      socket.on('ticket_asignado_a_mi', (data) => {
+        console.log('🎯 TICKET ASIGNADO A MÍ:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        dispatch({ type: 'tickets_upsert', payload: data });
+      });
+
+      // Evento específico para actualizaciones de CRUD de administradores
+      socket.on('ticket_crud_update', (data) => {
+        console.log('📊 CRUD UPDATE RECIBIDO:', data);
+        dispatch({ type: 'websocket_notification', payload: data });
+        if (data.ticket) {
+          dispatch({ type: 'tickets_upsert', payload: data.ticket });
+        }
       });
 
       return socket;
@@ -450,6 +588,8 @@ export const authActions = {
 
   disconnectWebSocket: (dispatch, socket) => {
     if (socket) {
+      // Limpiar todos los listeners antes de desconectar
+      socket.removeAllListeners();
       socket.disconnect();
       dispatch({ type: 'websocket_disconnected' });
     }
@@ -457,19 +597,66 @@ export const authActions = {
 
   joinRoom: (socket, role, userId) => {
     if (socket) {
-      // Unirse a la sala según el rol
+      // Unirse a las salas generales según el rol (solo para gestión de usuarios)
       if (role === 'supervisor') {
         socket.emit('join_room', 'supervisores');
       } else if (role === 'administrador') {
         socket.emit('join_room', 'supervisores');
         socket.emit('join_room', 'administradores');
       } else if (role === 'analista') {
-        socket.emit('join_room', `analista_${userId}`);
         socket.emit('join_room', 'analistas'); // Sala general de analistas
+        socket.emit('join_room', `analista_${userId}`); // Sala específica del analista
       } else if (role === 'cliente') {
-        socket.emit('join_room', `cliente_${userId}`);
         socket.emit('join_room', 'clientes'); // Sala general de clientes
       }
+    }
+  },
+
+  joinTicketRoom: (socket, ticketId) => {
+    if (socket && ticketId) {
+      socket.emit('join_ticket', { ticket_id: ticketId });
+      console.log(`🔗 Uniéndose al room del ticket: room_ticket_${ticketId}`);
+    }
+  },
+
+  leaveTicketRoom: (socket, ticketId) => {
+    if (socket && ticketId) {
+      socket.emit('leave_ticket', { ticket_id: ticketId });
+      console.log(`🔌 Saliendo del room del ticket: room_ticket_${ticketId}`);
+    }
+  },
+
+  joinChatSupervisorAnalista: (socket, ticketId) => {
+    if (socket && ticketId) {
+      console.log(`🔍 DEBUG: joinChatSupervisorAnalista - socket:`, !!socket, 'ticketId:', ticketId);
+      socket.emit('join_chat_supervisor_analista', { ticket_id: ticketId });
+      console.log(`🔗 Uniéndose al chat supervisor-analista: chat_supervisor_analista_${ticketId}`);
+    } else {
+      console.log(`❌ DEBUG: joinChatSupervisorAnalista falló - socket:`, !!socket, 'ticketId:', ticketId);
+    }
+  },
+
+  leaveChatSupervisorAnalista: (socket, ticketId) => {
+    if (socket && ticketId) {
+      socket.emit('leave_chat_supervisor_analista', { ticket_id: ticketId });
+      console.log(`🔌 Saliendo del chat supervisor-analista: chat_supervisor_analista_${ticketId}`);
+    }
+  },
+
+  joinChatAnalistaCliente: (socket, ticketId) => {
+    if (socket && ticketId) {
+      console.log(`🔍 DEBUG: joinChatAnalistaCliente - socket:`, !!socket, 'ticketId:', ticketId);
+      socket.emit('join_chat_analista_cliente', { ticket_id: ticketId });
+      console.log(`🔗 Uniéndose al chat analista-cliente: chat_analista_cliente_${ticketId}`);
+    } else {
+      console.log(`❌ DEBUG: joinChatAnalistaCliente falló - socket:`, !!socket, 'ticketId:', ticketId);
+    }
+  },
+
+  leaveChatAnalistaCliente: (socket, ticketId) => {
+    if (socket && ticketId) {
+      socket.emit('leave_chat_analista_cliente', { ticket_id: ticketId });
+      console.log(`🔌 Saliendo del chat analista-cliente: chat_analista_cliente_${ticketId}`);
     }
   }
 };  
@@ -589,11 +776,15 @@ export default function storeReducer(store, action = {}) {
 
     case "clientes_upsert": {
       const c = action.payload;
-      const exists = store.clientes.some((x) => x.id === c.id);
+      if (!c || !c.id) {
+        console.warn('clientes_upsert: payload inválido', c);
+        return store;
+      }
+      const exists = store.clientes.some((x) => x && x.id === c.id);
       return {
         ...store,
         clientes: exists
-          ? store.clientes.map((x) => (x.id === c.id ? c : x))
+          ? store.clientes.map((x) => (x && x.id === c.id ? c : x))
           : [...store.clientes, c],
         api: { loading: false, error: null },
       };
@@ -629,15 +820,30 @@ export default function storeReducer(store, action = {}) {
 
 
      // Analista
-    case 'analistas_add':
-      return { ...store, analistas: [...store.analistas, action.payload], api: { loading: false, error: null } };
+    case 'analistas_add': {
+      const analista = action.payload;
+      if (!analista || !analista.id) {
+        console.warn('analistas_add: payload inválido', analista);
+        return store;
+      }
+      const exists = store.analistas.some(a => a && a.id === analista.id);
+      if (exists) {
+        console.log('analistas_add: analista ya existe, ignorando duplicado', analista);
+        return store;
+      }
+      return { ...store, analistas: [...store.analistas, analista], api: { loading: false, error: null } };
+    }
     case 'analistas_upsert': {
       const a = action.payload;
-      const exists = store.analistas.some((x) => x.id === a.id);
+      if (!a || !a.id) {
+        console.warn('analistas_upsert: payload inválido', a);
+        return store;
+      }
+      const exists = store.analistas.some((x) => x && x.id === a.id);
       return {
         ...store,
         analistas: exists
-          ? store.analistas.map((x) => (x.id === a.id ? a : x))
+          ? store.analistas.map((x) => (x && x.id === a.id ? a : x))
           : [...store.analistas, a],
         api: { loading: false, error: null },
       };
@@ -677,11 +883,15 @@ export default function storeReducer(store, action = {}) {
 
     case "supervisores_upsert": {
       const s = action.payload;
-      const exists = store.supervisores.some((x) => x.id === s.id);
+      if (!s || !s.id) {
+        console.warn('supervisores_upsert: payload inválido', s);
+        return store;
+      }
+      const exists = store.supervisores.some((x) => x && x.id === s.id);
       return {
         ...store,
         supervisores: exists
-          ? store.supervisores.map((x) => (x.id === s.id ? s : x))
+          ? store.supervisores.map((x) => (x && x.id === s.id ? s : x))
           : [...store.supervisores, s],
         api: { loading: false, error: null },
       };
@@ -701,10 +911,14 @@ export default function storeReducer(store, action = {}) {
       return { ...store, comentarios: [...store.comentarios, action.payload], api: { loading: false, error: null } };
     case 'comentarios_upsert': {
       const c = action.payload;
-      const exists = store.comentarios.some(x => x.id === c.id);
+      if (!c || !c.id) {
+        console.warn('comentarios_upsert: payload inválido', c);
+        return store;
+      }
+      const exists = store.comentarios.some(x => x && x.id === c.id);
       return {
         ...store,
-        comentarios: exists ? store.comentarios.map(x => x.id === c.id ? c : x) : [...store.comentarios, c],
+        comentarios: exists ? store.comentarios.map(x => x && x.id === c.id ? c : x) : [...store.comentarios, c],
         api: { loading: false, error: null }
       };
     }
@@ -723,10 +937,14 @@ export default function storeReducer(store, action = {}) {
       return { ...store, asignaciones: [...store.asignaciones, action.payload], api: { loading: false, error: null } };
     case 'asignaciones_upsert': {
       const a = action.payload;
-      const exists = store.asignaciones.some(x => x.id === a.id);
+      if (!a || !a.id) {
+        console.warn('asignaciones_upsert: payload inválido', a);
+        return store;
+      }
+      const exists = store.asignaciones.some(x => x && x.id === a.id);
       return {
         ...store,
-        asignaciones: exists ? store.asignaciones.map(x => x.id === a.id ? a : x) : [...store.asignaciones, a],
+        asignaciones: exists ? store.asignaciones.map(x => x && x.id === a.id ? a : x) : [...store.asignaciones, a],
         api: { loading: false, error: null }
       };
     }
@@ -745,10 +963,14 @@ export default function storeReducer(store, action = {}) {
       return { ...store, administradores: [...store.administradores, action.payload], api: { loading: false, error: null } };
     case 'administradores_upsert': {
       const a = action.payload;
-      const exists = store.administradores.some(x => x.id === a.id);
+      if (!a || !a.id) {
+        console.warn('administradores_upsert: payload inválido', a);
+        return store;
+      }
+      const exists = store.administradores.some(x => x && x.id === a.id);
       return {
         ...store,
-        administradores: exists ? store.administradores.map(x => x.id === a.id ? a : x) : [...store.administradores, a],
+        administradores: exists ? store.administradores.map(x => x && x.id === a.id ? a : x) : [...store.administradores, a],
         api: { loading: false, error: null }
       };
     }
@@ -768,10 +990,14 @@ export default function storeReducer(store, action = {}) {
       return { ...store, tickets: [...store.tickets, action.payload], api: { loading: false, error: null } };
     case 'tickets_upsert': {
       const t = action.payload;
-      const exists = store.tickets.some(x => x.id === t.id);
+      if (!t || !t.id || typeof t.id !== 'number') {
+        console.warn('tickets_upsert: payload inválido', t);
+        return store;
+      }
+      const exists = store.tickets.some(x => x && x.id === t.id);
       return {
         ...store,
-        tickets: exists ? store.tickets.map(x => x.id === t.id ? t : x) : [...store.tickets, t],
+        tickets: exists ? store.tickets.map(x => x && x.id === t.id ? t : x) : [...store.tickets, t],
         api: { loading: false, error: null }
       };
     }
@@ -789,10 +1015,14 @@ export default function storeReducer(store, action = {}) {
       return { ...store, gestiones: [...store.gestiones, action.payload], api: { loading: false, error: null } };
     case 'gestiones_upsert': {
       const t = action.payload;
-      const exists = store.gestiones.some(x => x.id === t.id); 
+      if (!t || !t.id) {
+        console.warn('gestiones_upsert: payload inválido', t);
+        return store;
+      }
+      const exists = store.gestiones.some(x => x && x.id === t.id);
       return {
         ...store,
-        gestiones: exists ? store.gestiones.map(x => x.id === t.id ? t : x) : [...store.gestiones, t],
+        gestiones: exists ? store.gestiones.map(x => x && x.id === t.id ? t : x) : [...store.gestiones, t],
         api: { loading: false, error: null }
       };
     }

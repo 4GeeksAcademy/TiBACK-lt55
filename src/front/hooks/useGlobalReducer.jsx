@@ -39,7 +39,13 @@ export function StoreProvider({ children }) {
         // WebSocket functions
         connectWebSocket: (token) => authActions.connectWebSocket(dispatch, token),
         disconnectWebSocket: (socket) => authActions.disconnectWebSocket(dispatch, socket),
-        joinRoom: (socket, role, userId) => authActions.joinRoom(socket, role, userId)
+        joinRoom: (socket, role, userId) => authActions.joinRoom(socket, role, userId),
+        joinTicketRoom: (socket, ticketId) => authActions.joinTicketRoom(socket, ticketId),
+        leaveTicketRoom: (socket, ticketId) => authActions.leaveTicketRoom(socket, ticketId),
+        joinChatSupervisorAnalista: (socket, ticketId) => authActions.joinChatSupervisorAnalista(socket, ticketId),
+        leaveChatSupervisorAnalista: (socket, ticketId) => authActions.leaveChatSupervisorAnalista(socket, ticketId),
+        joinChatAnalistaCliente: (socket, ticketId) => authActions.joinChatAnalistaCliente(socket, ticketId),
+        leaveChatAnalistaCliente: (socket, ticketId) => authActions.leaveChatAnalistaCliente(socket, ticketId)
     }}>
         {children}
     </StoreContext.Provider>

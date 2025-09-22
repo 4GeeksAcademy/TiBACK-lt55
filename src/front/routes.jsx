@@ -29,6 +29,11 @@ import { Comentarios } from "./pages/Comentarios";
 import { AgregarComentarios } from "./pages/AgregarComentarios";
 import { ActualizarComentarios } from "./pages/ActualizarComentarios";
 import { VerComentarios } from "./pages/VerComentarios";
+import ComentariosTicket from "./pages/ComentariosTicket";
+import RecomendacionVista from "./components/RecomendacionVista";
+import RecomendacionesGuardadas from "./pages/RecomendacionesGuardadas";
+import ChatSupervisorAnalista from "./pages/ChatSupervisorAnalista";
+import ChatAnalistaCliente from "./pages/ChatAnalistaCliente";
 
 import { Asignacion } from "./pages/Asignacion";
 import { AgregarAsignacion } from "./pages/AgregarAsignacion";
@@ -203,6 +208,31 @@ export const router = createBrowserRouter(
       <Route path="/ver-comentario/:id" element={
         <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
           <VerComentarios />
+        </ProtectedRoute>
+      } />
+      <Route path="/ticket/:ticketId/comentarios" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <ComentariosTicket />
+        </ProtectedRoute>
+      } />
+      <Route path="/ticket/:ticketId/recomendacion-ia" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <RecomendacionVista />
+        </ProtectedRoute>
+      } />
+      <Route path="/ticket/:ticketId/recomendaciones-ia" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <RecomendacionesGuardadas />
+        </ProtectedRoute>
+      } />
+      <Route path="/ticket/:ticketId/chat-supervisor-analista" element={
+        <ProtectedRoute allowedRoles={["supervisor", "analista"]}>
+          <ChatSupervisorAnalista />
+        </ProtectedRoute>
+      } />
+      <Route path="/ticket/:ticketId/chat-analista-cliente" element={
+        <ProtectedRoute allowedRoles={["analista", "cliente"]}>
+          <ChatAnalistaCliente />
         </ProtectedRoute>
       } />
 

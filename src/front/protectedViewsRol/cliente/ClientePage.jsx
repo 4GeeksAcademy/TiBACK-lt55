@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
+import GoogleMapsLocation from '../../components/GoogleMapsLocation';
 
+// Utilidades de token
 const tokenUtils = {
   decodeToken: (token) => {
     try {
@@ -20,7 +22,7 @@ const tokenUtils = {
 };
 
 export function ClientePage() {
-  const { store } = useGlobalReducer();
+  const { store, logout } = useGlobalReducer();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,8 +32,10 @@ export function ClientePage() {
   const [uploading, setUploading] = useState(false);
   const [selectedTicketImages, setSelectedTicketImages] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const navigate = useNavigate();
+  const [showLocationForm, setShowLocationForm] = useState(false);
+  const [updatingLocation, setUpdatingLocation] = useState(false);
 
+  const navigate = useNavigate();
   const API = import.meta.env.VITE_BACKEND_URL + "/api";
   const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dda53mpsn/upload";
   const CLOUDINARY_UPLOAD_PRESET = "Ticket-TiBACK";
@@ -74,11 +78,12 @@ export function ClientePage() {
         const token = store.auth.token;
         const userId = tokenUtils.getUserId(token);
 
-        const userResponse = await fetch(`${API}/clientes/${userId}`, {
+        // Datos usuario
+        const userRes = await fetch(`${API}/clientes/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
-        if (userResponse.ok) {
-          const data = await userResponse.json();
+        if (userRes.ok) {
+          const data = await userRes.json();
           setUserData(data);
           setLocationData({
             address: data.direccion || '',
@@ -158,6 +163,24 @@ export function ClientePage() {
     }
   };
 
+  const updateLocation = async () => {
+    try {
+      setUpdatingLocation(true);
+      const token = store.auth.token;
+      const userId = tokenUtils.getUserId(token);
+      const res = await fetch(`${API}/clientes/${userId}`, {
+        method:'PUT',
+        headers:{ 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json' },
+        body: JSON.stringify({ direccion:locationData.address, latitude:locationData.lat, longitude:locationData.lng })
+      });
+      if(!res.ok) throw new Error('Error al actualizar ubicación');
+      setUserData(prev=>({...prev, direccion:locationData.address, latitude:locationData.lat, longitude:locationData.lng}));
+      alert('Ubicación actualizada exitosamente');
+      setShowLocationForm(false);
+    } catch(err){ setError(err.message); }
+    finally{ setUpdatingLocation(false); }
+  };
+
   const getEstadoColor = (estado) => {
     switch (estado.toLowerCase()) {
       case 'creado': return 'badge bg-secondary';
@@ -181,7 +204,71 @@ export function ClientePage() {
 
   return (
     <div className="container py-4">
-      {/* FORMULARIO DE CREACIÓN DE TICKETS */}
+      {/* Header con info de usuario y sesión */}
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="card">
+            <div className="card-body d-flex justify-content-between align-items-center">
+              <div>
+                <h2 className="mb-1">Bienvenido, {userData?.nombre} {userData?.apellido}</h2>
+                <p className="text-muted mb-0">Panel de Cliente - Gestión de Tickets</p>
+                {userData?.direccion && (
+                  <div className="mt-2">
+                    <small className="text-info d-flex align-items-center">
+                      <i className="fas fa-map-marker-alt me-1"></i>
+                      <span className="fw-bold">Ubicación:</span>
+                      <span className="ms-1 w-50">{userData.direccion}</span>
+                    </small>
+                    {userData?.latitude && userData?.longitude && (
+                      <small className="text-muted d-block mt-1">
+                        <i className="fas fa-globe me-1"></i>
+                        Coordenadas: {userData.latitude.toFixed(6)}, {userData.longitude.toFixed(6)}
+                      </small>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="d-flex gap-2">
+                <button className="btn btn-info" onClick={()=>setShowLocationForm(!showLocationForm)}>
+                  <i className="fas fa-map-marker-alt me-1"></i>
+                  {showLocationForm?'Ocultar Ubicación':'Actualizar Ubicación'}
+                </button>
+                <Link to="/clientes" className="btn btn-primary">Ir al CRUD</Link>
+                <button className="btn btn-outline-danger" onClick={logout}>Cerrar Sesión</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Formulario ubicación */}
+      {showLocationForm && (
+        <div className="row mb-4">
+          <div className="col-12">
+            <div className="card">
+              <div className="card-header">
+                <h5 className="mb-0"><i className="fas fa-map-marker-alt me-2"></i>Actualizar Mi Ubicación</h5>
+              </div>
+              <div className="card-body">
+                <GoogleMapsLocation
+                  onLocationChange={setLocationData}
+                  initialAddress={locationData.address}
+                  initialLat={locationData.lat}
+                  initialLng={locationData.lng}
+                />
+                <div className="mt-3 d-flex gap-2">
+                  <button className="btn btn-success" onClick={updateLocation} disabled={!locationData.address || updatingLocation}>
+                    {updatingLocation?<> <span className="spinner-border spinner-border-sm me-1"></span> Actualizando...</> : <> <i className="fas fa-save me-1"></i> Guardar Ubicación</>}
+                  </button>
+                  <button className="btn btn-secondary" onClick={()=>setShowLocationForm(false)} disabled={updatingLocation}><i className="fas fa-times me-1"></i> Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Crear ticket */}
       <div className="row mb-4">
         <div className="col-12">
           <div className="card">
@@ -225,16 +312,14 @@ export function ClientePage() {
         </div>
       </div>
 
-      {/* LISTADO DE TICKETS */}
+      {/* Lista tickets */}
       <div className="row">
         <div className="col-12">
           <div className="card">
             <div className="card-header"><h5 className="mb-0">Mis Tickets</h5></div>
             <div className="card-body">
               {loading ? (
-                <div className="text-center py-4">
-                  <div className="spinner-border text-primary" role="status"></div>
-                </div>
+                <div className="text-center py-4"><div className="spinner-border text-primary" role="status"></div></div>
               ) : tickets.length === 0 ? (
                 <p className="text-muted text-center">No tienes tickets creados.</p>
               ) : (
@@ -267,9 +352,7 @@ export function ClientePage() {
                                     onClick={() => { setSelectedTicketImages(ticket.img_urls); setSelectedImageIndex(idx); }}
                                   />
                                 ))}
-                                {ticket.img_urls.length > 3 && (
-                                  <span className="badge bg-secondary">+{ticket.img_urls.length - 3}</span>
-                                )}
+                                {ticket.img_urls.length > 3 && <span className="badge bg-secondary">+{ticket.img_urls.length - 3}</span>}
                               </div>
                             ) : <span className="text-muted">Sin imágenes</span>}
                           </td>
@@ -292,18 +375,10 @@ export function ClientePage() {
         </div>
       </div>
 
-      {/* MODAL con carrusel funcional y fondo correcto */}
+      {/* Modal de imágenes */}
       {selectedTicketImages && (
-        <div 
-          className="modal fade show" 
-          style={{ display: 'block', backgroundColor: 'transparent' }} 
-          tabIndex="-1"
-          onClick={() => setSelectedTicketImages(null)}
-        >
-          <div 
-            className="modal-dialog modal-dialog-centered modal-md" 
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'transparent' }} tabIndex="-1" onClick={() => setSelectedTicketImages(null)}>
+          <div className="modal-dialog modal-dialog-centered modal-md" onClick={e => e.stopPropagation()}>
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Vista previa</h5>
@@ -311,54 +386,23 @@ export function ClientePage() {
               </div>
               <div className="modal-body text-center">
                 <div className="position-relative">
-                  <img
-                    src={selectedTicketImages[selectedImageIndex]}
-                    alt={`img-${selectedImageIndex}`}
-                    className="img-fluid rounded"
-                    style={{ maxHeight: '400px', objectFit: 'contain' }}
-                  />
+                  <img src={selectedTicketImages[selectedImageIndex]} alt={`img-${selectedImageIndex}`} className="img-fluid rounded" style={{ maxHeight: '400px', objectFit: 'contain' }} />
                   {selectedTicketImages.length > 1 && (
                     <>
-                      <button
-                        className="btn btn-secondary position-absolute top-50 start-0 translate-middle-y"
-                        style={{ zIndex: 2 }}
-                        onClick={() =>
-                          setSelectedImageIndex(
-                            (prev) => (prev - 1 + selectedTicketImages.length) % selectedTicketImages.length
-                          )
-                        }
-                      >
-                        ‹
-                      </button>
-                      <button
-                        className="btn btn-secondary position-absolute top-50 end-0 translate-middle-y"
-                        style={{ zIndex: 2 }}
-                        onClick={() => setSelectedImageIndex((prev) => (prev + 1) % selectedTicketImages.length)}
-                      >
-                        ›
-                      </button>
+                      <button className="btn btn-secondary position-absolute top-50 start-0 translate-middle-y" style={{ zIndex: 2 }} onClick={() => setSelectedImageIndex((prev) => (prev - 1 + selectedTicketImages.length) % selectedTicketImages.length)}>‹</button>
+                      <button className="btn btn-secondary position-absolute top-50 end-0 translate-middle-y" style={{ zIndex: 2 }} onClick={() => setSelectedImageIndex((prev) => (prev + 1) % selectedTicketImages.length)}>›</button>
                     </>
                   )}
                 </div>
                 <div className="mt-2">
                   {selectedTicketImages.map((_, idx) => (
-                    <span
-                      key={idx}
-                      className={`mx-1 rounded-circle ${idx === selectedImageIndex ? 'bg-primary' : 'bg-secondary'}`}
-                      style={{ display: 'inline-block', width: '10px', height: '10px', cursor: 'pointer' }}
-                      onClick={() => setSelectedImageIndex(idx)}
-                    ></span>
+                    <span key={idx} className={`mx-1 rounded-circle ${idx === selectedImageIndex ? 'bg-primary' : 'bg-secondary'}`} style={{ display: 'inline-block', width: '10px', height: '10px', cursor: 'pointer' }} onClick={() => setSelectedImageIndex(idx)}></span>
                   ))}
                 </div>
               </div>
             </div>
           </div>
-
-          <div 
-            className="modal-backdrop fade show" 
-            style={{ zIndex: 0 }} 
-            onClick={() => setSelectedTicketImages(null)}
-          ></div>
+          <div className="modal-backdrop fade show" style={{ zIndex: 0 }} onClick={() => setSelectedTicketImages(null)}></div>
         </div>
       )}
     </div>

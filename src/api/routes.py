@@ -151,7 +151,7 @@ def create_analista():
         socketio = get_socketio()
         if socketio:
             try:
-                # Enviar a supervisores y administradores
+                # Enviar a supervisores y administradores (rooms generales solo para gestión de usuarios)
                 socketio.emit('analista_creado', {
                     'analista': analista.serialize(),
                     'tipo': 'analista_creado',
@@ -214,8 +214,42 @@ def delete_analista(id):
     if not analista:
         return jsonify({"message": "Analista no encontrado"}), 404
     try:
+        # Guardar información del analista antes de eliminarlo para las notificaciones WebSocket
+        analista_info = {
+            'id': analista.id,
+            'nombre': analista.nombre,
+            'apellido': analista.apellido,
+            'email': analista.email,
+            'especialidad': analista.especialidad
+        }
+        
         db.session.delete(analista)
         db.session.commit()
+        
+        # Enviar notificación WebSocket
+        socketio = get_socketio()
+        if socketio:
+            try:
+                user = get_user_from_token()
+                eliminacion_data = {
+                    'analista_id': id,
+                    'analista_info': analista_info,
+                    'tipo': 'analista_eliminado',
+                    'usuario': user['role'],
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                # Notificar a todos los roles sobre la eliminación del analista
+                socketio.emit('analista_eliminado', eliminacion_data, room='clientes')
+                socketio.emit('analista_eliminado', eliminacion_data, room='analistas')
+                socketio.emit('analista_eliminado', eliminacion_data, room='supervisores')
+                socketio.emit('analista_eliminado', eliminacion_data, room='administradores')
+                
+                print(f"📤 ANALISTA ELIMINADO NOTIFICADO A TODOS LOS ROLES: {eliminacion_data}")
+                    
+            except Exception as e:
+                print(f"Error enviando WebSocket: {e}")
+        
         return jsonify({"message": "Analista eliminado"}), 200
     except Exception as e:
         db.session.rollback()
@@ -364,33 +398,19 @@ def create_comentario():
         db.session.add(comentario)
         db.session.commit()
         
-        # Emitir evento WebSocket para notificar nuevo comentario
+        # Emitir evento WebSocket para notificar nuevo comentario al room del ticket
         socketio = get_socketio()
         if socketio:
             try:
-                # Notificar a supervisores sobre nuevo comentario
+                # Notificar a todos los usuarios conectados al room del ticket
+                ticket_room = f'room_ticket_{comentario.id_ticket}'
                 socketio.emit('nuevo_comentario', {
                     'comentario': comentario.serialize(),
                     'tipo': 'comentario_agregado',
                     'timestamp': datetime.now().isoformat()
-                }, room='supervisores')
+                }, room=ticket_room)
                 
-                # Notificar al cliente si es su ticket
-                ticket = db.session.get(Ticket, comentario.id_ticket)
-                if ticket:
-                    socketio.emit('nuevo_comentario', {
-                        'comentario': comentario.serialize(),
-                        'tipo': 'comentario_agregado',
-                        'timestamp': datetime.now().isoformat()
-                    }, room=f'cliente_{ticket.id_cliente}')
-                
-                # Notificar al analista asignado si existe
-                if comentario.id_analista:
-                    socketio.emit('nuevo_comentario', {
-                        'comentario': comentario.serialize(),
-                        'tipo': 'comentario_agregado',
-                        'timestamp': datetime.now().isoformat()
-                    }, room=f'analista_{comentario.id_analista}')
+                print(f"📤 Comentario enviado al room del ticket: {ticket_room}")
                     
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
@@ -651,17 +671,35 @@ def create_ticket():
         db.session.add(ticket)
         db.session.commit()
         
-        # Emitir evento WebSocket para notificar a supervisores
+        # Emitir evento WebSocket para notificar nuevo ticket
         socketio = get_socketio()
         if socketio:
             try:
-                socketio.emit('nuevo_ticket', {
-                    'ticket': ticket.serialize(),
+                # Datos del ticket
+                ticket_data = {
+                    'ticket_id': ticket.id,
+                    'ticket_estado': ticket.estado,
+                    'ticket_titulo': ticket.titulo,
+                    'ticket_prioridad': ticket.prioridad,
+                    'cliente_id': ticket.id_cliente,
                     'tipo': 'creado',
                     'timestamp': datetime.now().isoformat()
-                }, room='supervisores')
+                }
+                
+                # Notificar al room del ticket (todos los involucrados se unirán automáticamente)
+                ticket_room = f'room_ticket_{ticket.id}'
+                socketio.emit('nuevo_ticket', ticket_data, room=ticket_room)
+                
+                # Notificar a supervisores y administradores para asignación
+                socketio.emit('nuevo_ticket_disponible', ticket_data, room='supervisores')
+                socketio.emit('nuevo_ticket_disponible', ticket_data, room='administradores')
+                
+                # Notificar a administradores para actualizar CRUD de tickets
+                socketio.emit('nuevo_ticket', ticket_data, room='administradores')
+                
+                print(f"📤 NUEVO TICKET NOTIFICADO: {ticket_data}")
             except Exception as e:
-                print(f"Error enviando WebSocket: {e}")
+                print(f"Error enviando WebSocket de nuevo ticket: {e}")
         
         return jsonify(ticket.serialize()), 201
 
@@ -800,33 +838,20 @@ def update_ticket(id):
 
         db.session.commit()
         
-        # Emitir evento WebSocket para notificar actualización
+        # Emitir evento WebSocket para notificar actualización al room del ticket
         socketio = get_socketio()
         if socketio:
             try:
+                # Notificar a todos los usuarios conectados al room del ticket
+                ticket_room = f'room_ticket_{ticket.id}'
                 socketio.emit('ticket_actualizado', {
                     'ticket': ticket.serialize(),
                     'tipo': 'actualizado',
                     'usuario': get_user_from_token()['role'],
                     'timestamp': datetime.now().isoformat()
-                }, room='supervisores')
+                }, room=ticket_room)
                 
-                # Notificar al cliente
-                socketio.emit('ticket_actualizado', {
-                    'ticket': ticket.serialize(),
-                    'tipo': 'actualizado',
-                    'usuario': get_user_from_token()['role'],
-                    'timestamp': datetime.now().isoformat()
-                }, room=f'cliente_{ticket.id_cliente}')
-                
-                # Notificar al analista asignado si existe
-                if ticket.asignacion_actual and ticket.asignacion_actual.id_analista:
-                    socketio.emit('ticket_actualizado', {
-                        'ticket': ticket.serialize(),
-                        'tipo': 'actualizado',
-                        'usuario': get_user_from_token()['role'],
-                        'timestamp': datetime.now().isoformat()
-                    }, room=f'analista_{ticket.asignacion_actual.id_analista}')
+                print(f"📤 Ticket actualizado enviado al room: {ticket_room}")
                     
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
@@ -892,7 +917,7 @@ def delete_ticket(id):
         db.session.delete(ticket)
         db.session.commit()
         
-        # Emitir evento WebSocket para notificar eliminación a TODOS los roles
+        # Emitir evento WebSocket para notificar eliminación a todos los roles
         socketio = get_socketio()
         if socketio:
             try:
@@ -905,21 +930,21 @@ def delete_ticket(id):
                     'timestamp': datetime.now().isoformat()
                 }
                 
-                # Notificar a supervisores y administradores
+                # Notificar a todos los roles sobre la eliminación
+                socketio.emit('ticket_eliminado', eliminacion_data, room='clientes')
+                socketio.emit('ticket_eliminado', eliminacion_data, room='analistas')
                 socketio.emit('ticket_eliminado', eliminacion_data, room='supervisores')
+                socketio.emit('ticket_eliminado', eliminacion_data, room='administradores')
                 
-                # Notificar al cliente específico
-                socketio.emit('ticket_eliminado', eliminacion_data, room=f'cliente_{ticket_info['id_cliente']}')
-                
-                # Notificar al analista asignado si existe
+                # Notificar específicamente al analista asignado si existe
                 if analista_asignado_id:
                     socketio.emit('ticket_eliminado', eliminacion_data, room=f'analista_{analista_asignado_id}')
                 
-                # Notificar a TODOS los analistas (por si el ticket estaba en su lista)
-                socketio.emit('ticket_eliminado', eliminacion_data, room='analistas')
+                # Notificar al room del ticket (si hay usuarios conectados)
+                ticket_room = f'room_ticket_{id}'
+                socketio.emit('ticket_eliminado', eliminacion_data, room=ticket_room)
                 
-                # Notificar a TODOS los clientes (por si el ticket estaba en su lista)
-                socketio.emit('ticket_eliminado', eliminacion_data, room='clientes')
+                print(f"📤 TICKET ELIMINADO NOTIFICADO A TODOS LOS ROLES: {eliminacion_data}")
                     
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
@@ -1245,49 +1270,44 @@ def get_analista_tickets():
             Ticket.estado != 'cerrado_por_supervisor'
         ).all()
         
-        # Filtrar tickets que el analista ya escaló anteriormente, que están solucionados, o que están reabiertos
+        # Filtrar tickets basándose en el estado y asignaciones activas (optimizado)
         tickets_filtrados = []
+        
+        # Obtener todas las asignaciones del analista en una sola consulta
+        asignaciones_analista = {a.id_ticket: a for a in Asignacion.query.filter_by(id_analista=user['id']).all()}
+        
+        # Obtener comentarios relevantes en una sola consulta
+        comentarios_solucion = {c.id_ticket for c in Comentarios.query.filter_by(
+            id_analista=user['id'],
+            texto="Ticket solucionado"
+        ).all()}
+        
+        comentarios_escalacion = {c.id_ticket: c.fecha_comentario for c in Comentarios.query.filter(
+            Comentarios.id_analista == user['id'],
+            Comentarios.texto == "Ticket escalado al supervisor"
+        ).all()}
+        
         for ticket in tickets:
-            # Verificar si este analista ya solucionó este ticket (para evitar que vea tickets reabiertos)
-            comentario_solucion = Comentarios.query.filter_by(
-                id_ticket=ticket.id,
-                id_analista=user['id'],
-                texto="Ticket solucionado"
-            ).first()
+            # Verificar asignación activa
+            if ticket.id not in asignaciones_analista:
+                continue
+                
+            asignacion = asignaciones_analista[ticket.id]
             
-            # Verificar si este analista ya escaló este ticket
-            comentario_escalacion = Comentarios.query.filter_by(
-                id_ticket=ticket.id,
-                id_analista=user['id'],
-                texto="Ticket escalado al supervisor"
-            ).first()
-            
-            # Verificar si el analista tiene una asignación activa (más reciente que cualquier escalación)
-            asignacion_actual = Asignacion.query.filter_by(
-                id_ticket=ticket.id,
-                id_analista=user['id']
-            ).order_by(Asignacion.fecha_asignacion.desc()).first()
-            
-            # Si el analista escaló el ticket, verificar si fue reasignado después
-            if comentario_escalacion and asignacion_actual:
-                # Si la asignación actual es más reciente que la escalación, fue reasignado
-                if asignacion_actual.fecha_asignacion > comentario_escalacion.fecha_comentario:
-                    # Fue reasignado después de escalar, incluir el ticket
-                    tickets_filtrados.append(ticket)
+            # Verificar si escaló después de la última asignación
+            if ticket.id in comentarios_escalacion:
+                if comentarios_escalacion[ticket.id] > asignacion.fecha_asignacion:
                     continue
-                else:
-                    # Escaló pero no fue reasignado, excluir el ticket
-                    continue
-            elif comentario_escalacion and not asignacion_actual:
-                # Escaló y no tiene asignación actual, excluir el ticket
+            
+            # Verificar si ya solucionó el ticket
+            if ticket.estado.lower() == 'solucionado' and ticket.id in comentarios_solucion:
                 continue
             
-            # Excluir tickets solucionados o reabiertos que ya solucionó
-            if ticket.estado.lower() == 'solucionado' or \
-               (ticket.estado.lower() == 'reabierto' and comentario_solucion):
+            # Verificar estado válido
+            if ticket.estado.lower() not in ['creado', 'en_espera', 'en_proceso']:
                 continue
             
-            # Incluir todos los demás tickets
+            # Incluir el ticket
             tickets_filtrados.append(ticket)
         
         return jsonify([t.serialize() for t in tickets_filtrados]), 200
@@ -1365,6 +1385,42 @@ def cambiar_estado_ticket(id):
                     ticket.calificacion = calificacion
                     ticket.comentario = comentario
                     ticket.fecha_evaluacion = datetime.now()
+                
+                # Crear comentario automático de cierre
+                comentario_cierre = Comentarios(
+                    id_ticket=id,
+                    id_cliente=user['id'],
+                    texto="Ticket cerrado por cliente",
+                    fecha_comentario=datetime.now()
+                )
+                db.session.add(comentario_cierre)
+                
+                # Notificar inmediatamente a supervisores sobre el cierre
+                socketio = get_socketio()
+                if socketio:
+                    try:
+                        cierre_data = {
+                            'ticket_id': ticket.id,
+                            'ticket_estado': ticket.estado,
+                            'ticket_titulo': ticket.titulo,
+                            'ticket_prioridad': ticket.prioridad,
+                            'cliente_id': ticket.id_cliente,
+                            'calificacion': calificacion,
+                            'tipo': 'cerrado',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        # Notificar a supervisores y administradores sobre el cierre
+                        socketio.emit('ticket_cerrado', cierre_data, room='supervisores')
+                        socketio.emit('ticket_cerrado', cierre_data, room='administradores')
+                        
+                        # También notificar al room del ticket
+                        ticket_room = f'room_ticket_{ticket.id}'
+                        socketio.emit('ticket_cerrado', cierre_data, room=ticket_room)
+                        
+                        print(f"📤 TICKET CERRADO NOTIFICADO: {cierre_data}")
+                    except Exception as ws_error:
+                        print(f"Error enviando WebSocket de cierre: {ws_error}")
             elif nuevo_estado_lower == 'solicitar_reapertura' and estado_actual == 'solucionado':
                 # No cambiar estado, solo crear comentario de solicitud
                 comentario_solicitud = Comentarios(
@@ -1374,9 +1430,70 @@ def cambiar_estado_ticket(id):
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_solicitud)
+                
+                # Notificar al room del ticket y a supervisores sobre la solicitud de reapertura
+                socketio = get_socketio()
+                if socketio:
+                    try:
+                        solicitud_data = {
+                            'ticket_id': ticket.id,
+                            'ticket_estado': ticket.estado,
+                            'ticket_titulo': ticket.titulo,
+                            'ticket_prioridad': ticket.prioridad,
+                            'tipo': 'solicitud_reapertura',
+                            'cliente_id': user['id'],
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        # Notificar a supervisores y administradores sobre la solicitud de reapertura
+                        socketio.emit('solicitud_reapertura', solicitud_data, room='supervisores')
+                        socketio.emit('solicitud_reapertura', solicitud_data, room='administradores')
+                        
+                        # También notificar al room del ticket
+                        ticket_room = f'room_ticket_{ticket.id}'
+                        socketio.emit('solicitud_reapertura', solicitud_data, room=ticket_room)
+                        
+                        print(f"📤 SOLICITUD DE REAPERTURA NOTIFICADA: {solicitud_data}")
+                    except Exception as ws_error:
+                        print(f"Error enviando WebSocket de solicitud reapertura: {ws_error}")
             elif nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado':
                 ticket.estado = nuevo_estado
                 ticket.fecha_cierre = None  # Reset fecha de cierre
+                
+                # Crear comentario automático de reapertura
+                comentario_reapertura = Comentarios(
+                    id_ticket=id,
+                    id_cliente=user['id'],
+                    texto="Ticket reabierto por cliente",
+                    fecha_comentario=datetime.now()
+                )
+                db.session.add(comentario_reapertura)
+                
+                # Notificar inmediatamente a supervisores sobre la reapertura
+                socketio = get_socketio()
+                if socketio:
+                    try:
+                        reapertura_data = {
+                            'ticket_id': ticket.id,
+                            'ticket_estado': ticket.estado,
+                            'ticket_titulo': ticket.titulo,
+                            'ticket_prioridad': ticket.prioridad,
+                            'cliente_id': ticket.id_cliente,
+                            'tipo': 'reabierto',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        # Notificar a supervisores y administradores sobre la reapertura
+                        socketio.emit('ticket_reabierto', reapertura_data, room='supervisores')
+                        socketio.emit('ticket_reabierto', reapertura_data, room='administradores')
+                        
+                        # También notificar al room del ticket
+                        ticket_room = f'room_ticket_{ticket.id}'
+                        socketio.emit('ticket_reabierto', reapertura_data, room=ticket_room)
+                        
+                        print(f"📤 TICKET REABIERTO NOTIFICADO: {reapertura_data}")
+                    except Exception as ws_error:
+                        print(f"Error enviando WebSocket de reapertura: {ws_error}")
             else:
                 return jsonify({"message": "Transición de estado no válida para cliente"}), 400
         
@@ -1400,21 +1517,50 @@ def cambiar_estado_ticket(id):
                 # Si está escalando desde 'en_proceso', significa que ya lo trabajó pero no puede resolverlo
                 ticket.estado = nuevo_estado
                 
-                # Eliminar la asignación actual cuando se escala (el ticket vuelve al supervisor)
-                asignacion_actual = Asignacion.query.filter_by(
+                # Eliminar todas las asignaciones del analista para este ticket
+                asignaciones_analista = Asignacion.query.filter_by(
                     id_ticket=ticket.id, 
                     id_analista=user['id']
-                ).first()
-                if asignacion_actual:
-                    # Crear comentario automático de escalación
-                    comentario_escalacion = Comentarios(
-                        id_ticket=ticket.id,
-                        id_analista=user['id'],
-                        texto="Ticket escalado al supervisor",
-                        fecha_comentario=datetime.now()
-                    )
-                    db.session.add(comentario_escalacion)
-                    db.session.delete(asignacion_actual)
+                ).all()
+                
+                for asignacion in asignaciones_analista:
+                    db.session.delete(asignacion)
+                
+                # Crear comentario automático de escalación
+                comentario_escalacion = Comentarios(
+                    id_ticket=ticket.id,
+                    id_analista=user['id'],
+                    texto="Ticket escalado al supervisor",
+                    fecha_comentario=datetime.now()
+                )
+                db.session.add(comentario_escalacion)
+                
+                # Notificar inmediatamente a supervisores sobre la escalación
+                socketio = get_socketio()
+                if socketio:
+                    try:
+                        escalacion_data = {
+                            'ticket_id': ticket.id,
+                            'ticket_estado': ticket.estado,
+                            'ticket_titulo': ticket.titulo,
+                            'ticket_prioridad': ticket.prioridad,
+                            'cliente_id': ticket.id_cliente,
+                            'analista_id': user['id'],
+                            'tipo': 'escalado',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        # Notificar a supervisores y administradores sobre la escalación
+                        socketio.emit('ticket_escalado', escalacion_data, room='supervisores')
+                        socketio.emit('ticket_escalado', escalacion_data, room='administradores')
+                        
+                        # También notificar al room del ticket
+                        ticket_room = f'room_ticket_{ticket.id}'
+                        socketio.emit('ticket_escalado', escalacion_data, room=ticket_room)
+                        
+                        print(f"📤 TICKET ESCALADO NOTIFICADO: {escalacion_data}")
+                    except Exception as ws_error:
+                        print(f"Error enviando WebSocket de escalación: {ws_error}")
             else:
                 return jsonify({"message": "Transición de estado no válida para analista"}), 400
         
@@ -1428,6 +1574,15 @@ def cambiar_estado_ticket(id):
             elif nuevo_estado_lower == 'reabierto' and estado_actual == 'solucionado':
                 ticket.estado = nuevo_estado
                 ticket.fecha_cierre = None  # Reset fecha de cierre
+                
+                # Crear comentario automático de reapertura
+                comentario_reapertura = Comentarios(
+                    id_ticket=ticket.id,
+                    id_supervisor=user['id'],
+                    texto="Ticket reabierto por supervisor",
+                    fecha_comentario=datetime.now()
+                )
+                db.session.add(comentario_reapertura)
             else:
                 return jsonify({"message": "Transición de estado no válida para supervisor"}), 400
         
@@ -1441,63 +1596,25 @@ def cambiar_estado_ticket(id):
         
         db.session.commit()
         
-        # Emitir evento WebSocket para notificar cambios de estado
+        # Emitir evento WebSocket para notificar cambios de estado al room del ticket
         socketio = get_socketio()
         if socketio:
             try:
-                # Notificar a supervisores sobre cambios de estado
-                socketio.emit('ticket_actualizado', {
-                    'ticket': ticket.serialize(),
+                # Datos para notificaciones
+                estado_data = {
+                    'ticket_id': ticket.id,
+                    'ticket_estado': ticket.estado,
                     'tipo': 'estado_cambiado',
                     'nuevo_estado': nuevo_estado,
                     'usuario': user['role'],
                     'timestamp': datetime.now().isoformat()
-                }, room='supervisores')
+                }
                 
-                # Notificar al cliente si es su ticket
-                if user['role'] != 'cliente':
-                    socketio.emit('ticket_actualizado', {
-                        'ticket': ticket.serialize(),
-                        'tipo': 'estado_cambiado',
-                        'nuevo_estado': nuevo_estado,
-                        'usuario': user['role'],
-                        'timestamp': datetime.now().isoformat()
-                    }, room=f'cliente_{ticket.id_cliente}')
+                # Notificar a todos los usuarios conectados al room del ticket
+                ticket_room = f'room_ticket_{ticket.id}'
+                socketio.emit('ticket_actualizado', estado_data, room=ticket_room)
                 
-                # Si es escalación de analista, notificar específicamente
-                if user['role'] == 'analista' and nuevo_estado_lower == 'en_espera' and estado_actual in ['en_proceso', 'en_espera']:
-                    print(f"🚨 ESCALACIÓN DETECTADA: Analista {user['id']} escalando ticket {ticket.id} desde {estado_actual} a {nuevo_estado_lower}")
-                    
-                    escalacion_data = {
-                        'ticket': ticket.serialize(),
-                        'tipo': 'escalado',
-                        'analista_id': user['id'],
-                        'timestamp': datetime.now().isoformat()
-                    }
-                    
-                    socketio.emit('ticket_escalado', escalacion_data, room='supervisores')
-                    print(f"📤 WebSocket enviado a supervisores: {escalacion_data}")
-                    
-                    # Notificar al cliente sobre la escalación
-                    socketio.emit('ticket_escalado', escalacion_data, room=f'cliente_{ticket.id_cliente}')
-                    print(f"📤 WebSocket enviado a cliente {ticket.id_cliente}: {escalacion_data}")
-                
-                # Si el analista inicia un ticket (cambia a en_proceso), notificar específicamente
-                elif user['role'] == 'analista' and nuevo_estado_lower == 'en_proceso' and estado_actual in ['creado', 'en_espera']:
-                    socketio.emit('ticket_iniciado', {
-                        'ticket': ticket.serialize(),
-                        'tipo': 'iniciado',
-                        'analista_id': user['id'],
-                        'timestamp': datetime.now().isoformat()
-                    }, room='supervisores')
-                    
-                    # Notificar al cliente que el ticket fue iniciado
-                    socketio.emit('ticket_iniciado', {
-                        'ticket': ticket.serialize(),
-                        'tipo': 'iniciado',
-                        'analista_id': user['id'],
-                        'timestamp': datetime.now().isoformat()
-                    }, room=f'cliente_{ticket.id_cliente}')
+                print(f"📤 Estado de ticket actualizado enviado al room: {ticket_room}")
                     
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
@@ -1539,27 +1656,21 @@ def evaluar_ticket(id):
         
         db.session.commit()
         
-        # Emitir evento WebSocket para notificar evaluación
+        # Emitir evento WebSocket para notificar evaluación al room del ticket
         socketio = get_socketio()
         if socketio:
             try:
+                # Notificar a todos los usuarios conectados al room del ticket
+                ticket_room = f'room_ticket_{ticket.id}'
                 socketio.emit('ticket_actualizado', {
                     'ticket': ticket.serialize(),
                     'tipo': 'evaluado',
                     'calificacion': calificacion,
                     'comentario': comentario,
                     'timestamp': datetime.now().isoformat()
-                }, room='supervisores')
+                }, room=ticket_room)
                 
-                # Notificar al analista asignado si existe
-                if ticket.asignacion_actual and ticket.asignacion_actual.id_analista:
-                    socketio.emit('ticket_actualizado', {
-                        'ticket': ticket.serialize(),
-                        'tipo': 'evaluado',
-                        'calificacion': calificacion,
-                        'comentario': comentario,
-                        'timestamp': datetime.now().isoformat()
-                    }, room=f'analista_{ticket.asignacion_actual.id_analista}')
+                print(f"📤 Evaluación de ticket enviada al room: {ticket_room}")
                     
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
@@ -1627,17 +1738,22 @@ def asignar_ticket(id):
         if not analista:
             return jsonify({"message": "Analista no encontrado"}), 404
         
-        # Se permite reasignar al mismo analista que escaló anteriormente
+        # Verificar que el ticket está en un estado válido para asignación
+        estados_validos = ['creado', 'en_espera', 'reabierto', 'solucionado']
+        if ticket.estado.lower() not in estados_validos:
+            return jsonify({
+                "message": f"El ticket no puede ser asignado en estado '{ticket.estado}'. Estados válidos: {', '.join(estados_validos)}"
+            }), 400
         
-        # Si es reasignación, eliminar comentarios de escalación anteriores del mismo analista
-        if es_reasignacion:
-            comentarios_escalacion_anteriores = Comentarios.query.filter_by(
-                id_ticket=id,
-                id_analista=id_analista,
-                texto="Ticket escalado al supervisor"
-            ).all()
-            for comentario in comentarios_escalacion_anteriores:
-                db.session.delete(comentario)
+        # El analista existe y está disponible (no hay campo activo en el modelo)
+        
+        # Eliminar todas las asignaciones anteriores para este ticket
+        asignaciones_anteriores = Asignacion.query.filter_by(id_ticket=id).all()
+        for asignacion_anterior in asignaciones_anteriores:
+            db.session.delete(asignacion_anterior)
+        
+        # Si es reasignación, no eliminar comentarios anteriores para evitar conflictos
+        # Los comentarios de escalación se mantienen para trazabilidad
         
         # Crear nueva asignación
         asignacion = Asignacion(
@@ -1674,38 +1790,36 @@ def asignar_ticket(id):
 
         db.session.commit()
 
-        # Emitir evento WebSocket para notificar asignación/reasignación
+        # Emitir evento WebSocket para notificar asignación
         socketio = get_socketio()
         if socketio:
             try:
-                user = get_user_from_token()
+                # Crear datos de asignación
                 asignacion_data = {
-                    'ticket': ticket.serialize(),
-                    'asignacion': asignacion.serialize(),
+                    'ticket_id': ticket.id,
+                    'ticket_estado': ticket.estado,
+                    'ticket_titulo': ticket.titulo,
+                    'ticket_prioridad': ticket.prioridad,
+                    'cliente_id': ticket.id_cliente,
+                    'analista_id': id_analista,
+                    'analista_nombre': f"{analista.nombre} {analista.apellido}",
                     'tipo': 'asignado',
                     'accion': "reasignado" if es_reasignacion else "asignado",
-                    'usuario': user['role'],
                     'timestamp': datetime.now().isoformat()
                 }
                 
-                print(f"📤 ASIGNACIÓN/REASIGNACIÓN: {asignacion_data['accion']} ticket {ticket.id} a analista {id_analista}")
+                # Notificar específicamente al analista asignado
+                socketio.emit('ticket_asignado_a_mi', asignacion_data, room=f'analista_{id_analista}')
                 
-                # Notificar a supervisores y administradores
+                # Notificar a todos los usuarios conectados al room del ticket
+                ticket_room = f'room_ticket_{ticket.id}'
+                socketio.emit('ticket_asignado', asignacion_data, room=ticket_room)
+                
+                # Notificar a supervisores y administradores sobre la asignación
                 socketio.emit('ticket_asignado', asignacion_data, room='supervisores')
-                print(f"📤 WebSocket enviado a supervisores: {asignacion_data['accion']}")
+                socketio.emit('ticket_asignado', asignacion_data, room='administradores')
                 
-                # Notificar al analista asignado
-                socketio.emit('ticket_asignado', asignacion_data, room=f'analista_{id_analista}')
-                print(f"📤 WebSocket enviado a analista_{id_analista}: {asignacion_data['accion']}")
-                
-                # Notificar al cliente sobre la asignación
-                socketio.emit('ticket_asignado', asignacion_data, room=f'cliente_{ticket.id_cliente}')
-                print(f"📤 WebSocket enviado a cliente_{ticket.id_cliente}: {asignacion_data['accion']}")
-                
-                # Si es una reasignación, notificar también a la sala general de analistas
-                if es_reasignacion:
-                    socketio.emit('ticket_asignado', asignacion_data, room='analistas')
-                    print(f"📤 WebSocket enviado a sala general de analistas: reasignación")
+                print(f"📤 Asignación de ticket notificada: {asignacion_data}")
                     
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
@@ -1748,8 +1862,34 @@ def generar_recomendacion_ia(ticket_id):
         
         # Obtener API key de OpenAI
         api_key = os.getenv('API_KEY_IA')
-        if not api_key:
-            return jsonify({"message": "API Key de OpenAI no configurada"}), 500
+        print(f"DEBUG: API_KEY_IA = {api_key}")  # Debug log
+        
+        # Si no hay API key válida, generar recomendación básica
+        if not api_key or api_key.strip() == '' or api_key == 'clave api':
+            recomendacion_basica = {
+                "diagnostico": f"Análisis del ticket: {ticket.titulo}. {ticket.descripcion[:200]}...",
+                "pasos_solucion": [
+                    "1. Revisar la descripción del problema detalladamente",
+                    "2. Verificar si es un problema conocido en la base de conocimientos",
+                    "3. Consultar con el equipo técnico especializado",
+                    "4. Probar soluciones estándar según el tipo de problema",
+                    "5. Documentar la solución encontrada"
+                ],
+                "tiempo_estimado": "2-4 horas",
+                "recursos_necesarios": [
+                    "Acceso a la base de conocimientos",
+                    "Herramientas de diagnóstico",
+                    "Colaboración con el equipo técnico"
+                ],
+                "nivel_dificultad": "Media",
+                "recomendaciones_adicionales": "Para obtener recomendaciones más específicas con IA, configure una API Key válida de OpenAI en las variables de entorno."
+            }
+            
+            return jsonify({
+                "message": "Recomendación generada (modo básico)",
+                "recomendacion": recomendacion_basica,
+                "ticket_id": ticket_id
+            }), 200
         
         # Crear el prompt para OpenAI
         prompt = f"""
@@ -1802,14 +1942,33 @@ def generar_recomendacion_ia(ticket_id):
         )
         
         if response.status_code != 200:
+            error_message = f"Error en la API de OpenAI: {response.status_code}"
+            try:
+                error_data = response.json()
+                if 'error' in error_data:
+                    error_message += f" - {error_data['error'].get('message', 'Error desconocido')}"
+            except:
+                error_message += f" - {response.text}"
+            
             return jsonify({
-                "message": f"Error en la API de OpenAI: {response.status_code}",
+                "message": error_message,
                 "error": response.text
             }), 500
         
         # Procesar la respuesta
-        openai_response = response.json()
-        recomendacion_texto = openai_response['choices'][0]['message']['content'].strip()
+        try:
+            openai_response = response.json()
+            if 'choices' not in openai_response or len(openai_response['choices']) == 0:
+                raise ValueError("Respuesta de OpenAI sin contenido")
+            
+            recomendacion_texto = openai_response['choices'][0]['message']['content'].strip()
+            if not recomendacion_texto:
+                raise ValueError("Respuesta de OpenAI vacía")
+        except (KeyError, ValueError, IndexError) as e:
+            return jsonify({
+                "message": f"Error procesando respuesta de OpenAI: {str(e)}",
+                "error": "Respuesta de API inválida"
+            }), 500
         
         # Intentar parsear el JSON de la respuesta
         try:
@@ -1837,3 +1996,283 @@ def generar_recomendacion_ia(ticket_id):
         return jsonify({"message": f"Error de conexión con OpenAI: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"message": f"Error interno: {str(e)}"}), 500
+
+
+# ==================== RUTAS DE CHAT ====================
+
+@api.route('/tickets/<int:ticket_id>/chat-supervisor-analista', methods=['GET'])
+@require_auth
+def obtener_chat_supervisor_analista(ticket_id):
+    """Obtener mensajes del chat entre supervisor y analista para un ticket"""
+    try:
+        # Verificar que el ticket existe
+        ticket = Ticket.query.get(ticket_id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Obtener mensajes del chat (usando la tabla de comentarios con un tipo específico)
+        mensajes = Comentarios.query.filter_by(
+            id_ticket=ticket_id
+        ).filter(
+            Comentarios.texto.like('CHAT_SUPERVISOR_ANALISTA:%')
+        ).order_by(Comentarios.fecha_comentario.asc()).all()
+        
+        # Procesar mensajes para el formato del chat
+        chat_mensajes = []
+        for mensaje in mensajes:
+            # Extraer el mensaje real del texto (remover el prefijo)
+            mensaje_texto = mensaje.texto.replace('CHAT_SUPERVISOR_ANALISTA:', '')
+            
+            # Determinar el autor basado en los campos de relación
+            autor = None
+            if mensaje.supervisor:
+                autor = {
+                    'id': mensaje.supervisor.id,
+                    'nombre': mensaje.supervisor.nombre,
+                    'apellido': mensaje.supervisor.apellido,
+                    'rol': 'supervisor'
+                }
+            elif mensaje.analista:
+                autor = {
+                    'id': mensaje.analista.id,
+                    'nombre': mensaje.analista.nombre,
+                    'apellido': mensaje.analista.apellido,
+                    'rol': 'analista'
+                }
+            
+            chat_mensajes.append({
+                'id': mensaje.id,
+                'mensaje': mensaje_texto,
+                'fecha_mensaje': mensaje.fecha_comentario.isoformat(),
+                'autor': autor
+            })
+        
+        return jsonify(chat_mensajes), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener mensajes del chat: {str(e)}"}), 500
+
+
+@api.route('/chat-supervisor-analista', methods=['POST'])
+@require_auth
+def enviar_mensaje_supervisor_analista():
+    """Enviar mensaje en el chat entre supervisor y analista"""
+    try:
+        data = request.get_json()
+        ticket_id = data.get('id_ticket')
+        mensaje = data.get('mensaje')
+        
+        if not ticket_id or not mensaje:
+            return jsonify({"message": "Ticket ID y mensaje son requeridos"}), 400
+        
+        # Verificar que el ticket existe
+        ticket = Ticket.query.get(ticket_id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Obtener información del usuario actual
+        user_info = get_user_from_token()
+        if not user_info:
+            return jsonify({"message": "Token inválido"}), 401
+        
+        # Crear el comentario con prefijo especial para el chat
+        comentario = Comentarios(
+            id_ticket=ticket_id,
+            texto=f'CHAT_SUPERVISOR_ANALISTA:{mensaje}',
+            fecha_comentario=datetime.now()
+        )
+        
+        # Asignar el autor según el rol
+        if user_info['role'] == 'supervisor':
+            comentario.id_supervisor = user_info['id']
+        elif user_info['role'] == 'analista':
+            comentario.id_analista = user_info['id']
+        else:
+            return jsonify({"message": "Solo supervisores y analistas pueden usar este chat"}), 403
+        
+        db.session.add(comentario)
+        db.session.commit()
+        
+        # Emitir evento WebSocket
+        socketio = get_socketio()
+        print(f"🔍 DEBUG: socketio = {socketio}")
+        if socketio:
+            # Room específico para chat supervisor-analista
+            chat_room = f'chat_supervisor_analista_{ticket_id}'
+            print(f"🔍 DEBUG: Enviando a room {chat_room}")
+            
+            socketio.emit('nuevo_mensaje_chat_supervisor_analista', {
+                'ticket_id': ticket_id,
+                'mensaje': mensaje,
+                'autor': {
+                    'id': user_info['id'],
+                    'nombre': user_info.get('nombre', 'Usuario'),
+                    'rol': user_info['role']
+                },
+                'fecha': datetime.now().isoformat()
+            }, room=chat_room)
+            
+            # También notificar al room general del ticket para otros eventos
+            general_room = f'room_ticket_{ticket_id}'
+            print(f"🔍 DEBUG: Enviando a room general {general_room}")
+            socketio.emit('nuevo_mensaje_chat', {
+                'ticket_id': ticket_id,
+                'tipo': 'chat_supervisor_analista',
+                'mensaje': mensaje,
+                'autor': {
+                    'id': user_info['id'],
+                    'nombre': user_info.get('nombre', 'Usuario'),
+                    'rol': user_info['role']
+                },
+                'fecha': datetime.now().isoformat()
+            }, room=general_room)
+        else:
+            print("❌ ERROR: socketio es None, no se puede enviar evento WebSocket")
+        
+        return jsonify({
+            "message": "Mensaje enviado exitosamente",
+            "mensaje_id": comentario.id
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al enviar mensaje: {str(e)}"}), 500
+
+
+@api.route('/tickets/<int:ticket_id>/chat-analista-cliente', methods=['GET'])
+@require_auth
+def obtener_chat_analista_cliente(ticket_id):
+    """Obtener mensajes del chat entre analista y cliente para un ticket"""
+    try:
+        # Verificar que el ticket existe
+        ticket = Ticket.query.get(ticket_id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Obtener mensajes del chat (usando la tabla de comentarios con un tipo específico)
+        mensajes = Comentarios.query.filter_by(
+            id_ticket=ticket_id
+        ).filter(
+            Comentarios.texto.like('CHAT_ANALISTA_CLIENTE:%')
+        ).order_by(Comentarios.fecha_comentario.asc()).all()
+        
+        # Procesar mensajes para el formato del chat
+        chat_mensajes = []
+        for mensaje in mensajes:
+            # Extraer el mensaje real del texto (remover el prefijo)
+            mensaje_texto = mensaje.texto.replace('CHAT_ANALISTA_CLIENTE:', '')
+            
+            # Determinar el autor basado en los campos de relación
+            autor = None
+            if mensaje.analista:
+                autor = {
+                    'id': mensaje.analista.id,
+                    'nombre': mensaje.analista.nombre,
+                    'apellido': mensaje.analista.apellido,
+                    'rol': 'analista'
+                }
+            elif mensaje.cliente:
+                autor = {
+                    'id': mensaje.cliente.id,
+                    'nombre': mensaje.cliente.nombre,
+                    'apellido': mensaje.cliente.apellido,
+                    'rol': 'cliente'
+                }
+            
+            chat_mensajes.append({
+                'id': mensaje.id,
+                'mensaje': mensaje_texto,
+                'fecha_mensaje': mensaje.fecha_comentario.isoformat(),
+                'autor': autor
+            })
+        
+        return jsonify(chat_mensajes), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener mensajes del chat: {str(e)}"}), 500
+
+
+@api.route('/chat-analista-cliente', methods=['POST'])
+@require_auth
+def enviar_mensaje_analista_cliente():
+    """Enviar mensaje en el chat entre analista y cliente"""
+    try:
+        data = request.get_json()
+        ticket_id = data.get('id_ticket')
+        mensaje = data.get('mensaje')
+        
+        if not ticket_id or not mensaje:
+            return jsonify({"message": "Ticket ID y mensaje son requeridos"}), 400
+        
+        # Verificar que el ticket existe
+        ticket = Ticket.query.get(ticket_id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Obtener información del usuario actual
+        user_info = get_user_from_token()
+        if not user_info:
+            return jsonify({"message": "Token inválido"}), 401
+        
+        # Crear el comentario con prefijo especial para el chat
+        comentario = Comentarios(
+            id_ticket=ticket_id,
+            texto=f'CHAT_ANALISTA_CLIENTE:{mensaje}',
+            fecha_comentario=datetime.now()
+        )
+        
+        # Asignar el autor según el rol
+        if user_info['role'] == 'analista':
+            comentario.id_analista = user_info['id']
+        elif user_info['role'] == 'cliente':
+            comentario.id_cliente = user_info['id']
+        else:
+            return jsonify({"message": "Solo analistas y clientes pueden usar este chat"}), 403
+        
+        db.session.add(comentario)
+        db.session.commit()
+        
+        # Emitir evento WebSocket
+        socketio = get_socketio()
+        print(f"🔍 DEBUG: socketio = {socketio}")
+        if socketio:
+            # Room específico para chat analista-cliente
+            chat_room = f'chat_analista_cliente_{ticket_id}'
+            print(f"🔍 DEBUG: Enviando a room {chat_room}")
+            
+            socketio.emit('nuevo_mensaje_chat_analista_cliente', {
+                'ticket_id': ticket_id,
+                'mensaje': mensaje,
+                'autor': {
+                    'id': user_info['id'],
+                    'nombre': user_info.get('nombre', 'Usuario'),
+                    'rol': user_info['role']
+                },
+                'fecha': datetime.now().isoformat()
+            }, room=chat_room)
+            
+            # También notificar al room general del ticket para otros eventos
+            general_room = f'room_ticket_{ticket_id}'
+            print(f"🔍 DEBUG: Enviando a room general {general_room}")
+            socketio.emit('nuevo_mensaje_chat', {
+                'ticket_id': ticket_id,
+                'tipo': 'chat_analista_cliente',
+                'mensaje': mensaje,
+                'autor': {
+                    'id': user_info['id'],
+                    'nombre': user_info.get('nombre', 'Usuario'),
+                    'rol': user_info['role']
+                },
+                'fecha': datetime.now().isoformat()
+            }, room=general_room)
+        else:
+            print("❌ ERROR: socketio es None, no se puede enviar evento WebSocket")
+        
+        return jsonify({
+            "message": "Mensaje enviado exitosamente",
+            "mensaje_id": comentario.id
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error al enviar mensaje: {str(e)}"}), 500
