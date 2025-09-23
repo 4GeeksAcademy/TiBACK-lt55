@@ -7,19 +7,26 @@ const SemaforoTickets = () => {
   const API = import.meta.env.VITE_BACKEND_URL + "/api";
   const navigate = useNavigate();
 
-  const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
-  const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
+  // Helpers para manejar estado global de carga y errores
+  const setLoading = (valor) =>
+    dispatch({ type: "api_loading", payload: valor });
+  const setError = (error) =>
+    dispatch({
+      type: "api_error",
+      payload: error?.message || error,
+    });
 
-  const fetchJson = async (url, options = {}) => {
+  // Fetch genérico con token JWT incluido si existe
+  const fetchJson = async (url, opciones = {}) => {
     try {
       const token = store.auth.token;
       const headers = {
         "Content-Type": "application/json",
-        ...options.headers,
+        ...opciones.headers,
         ...(token && { Authorization: `Bearer ${token}` }),
       };
 
-      const res = await fetch(url, { ...options, headers });
+      const res = await fetch(url, { ...opciones, headers });
       const data = await res.json();
       return { ok: res.ok, data };
     } catch (err) {
@@ -27,7 +34,8 @@ const SemaforoTickets = () => {
     }
   };
 
-  const listarTodosLosTickets = async () => {
+  // Trae todos los tickets desde la API
+  const cargarTickets = async () => {
     setLoading(true);
     const { ok, data } = await fetchJson(`${API}/tickets`);
     if (ok) {
@@ -38,36 +46,47 @@ const SemaforoTickets = () => {
     setLoading(false);
   };
 
+  // Carga inicial
   useEffect(() => {
     if (!store.tickets || store.tickets.length === 0) {
-      listarTodosLosTickets();
+      cargarTickets();
     }
   }, []);
 
-  // --- Determina color del semáforo ---
-  const getSemaforoColor = (ticket) => {
+  // Determina color del ticket según prioridad y antigüedad
+  const getColorSemaforo = (ticket) => {
     const prioridad = ticket.prioridad?.toLowerCase();
-    const fechaCreacion = ticket.fecha_creacion ? new Date(ticket.fecha_creacion) : null;
-    const ahora = new Date();
-    const horasTranscurridas = fechaCreacion ? Math.floor((ahora - fechaCreacion) / (1000 * 60 * 60)) : 0;
+    const fechaCreacion = ticket.fecha_creacion
+      ? new Date(ticket.fecha_creacion)
+      : null;
 
-    if (prioridad === "alta" || (prioridad === "baja" && horasTranscurridas > 72)) return "rojo";
+    const ahora = new Date();
+    const horasDeVida = fechaCreacion
+      ? Math.floor((ahora - fechaCreacion) / (1000 * 60 * 60))
+      : 0;
+
+    // Reglas de negocio:
+    // - Alta prioridad → rojo
+    // - Baja prioridad con más de 3 días → rojo
+    // - Media prioridad → naranja
+    // - Todo lo demás → verde
+    if (prioridad === "alta" || (prioridad === "baja" && horasDeVida > 72))
+      return "rojo";
     if (prioridad === "media") return "naranja";
     return "verde";
   };
 
-  // Clase Bootstrap para el círculo
-  const getSemaforoClass = (ticket) => {
-    const color = getSemaforoColor(ticket);
-    if (color === "rojo") return "bg-danger";
-    if (color === "naranja") return "bg-warning";
-    return "bg-success";
+  // Traduce el color semáforo a clases de Bootstrap
+  const getClaseFila = (ticket) => {
+    const color = getColorSemaforo(ticket);
+    if (color === "rojo") return "table-danger";
+    if (color === "naranja") return "table-warning";
+    return "table-success";
   };
 
-  // Ordenar tickets: rojo → naranja → verde, y dentro de cada color por fecha ascendente
   const ticketsOrdenados = [...(store.tickets || [])].sort((a, b) => {
-    const colorA = getSemaforoColor(a);
-    const colorB = getSemaforoColor(b);
+    const colorA = getColorSemaforo(a);
+    const colorB = getColorSemaforo(b);
 
     const prioridadColor = { rojo: 1, naranja: 2, verde: 3 };
 
@@ -75,90 +94,95 @@ const SemaforoTickets = () => {
       return prioridadColor[colorA] - prioridadColor[colorB];
     }
 
-    // Misma prioridad de color → ordenar por fecha de creación ascendente
     return new Date(a.fecha_creacion) - new Date(b.fecha_creacion);
   });
 
   return (
-    <div className="card-body">
-      {ticketsOrdenados.length > 0 ? (
-        <div className="table-responsive">
-          <table className="table table-striped align-middle">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Cliente</th>
-                <th>Estado</th>
-                <th>Título</th>
-                <th>Semáforo</th>
-                <th>Prioridad</th>
-                <th>Fecha Creación</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ticketsOrdenados.map((ticket) => (
-                <tr key={ticket.id}>
-                  <td>{ticket.id}</td>
-                  <td>
-                    {ticket.cliente
-                      ? `${ticket.cliente.nombre} ${ticket.cliente.apellido}`
-                      : ticket.id_cliente}
-                  </td>
-                  <td>
-                    <span className="badge bg-secondary">{ticket.estado}</span>
-                  </td>
-                  <td
-                    style={{
-                      maxWidth: "200px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {ticket.titulo}
-                  </td>
-                  <td>
-                    <span
-                      className={`d-inline-block rounded-circle ${getSemaforoClass(ticket)}`}
-                      style={{ width: "20px", height: "20px" }}
-                    ></span>
-                  </td>
-                  <td>
-                    <span className="badge bg-light text-dark">{ticket.prioridad}</span>
-                  </td>
-                  <td>
-                    {ticket.fecha_creacion
-                      ? new Date(ticket.fecha_creacion).toLocaleString()
-                      : ""}
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-info btn-sm mx-1"
-                      title="Ver Ticket"
-                      onClick={() => navigate(`/ver-ticket/${ticket.id}`)}
-                    >
-                      <i className="fas fa-eye"></i>
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm mx-1"
-                      title="Eliminar Ticket"
-                      onClick={() => eliminarTicket(ticket.id)}
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  </td>
+
+    <>
+      <div className="d-inline-flex gap-1 text-center w-100 flex-column">
+        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+          Lista Prioridad de Casos (Semaforo)
+        </button>
+      </div>
+
+      <div className="card-body collapse" id="collapseExample">
+        {ticketsOrdenados.length > 0 ? (
+          <div className="table-responsive">
+            <table className="table align-middle table-hover">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Estado</th>
+                  <th>Título</th>
+                  <th>Prioridad</th>
+                  <th>Fecha Creación</th>
+                  <th>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="text-center py-4">
-          <p className="text-muted">No hay tickets registrados.</p>
-        </div>
-      )}
-    </div>
+              </thead>
+              <tbody>
+                {ticketsOrdenados.map((ticket) => (
+                  <tr key={ticket.id} className={getClaseFila(ticket)}>
+                    <td>{ticket.id}</td>
+                    <td>
+                      {ticket.cliente
+                        ? `${ticket.cliente.nombre} ${ticket.cliente.apellido}`
+                        : ticket.id_cliente}
+                    </td>
+                    <td>
+                      <span className="badge bg-secondary">{ticket.estado}</span>
+                    </td>
+                    <td
+                      style={{
+                        maxWidth: "200px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {ticket.titulo}
+                    </td>
+                    <td>
+                      <span className="badge bg-light text-dark">
+                        {ticket.prioridad}
+                      </span>
+                    </td>
+                    <td>
+                      {ticket.fecha_creacion
+                        ? new Date(ticket.fecha_creacion).toLocaleString()
+                        : ""}
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-info btn-sm mx-1"
+                        title="Ver Ticket"
+                        onClick={() => navigate(`/ver-ticket/${ticket.id}`)}
+                      >
+                        <i className="fas fa-eye"></i>
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm mx-1"
+                        title="Eliminar Ticket"
+                        onClick={() => eliminarTicket(ticket.id)}
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-muted">No hay tickets registrados.</p>
+          </div>
+        )}
+      </div>
+
+    </>
+
   );
 };
 

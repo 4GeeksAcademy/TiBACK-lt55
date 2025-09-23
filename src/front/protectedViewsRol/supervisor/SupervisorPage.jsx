@@ -2,27 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 import RecomendacionModal from '../../components/RecomendacionModal';
+import SemaforoTickets from '../../components/SemaforoTickets'
 
 // Utilidades de token seguras
 const tokenUtils = {
-  decodeToken: (token) => {
-    try {
-      if (!token) return null;
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      return JSON.parse(atob(parts[1]));
-    } catch (error) {
-      return null;
+    decodeToken: (token) => {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (error) {
+            return null;
+        }
+    },
+    getUserId: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.user_id : null;
+    },
+    getRole: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.role : null;
     }
-  },
-  getUserId: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.user_id : null;
-  },
-  getRole: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.role : null;
-  }
 };
 
 export function SupervisorPage() {
@@ -181,19 +182,19 @@ export function SupervisorPage() {
         if (store.websocket.notifications.length > 0) {
             const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
             console.log('🔔 SUPERVISOR - Notificación recibida:', lastNotification);
-            
+
             // Actualización inmediata para eventos específicos (sin esperar)
             if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado') {
                 console.log('⚡ SUPERVISOR - Actualización inmediata por notificación:', lastNotification.tipo);
                 // Los datos ya están en el store por el WebSocket - actualización instantánea
             }
-            
+
             // Actualización específica para analistas
             if (lastNotification.tipo === 'analista_creado') {
                 console.log('⚡ SUPERVISOR - Actualizando lista de analistas por notificación:', lastNotification.tipo);
                 console.log('📊 SUPERVISOR - Datos del analista recibidos:', lastNotification.analista);
                 console.log('📊 SUPERVISOR - Lista actual de analistas antes:', analistas.length);
-                
+
                 // Actualizar estado local inmediatamente si hay datos del analista
                 if (lastNotification.analista) {
                     setAnalistas(prev => {
@@ -205,7 +206,7 @@ export function SupervisorPage() {
                 // También hacer actualización completa para asegurar consistencia
                 actualizarAnalistas();
             }
-            
+
             // Sincronización con servidor en segundo plano para TODOS los eventos
             console.log('🔄 SUPERVISOR - Sincronizando con servidor en segundo plano:', lastNotification.tipo);
             actualizarTodasLasTablas();
@@ -215,19 +216,19 @@ export function SupervisorPage() {
     const asignarTicket = async (ticketId, analistaId) => {
         try {
             const token = store.auth.token;
-            
+
             // Buscar el ticket para determinar si es una reasignación
             const ticket = tickets.find(t => t.id === ticketId);
             const esReasignacion = ticket && ticket.asignacion_actual && ticket.asignacion_actual.id_analista;
-            
+
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/asignar`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    id_analista: analistaId, 
+                body: JSON.stringify({
+                    id_analista: analistaId,
                     es_reasignacion: esReasignacion
                 })
             });
@@ -291,7 +292,7 @@ export function SupervisorPage() {
                 body: JSON.stringify({ id_ticket: ticketId, texto })
             });
             if (!response.ok) throw new Error('Error al agregar comentario');
-            
+
             // Actualizar tickets sin recargar la página
             await actualizarTodasLasTablas();
         } catch (err) {
@@ -468,7 +469,7 @@ export function SupervisorPage() {
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        {ticket.asignacion_actual?.analista ? 
+                                                        {ticket.asignacion_actual?.analista ?
                                                             `${ticket.asignacion_actual.analista.nombre} ${ticket.asignacion_actual.analista.apellido}` :
                                                             'Sin asignar'
                                                         }
@@ -557,7 +558,7 @@ export function SupervisorPage() {
                                                                     defaultValue=""
                                                                 >
                                                                     <option value="">
-                                                                         Reasignar a...
+                                                                        Reasignar a...
                                                                     </option>
                                                                     {analistas.map(analista => (
                                                                         <option key={analista.id} value={analista.id}>
@@ -681,7 +682,7 @@ export function SupervisorPage() {
                                                             </span>
                                                         </td>
                                                         <td>
-                                                            {ticket.asignacion_actual?.analista ? 
+                                                            {ticket.asignacion_actual?.analista ?
                                                                 `${ticket.asignacion_actual.analista.nombre} ${ticket.asignacion_actual.analista.apellido}` :
                                                                 'Sin asignar'
                                                             }
@@ -729,7 +730,9 @@ export function SupervisorPage() {
                 loading={loadingRecomendacion}
                 error={errorRecomendacion}
             />
+            <SemaforoTickets />
         </div>
+
     );
 }
 
