@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
+import SemaforoTickets from '../../components/SemaforoTickets'
+
 
 // Utilidades de token seguras
 const tokenUtils = {
@@ -1056,6 +1058,8 @@ export function SupervisorPage() {
                     </div>
                 </div>
             </div>
+
+            <SemaforoTickets />
 
         </div>
     );
