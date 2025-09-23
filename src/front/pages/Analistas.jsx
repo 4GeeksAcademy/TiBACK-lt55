@@ -115,8 +115,8 @@ export const Analistas = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {store.analistas.map((analista) => (
-                        <tr key={analista.id}>
+                      {store.analistas.map((analista, index) => (
+                        <tr key={`${analista.id}-${index}`}>
                           <td>{analista.nombre}</td>
                           <td>{analista.apellido}</td>
                           <td>{analista.email}</td>

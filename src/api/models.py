@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, ForeignKey, DateTime
+from sqlalchemy import String, Boolean, ForeignKey, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List
@@ -110,7 +110,7 @@ class Comentarios(db.Model):
     id_supervisor: Mapped[int] = mapped_column(
         ForeignKey("supervisor.id"), nullable=True
     )
-    texto: Mapped[str] = mapped_column(String(500), nullable=False)
+    texto: Mapped[str] = mapped_column(Text, nullable=False)
     fecha_comentario: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     gestion = relationship("Gestion", back_populates="comentarios")
     ticket = relationship("Ticket", backref="comentarios")
