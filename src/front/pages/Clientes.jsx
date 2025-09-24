@@ -108,6 +108,7 @@ export const Clientes = () => {
                   <table className="table table-striped">
                     <thead>
                       <tr>
+                        <th>Imagen</th>
                         <th>Nombre</th>
                         <th>Apellido</th>
                         <th>Email</th>
@@ -119,6 +120,23 @@ export const Clientes = () => {
                     <tbody>
                       {store.clientes.map((cliente) => (
                         <tr key={cliente.id}>
+                          <td>
+                            {cliente.url_imagen ? (
+                              <img 
+                                src={cliente.url_imagen} 
+                                alt="Imagen del cliente" 
+                                className="img-thumbnail"
+                                style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <div 
+                                className="bg-light d-flex align-items-center justify-content-center"
+                                style={{ width: '40px', height: '40px', borderRadius: '4px' }}
+                              >
+                                <i className="fas fa-user text-muted"></i>
+                              </div>
+                            )}
+                          </td>
                           <td>{cliente.nombre}</td>
                           <td>{cliente.apellido}</td>
                           <td>{cliente.email}</td>

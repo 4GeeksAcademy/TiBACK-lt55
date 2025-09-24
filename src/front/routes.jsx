@@ -213,6 +213,11 @@ export const router = createBrowserRouter(
           <ComentariosTicket />
         </ProtectedRoute>
       } />
+      <Route path="/ticket/:ticketId/comentarios-cerrado" element={
+        <ProtectedRoute allowedRoles={["supervisor", "administrador"]}>
+          <ComentariosTicket />
+        </ProtectedRoute>
+      } />
       <Route path="/ticket/:ticketId/recomendacion-ia" element={
         <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
           <RecomendacionVista />

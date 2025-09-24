@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import ImageUpload from "../components/ImageUpload";
 
 export const ActualizarTicket = () => {
     const { store, dispatch } = useGlobalReducer();
@@ -55,6 +56,20 @@ export const ActualizarTicket = () => {
         setTicket((prev) => ({ ...prev, [name]: value }));
     };
 
+    const handleImageUpload = (imageUrl) => {
+        setTicket(prev => ({
+            ...prev,
+            url_imagen: imageUrl
+        }));
+    };
+
+    const handleImageRemove = () => {
+        setTicket(prev => ({
+            ...prev,
+            url_imagen: ""
+        }));
+    };
+
     const manejarEnvio = (e) => {
         e.preventDefault();
         setLoading(true);
@@ -96,6 +111,13 @@ export const ActualizarTicket = () => {
                         rows="3"
                         value={ticket.descripcion}
                         onChange={controlCambio}
+                    />
+                </div>
+                <div className="mb-3">
+                    <ImageUpload
+                        onImageUpload={handleImageUpload}
+                        onImageRemove={handleImageRemove}
+                        currentImageUrl={ticket.url_imagen}
                     />
                 </div>
                 <button className="btn btn-primary me-2" type="submit">Actualizar</button>

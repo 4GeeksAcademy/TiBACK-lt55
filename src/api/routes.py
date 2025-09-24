@@ -4,6 +4,8 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 import os
 import requests
 import json
+import cloudinary
+import cloudinary.uploader
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
 from api.utils import generate_sitemap, APIException
@@ -20,6 +22,18 @@ api = Blueprint('api', __name__)
 
 # Allow CORS requests to this API
 CORS(api)
+
+# Configurar Cloudinary usando CLOUDINARY_URL
+cloudinary_url = os.getenv('CLOUDINARY_URL')
+if cloudinary_url:
+    cloudinary.config(cloudinary_url=cloudinary_url)
+else:
+    # Fallback a variables individuales si CLOUDINARY_URL no está disponible
+    cloudinary.config(
+        cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+        api_key=os.getenv('CLOUDINARY_API_KEY'),
+        api_secret=os.getenv('CLOUDINARY_API_SECRET')
+    )
 
 # Función para obtener la instancia de socketio
 def get_socketio():
@@ -63,6 +77,8 @@ def create_cliente():
             cliente_data['latitude'] = body['latitude']
         if 'longitude' in body:
             cliente_data['longitude'] = body['longitude']
+        if 'url_imagen' in body:
+            cliente_data['url_imagen'] = body['url_imagen']
             
         cliente = Cliente(**cliente_data)
         db.session.add(cliente)
@@ -93,7 +109,7 @@ def update_cliente(id):
     if not cliente:
         return jsonify({"message": "Cliente no encontrado"}), 404
     try:
-        for field in ["direccion", "telefono", "nombre", "apellido", "email", "contraseña_hash", "latitude", "longitude"]:
+        for field in ["direccion", "telefono", "nombre", "apellido", "email", "contraseña_hash", "latitude", "longitude", "url_imagen"]:
             if field in body:
                 setattr(cliente, field, body[field])
         db.session.commit()
@@ -655,7 +671,8 @@ def create_ticket():
             titulo=body['titulo'],
             descripcion=body['descripcion'],
             fecha_creacion=datetime.now(),
-            prioridad=body['prioridad']
+            prioridad=body['prioridad'],
+            url_imagen=body.get('url_imagen')
         )
         db.session.add(ticket)
         db.session.commit()
@@ -705,6 +722,7 @@ def create_ticket():
             descripcion=body["descripcion"],
             fecha_creacion=datetime.fromisoformat(body["fecha_creacion"]),
             prioridad=body["prioridad"],
+            url_imagen=body.get("url_imagen")
         )
         db.session.add(ticket)
         db.session.commit()
@@ -715,6 +733,46 @@ def create_ticket():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+
+@api.route('/upload-image', methods=['POST'])
+@require_auth
+def upload_image():
+    """Subir imagen a Cloudinary y devolver la URL"""
+    try:
+        # Verificar configuración de Cloudinary
+        cloudinary_url = os.getenv('CLOUDINARY_URL')
+        if not cloudinary_url and not os.getenv('CLOUDINARY_CLOUD_NAME'):
+            return jsonify({"message": "Cloudinary no está configurado correctamente"}), 500
+        
+        if 'image' not in request.files:
+            return jsonify({"message": "No se encontró archivo de imagen"}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({"message": "No se seleccionó archivo"}), 400
+        
+        print(f"🔍 DEBUG - Subiendo imagen: {file.filename}")
+        print(f"🔍 DEBUG - Cloudinary URL configurada: {bool(cloudinary_url)}")
+        print(f"🔍 DEBUG - Cloudinary cloud_name: {os.getenv('CLOUDINARY_CLOUD_NAME')}")
+        
+        # Subir imagen a Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="tickets",  # Carpeta en Cloudinary
+            resource_type="image"
+        )
+        
+        print(f"🔍 DEBUG - Upload exitoso: {upload_result['secure_url']}")
+        
+        return jsonify({
+            "url": upload_result['secure_url'],
+            "public_id": upload_result['public_id']
+        }), 200
+        
+    except Exception as e:
+        print(f"🔍 DEBUG - Error en upload: {str(e)}")
+        return jsonify({"message": f"Error subiendo imagen: {str(e)}"}), 500
 
 
 @api.route('/tickets/<int:id>', methods=['GET'])
@@ -735,7 +793,7 @@ def update_ticket(id):
         return jsonify({"message": "Ticket no encontrado"}), 404
     try:
         for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion",
-                      "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion"]:
+                      "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion", "url_imagen"]:
             if field in body:
                 value = body[field]
                 if field in ["fecha_creacion", "fecha_cierre", "fecha_evaluacion"] and value:

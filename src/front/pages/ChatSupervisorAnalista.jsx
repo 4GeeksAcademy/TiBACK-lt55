@@ -11,6 +11,10 @@ function ChatSupervisorAnalista() {
     const [nuevoMensaje, setNuevoMensaje] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [nombresParticipantes, setNombresParticipantes] = useState({
+        supervisor: 'Supervisor',
+        analista: 'Analista'
+    });
     const [sincronizando, setSincronizando] = useState(false);
     
     const messagesEndRef = useRef(null);
@@ -146,8 +150,22 @@ function ChatSupervisorAnalista() {
     };
 
     const isCurrentUser = (autorRol) => {
-        return store.auth.user?.rol === autorRol;
+        // Obtener el rol del usuario actual desde el token
+        const token = store.auth.token;
+        if (!token) return false;
+        
+        try {
+            const parts = token.split('.');
+            if (parts.length !== 3) return false;
+            const payload = JSON.parse(atob(parts[1]));
+            return payload.role === autorRol;
+        } catch (error) {
+            return false;
+        }
     };
+
+    // Función eliminada para evitar errores de API
+    // Los nombres se mantienen por defecto: 'Supervisor' y 'Analista'
 
     useEffect(() => {
         scrollToBottom();
@@ -175,21 +193,45 @@ function ChatSupervisorAnalista() {
                 <div className="row d-flex justify-content-center">
                     <div className="col-md-8 col-lg-6 col-xl-4">
                         <div className="card">
-                            <div className="card-header d-flex justify-content-between align-items-center p-3"
+                            <div className="card-header p-3"
                                 style={{borderTop: '4px solid #ffa900'}}>
-                                <h5 className="mb-0">
-                                    <i className="fas fa-comments me-2"></i>
-                                    Chat Supervisor - Analista
-                                </h5>
-                                <div className="d-flex flex-row align-items-center">
-                                    <span className="badge bg-warning me-3">{mensajes.length}</span>
-                                    <button 
-                                        className="btn btn-sm btn-outline-secondary"
-                                        onClick={() => navigate(-1)}
-                                        title="Volver"
-                                    >
-                                        <i className="fas fa-times"></i>
-                                    </button>
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 className="mb-0">
+                                        <i className="fas fa-comments me-2"></i>
+                                        Chat Supervisor - Analista
+                                    </h5>
+                                    <div className="d-flex flex-row align-items-center">
+                                        <span className="badge bg-warning me-3">{mensajes.length}</span>
+                                        <button 
+                                            className="btn btn-sm btn-outline-secondary"
+                                            onClick={() => navigate(-1)}
+                                            title="Volver"
+                                        >
+                                            <i className="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <div className="d-flex align-items-center">
+                                        <span className="badge bg-dark me-2">Ticket #{ticketId}</span>
+                                        <div className="d-flex align-items-center">
+                                            <div className="rounded-circle d-flex align-items-center justify-content-center text-white bg-warning me-2" 
+                                                 style={{width: '25px', height: '25px'}}>
+                                                <i className="fas fa-user-shield" style={{fontSize: '12px'}}></i>
+                                            </div>
+                                            <small className="text-muted">{nombresParticipantes.supervisor}</small>
+                                        </div>
+                                        <div className="mx-2">
+                                            <i className="fas fa-arrow-right text-muted"></i>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <div className="rounded-circle d-flex align-items-center justify-content-center text-white bg-primary me-2" 
+                                                 style={{width: '25px', height: '25px'}}>
+                                                <i className="fas fa-user-tie" style={{fontSize: '12px'}}></i>
+                                            </div>
+                                            <small className="text-muted">{nombresParticipantes.analista}</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -209,33 +251,37 @@ function ChatSupervisorAnalista() {
                                     </div>
                                 ) : (
                                     mensajes.map((mensaje, index) => (
-                                        <div key={mensaje.id || index}>
-                                            <div className="d-flex justify-content-between">
-                                                <p className="small mb-1">
-                                                    {isCurrentUser(mensaje.autor?.rol) ? 'Tú' : mensaje.autor?.nombre || 'Usuario'}
-                                                </p>
-                                                <p className="small mb-1 text-muted">
-                                                    {new Date(mensaje.fecha_mensaje).toLocaleString()}
-                                                </p>
-                                            </div>
-                                            <div className={`d-flex flex-row ${isCurrentUser(mensaje.autor?.rol) ? 'justify-content-end' : 'justify-content-start'} mb-4 pt-1`}>
-                                                {!isCurrentUser(mensaje.autor?.rol) && (
-                                                    <div className={`rounded-circle d-flex align-items-center justify-content-center text-white me-3 ${getRoleColor(mensaje.autor?.rol)}`}
-                                                         style={{width: '45px', height: '45px'}}>
-                                                        <i className={getRoleIcon(mensaje.autor?.rol)}></i>
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <p className={`small p-2 mb-3 rounded-3 ${isCurrentUser(mensaje.autor?.rol) ? 'text-white bg-warning' : 'bg-body-tertiary'}`}>
-                                                        {mensaje.mensaje}
-                                                    </p>
+                                        <div key={mensaje.id || index} className={`d-flex ${isCurrentUser(mensaje.autor?.rol) ? 'justify-content-end' : 'justify-content-start'} mb-3`}>
+                                            <div className={`d-flex align-items-end ${isCurrentUser(mensaje.autor?.rol) ? 'flex-row-reverse' : 'flex-row'}`} style={{maxWidth: '70%'}}>
+                                                {/* Avatar */}
+                                                <div className={`rounded-circle d-flex align-items-center justify-content-center text-white ${isCurrentUser(mensaje.autor?.rol) ? 'ms-2' : 'me-2'} ${getRoleColor(mensaje.autor?.rol)}`}
+                                                     style={{width: '35px', height: '35px', flexShrink: 0}}>
+                                                    <i className={getRoleIcon(mensaje.autor?.rol)} style={{fontSize: '14px'}}></i>
                                                 </div>
-                                                {isCurrentUser(mensaje.autor?.rol) && (
-                                                    <div className={`rounded-circle d-flex align-items-center justify-content-center text-white ms-3 ${getRoleColor(mensaje.autor?.rol)}`}
-                                                         style={{width: '45px', height: '45px'}}>
-                                                        <i className={getRoleIcon(mensaje.autor?.rol)}></i>
+                                                
+                                                {/* Mensaje */}
+                                                <div className={`d-flex flex-column ${isCurrentUser(mensaje.autor?.rol) ? 'align-items-end' : 'align-items-start'}`}>
+                                                    <div className={`p-3 rounded-4 ${isCurrentUser(mensaje.autor?.rol) ? 'bg-warning text-white' : 'bg-light text-dark'}`}
+                                                         style={{
+                                                             borderRadius: isCurrentUser(mensaje.autor?.rol) ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                                             wordWrap: 'break-word',
+                                                             maxWidth: '100%'
+                                                         }}>
+                                                        <p className="mb-0" style={{fontSize: '14px', lineHeight: '1.4'}}>
+                                                            {mensaje.mensaje}
+                                                        </p>
                                                     </div>
-                                                )}
+                                                    
+                                                    {/* Información del mensaje */}
+                                                    <div className={`d-flex align-items-center mt-1 ${isCurrentUser(mensaje.autor?.rol) ? 'flex-row-reverse' : 'flex-row'}`}>
+                                                        <small className="text-muted" style={{fontSize: '11px'}}>
+                                                            {isCurrentUser(mensaje.autor?.rol) ? 'Tú' : mensaje.autor?.nombre || 'Usuario'}
+                                                        </small>
+                                                        <small className="text-muted ms-1" style={{fontSize: '11px'}}>
+                                                            {new Date(mensaje.fecha_mensaje).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                        </small>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     ))

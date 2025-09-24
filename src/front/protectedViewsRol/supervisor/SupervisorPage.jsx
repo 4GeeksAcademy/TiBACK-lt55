@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
-import SemaforoTickets from '../../components/SemaforoTickets'
-
 
 // Utilidades de token seguras
 const tokenUtils = {
@@ -530,6 +528,33 @@ export function SupervisorPage() {
         }
     };
 
+    // Función para determinar el color del semáforo
+    const getSemaforoColor = (ticket, allTickets) => {
+        const fechaActual = new Date();
+        const fechaCreacion = new Date(ticket.fecha_creacion);
+        const diasDiferencia = Math.floor((fechaActual - fechaCreacion) / (1000 * 60 * 60 * 24));
+        
+        // Ordenar tickets por fecha de creación (más antiguos primero)
+        const ticketsOrdenados = [...allTickets].sort((a, b) => 
+            new Date(a.fecha_creacion) - new Date(b.fecha_creacion)
+        );
+        
+        const esTicketMasViejo = ticketsOrdenados.length > 0 && 
+            ticketsOrdenados[0].id === ticket.id;
+        
+        const prioridadAlta = ticket.prioridad.toLowerCase() === 'alta';
+        const esTicketViejo = diasDiferencia >= 3; // Consideramos viejo si tiene 3+ días
+        
+        // Lógica del semáforo
+        if (prioridadAlta && esTicketMasViejo) {
+            return 'table-danger'; // Rojo: Prioridad alta y ticket más viejo
+        } else if (prioridadAlta || esTicketViejo) {
+            return 'table-warning'; // Naranja: Prioridad alta O ticket viejo
+        } else {
+            return 'table-success'; // Verde: Prioridad media/baja y ticket reciente
+        }
+    };
+
     // Función helper para detectar si hay una solicitud de reapertura del cliente
     const tieneSolicitudReapertura = (ticket) => {
         if (!ticket.comentarios || !Array.isArray(ticket.comentarios)) {
@@ -755,6 +780,7 @@ export function SupervisorPage() {
                                     <table className="table table-hover">
                                         <thead>
                                             <tr>
+                                                <th>Semáforo</th>
                                                 <th>ID</th>
                                                 <th>Cliente</th>
                                                 <th>Título</th>
@@ -766,9 +792,54 @@ export function SupervisorPage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {tickets.map((ticket) => (
-                                                <tr key={ticket.id}>
-                                                    <td>#{ticket.id}</td>
+                                            {tickets
+                                                .sort((a, b) => {
+                                                    const colorA = getSemaforoColor(a, tickets);
+                                                    const colorB = getSemaforoColor(b, tickets);
+                                                    
+                                                    // Orden: Rojo (table-danger) -> Naranja (table-warning) -> Verde (table-success)
+                                                    const order = { 'table-danger': 0, 'table-warning': 1, 'table-success': 2 };
+                                                    return order[colorA] - order[colorB];
+                                                })
+                                                .map((ticket) => (
+                                                <tr key={ticket.id} className={getSemaforoColor(ticket, tickets)}>
+                                                    <td className="text-center">
+                                                        <div className="d-flex justify-content-center">
+                                                            <div 
+                                                                className="rounded-circle d-flex align-items-center justify-content-center"
+                                                                style={{ 
+                                                                    width: '20px', 
+                                                                    height: '20px',
+                                                                    backgroundColor: getSemaforoColor(ticket, tickets) === 'table-danger' ? '#dc3545' : 
+                                                                                   getSemaforoColor(ticket, tickets) === 'table-warning' ? '#ffc107' : '#28a745'
+                                                                }}
+                                                                title={
+                                                                    getSemaforoColor(ticket, tickets) === 'table-danger' ? '🔴 Rojo: Prioridad alta y ticket más viejo' :
+                                                                    getSemaforoColor(ticket, tickets) === 'table-warning' ? '🟠 Naranja: Prioridad alta o ticket viejo' :
+                                                                    '🟢 Verde: Prioridad media/baja y ticket reciente'
+                                                                }
+                                                            >
+                                                                <i className="fas fa-circle" style={{ fontSize: '8px', color: 'white' }}></i>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
+                                                            <span className="me-2">#{ticket.id}</span>
+                                                            {ticket.url_imagen ? (
+                                                                <img 
+                                                                    src={ticket.url_imagen} 
+                                                                    alt="Imagen del ticket" 
+                                                                    className="img-thumbnail"
+                                                                    style={{ width: '30px', height: '30px', objectFit: 'cover' }}
+                                                                />
+                                                            ) : (
+                                                                <span className="text-muted">
+                                                                    <i className="fas fa-image" style={{ fontSize: '12px' }}></i>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td>
                                                         {ticket.cliente?.nombre} {ticket.cliente?.apellido}
                                                     </td>
@@ -987,12 +1058,29 @@ export function SupervisorPage() {
                                                     <th>Analista Asignado</th>
                                                     <th>Fecha Cierre</th>
                                                     <th>Calificación</th>
+                                                    <th>Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {ticketsCerrados.map((ticket) => (
                                                     <tr key={ticket.id}>
-                                                        <td>#{ticket.id}</td>
+                                                        <td>
+                                                            <div className="d-flex align-items-center">
+                                                                <span className="me-2">#{ticket.id}</span>
+                                                                {ticket.url_imagen ? (
+                                                                    <img 
+                                                                        src={ticket.url_imagen} 
+                                                                        alt="Imagen del ticket" 
+                                                                        className="img-thumbnail"
+                                                                        style={{ width: '30px', height: '30px', objectFit: 'cover' }}
+                                                                    />
+                                                                ) : (
+                                                                    <span className="text-muted">
+                                                                        <i className="fas fa-image" style={{ fontSize: '12px' }}></i>
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
                                                         <td>
                                                             {ticket.cliente?.nombre} {ticket.cliente?.apellido}
                                                         </td>
@@ -1047,6 +1135,15 @@ export function SupervisorPage() {
                                                                 <span className="text-muted">Sin calificar</span>
                                                             )}
                                                         </td>
+                                                        <td>
+                                                            <Link
+                                                                to={`/ticket/${ticket.id}/comentarios-cerrado`}
+                                                                className="btn btn-info btn-sm"
+                                                                title="Ver comentarios y recomendaciones (solo lectura)"
+                                                            >
+                                                                <i className="fas fa-comments"></i> Comentarios
+                                                            </Link>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -1058,8 +1155,6 @@ export function SupervisorPage() {
                     </div>
                 </div>
             </div>
-
-            <SemaforoTickets />
 
         </div>
     );
