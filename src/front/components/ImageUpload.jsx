@@ -29,7 +29,7 @@ const ImageUpload = ({ onImageUpload, onImageRemove, currentImageUrl, disabled =
             // Debug: Verificar token
             console.log('🔍 DEBUG - Token disponible:', !!store.auth.token);
             console.log('🔍 DEBUG - URL backend:', import.meta.env.VITE_BACKEND_URL);
-            
+
             if (!store.auth.token) {
                 throw new Error('No hay token de autenticación disponible');
             }
@@ -59,6 +59,14 @@ const ImageUpload = ({ onImageUpload, onImageRemove, currentImageUrl, disabled =
 
             const data = await response.json();
             console.log('🔍 DEBUG - Response data:', data);
+
+            // Verificar si es una imagen placeholder
+            if (data.url && data.url.includes('placeholder.com')) {
+                console.log('🔍 DEBUG - Imagen placeholder detectada, Cloudinary no configurado');
+                // Mostrar mensaje informativo pero permitir continuar
+                setError('⚠️ Cloudinary no está configurado. Se usará una imagen placeholder temporal.');
+            }
+
             onImageUpload(data.url);
         } catch (error) {
             console.error('🔍 DEBUG - Error completo:', error);
@@ -79,13 +87,13 @@ const ImageUpload = ({ onImageUpload, onImageRemove, currentImageUrl, disabled =
                     <i className="fas fa-image me-2"></i>
                     Imagen del Ticket
                 </label>
-                
+
                 {currentImageUrl ? (
                     <div className="current-image-container">
                         <div className="d-flex align-items-center mb-2">
-                            <img 
-                                src={currentImageUrl} 
-                                alt="Imagen actual" 
+                            <img
+                                src={currentImageUrl}
+                                alt="Imagen actual"
                                 className="img-thumbnail me-3"
                                 style={{ width: '100px', height: '100px', objectFit: 'cover' }}
                             />
@@ -94,7 +102,7 @@ const ImageUpload = ({ onImageUpload, onImageRemove, currentImageUrl, disabled =
                                     <i className="fas fa-check-circle me-1"></i>
                                     Imagen cargada
                                 </p>
-                                <button 
+                                <button
                                     type="button"
                                     className="btn btn-sm btn-outline-danger"
                                     onClick={handleRemoveImage}
@@ -135,8 +143,8 @@ const ImageUpload = ({ onImageUpload, onImageRemove, currentImageUrl, disabled =
                 )}
 
                 {error && (
-                    <div className="alert alert-danger mt-2" role="alert">
-                        <i className="fas fa-exclamation-triangle me-2"></i>
+                    <div className={`alert ${error.includes('placeholder') ? 'alert-warning' : 'alert-danger'} mt-2`} role="alert">
+                        <i className={`fas ${error.includes('placeholder') ? 'fa-info-circle' : 'fa-exclamation-triangle'} me-2`}></i>
                         {error}
                     </div>
                 )}
