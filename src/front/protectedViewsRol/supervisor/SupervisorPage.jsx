@@ -1,29 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
-import SemaforoTickets from '../../components/SemaforoTickets'
-
 
 // Utilidades de token seguras
 const tokenUtils = {
-  decodeToken: (token) => {
-    try {
-      if (!token) return null;
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      return JSON.parse(atob(parts[1]));
-    } catch (error) {
-      return null;
+    decodeToken: (token) => {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (error) {
+            return null;
+        }
+    },
+    getUserId: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.user_id : null;
+    },
+    getRole: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.role : null;
     }
-  },
-  getUserId: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.user_id : null;
-  },
-  getRole: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.role : null;
-  }
 };
 
 export function SupervisorPage() {
@@ -121,7 +119,7 @@ export function SupervisorPage() {
     // Función específica para manejar tickets cerrados
     const manejarTicketCerrado = (ticketId) => {
         console.log('🔒 SUPERVISOR - Manejando ticket cerrado:', ticketId);
-        
+
         // Remover inmediatamente de la lista de tickets activos
         setTickets(prev => {
             const ticketRemovido = prev.find(t => t.id === ticketId);
@@ -130,7 +128,7 @@ export function SupervisorPage() {
             }
             return prev.filter(ticket => ticket.id !== ticketId);
         });
-        
+
         // Si está viendo la lista de cerrados, actualizar inmediatamente
         if (showCerrados) {
             console.log('📋 SUPERVISOR - Actualizando lista de cerrados...');
@@ -163,7 +161,7 @@ export function SupervisorPage() {
             try {
                 const token = store.auth.token;
                 const userId = tokenUtils.getUserId(token);
-                
+
                 if (userId) {
                     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/supervisores/${userId}`, {
                         headers: {
@@ -171,7 +169,7 @@ export function SupervisorPage() {
                             'Content-Type': 'application/json'
                         }
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         setUserData(data);
@@ -247,19 +245,19 @@ export function SupervisorPage() {
         if (store.websocket.notifications.length > 0) {
             const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
             console.log('🔔 SUPERVISOR - Notificación recibida:', lastNotification);
-            
+
             // Actualización inmediata para eventos específicos (sin esperar)
             if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado') {
                 console.log('⚡ SUPERVISOR - Actualización inmediata por notificación:', lastNotification.tipo);
                 // Los datos ya están en el store por el WebSocket - actualización instantánea
             }
-            
+
             // Actualización específica para analistas
             if (lastNotification.tipo === 'analista_creado') {
                 console.log('⚡ SUPERVISOR - Actualizando lista de analistas por notificación:', lastNotification.tipo);
                 console.log('📊 SUPERVISOR - Datos del analista recibidos:', lastNotification.analista);
                 console.log('📊 SUPERVISOR - Lista actual de analistas antes:', analistas.length);
-                
+
                 // Actualizar estado local inmediatamente si hay datos del analista
                 if (lastNotification.analista) {
                     setAnalistas(prev => {
@@ -271,13 +269,13 @@ export function SupervisorPage() {
                 // También hacer actualización completa para asegurar consistencia
                 actualizarAnalistas();
             }
-            
+
             // Actualización específica para analistas eliminados
             if (lastNotification.tipo === 'analista_eliminado') {
                 console.log('🗑️ SUPERVISOR - Analista eliminado detectado:', lastNotification);
                 console.log('📊 SUPERVISOR - ID del analista eliminado:', lastNotification.analista_id);
                 console.log('📊 SUPERVISOR - Lista actual de analistas antes:', analistas.length);
-                
+
                 // Remover inmediatamente de la lista local
                 if (lastNotification.analista_id) {
                     setAnalistas(prev => {
@@ -293,28 +291,28 @@ export function SupervisorPage() {
                 // También hacer actualización completa para asegurar consistencia
                 actualizarAnalistas();
             }
-            
+
             // Sincronización ULTRA RÁPIDA para eventos críticos
             if (lastNotification.tipo === 'escalado' || lastNotification.tipo === 'asignado' || lastNotification.tipo === 'solicitud_reapertura' || lastNotification.tipo === 'creado' || lastNotification.tipo === 'cerrado') {
                 console.log('⚡ SUPERVISOR - SINCRONIZACIÓN INMEDIATA:', lastNotification.tipo);
                 // Actualización inmediata sin debounce para eventos críticos
                 actualizarTodasLasTablas();
             }
-            
+
             // Manejo específico para tickets cerrados - sincronización inmediata
             if (lastNotification.tipo === 'cerrado' || lastNotification.tipo === 'ticket_cerrado') {
                 console.log('🔒 SUPERVISOR - TICKET CERRADO DETECTADO:', lastNotification);
-                
+
                 // Usar la función específica para manejar tickets cerrados
                 if (lastNotification.ticket_id) {
                     manejarTicketCerrado(lastNotification.ticket_id);
                 }
             }
-            
+
             // Manejo específico para tickets eliminados - sincronización inmediata
             if (lastNotification.tipo === 'eliminado' || lastNotification.tipo === 'ticket_eliminado') {
                 console.log('🗑️ SUPERVISOR - TICKET ELIMINADO DETECTADO:', lastNotification);
-                
+
                 // Remover inmediatamente de la lista de tickets activos
                 if (lastNotification.ticket_id) {
                     setTickets(prev => {
@@ -324,7 +322,7 @@ export function SupervisorPage() {
                         }
                         return prev.filter(ticket => ticket.id !== lastNotification.ticket_id);
                     });
-                    
+
                     // También remover de la lista de cerrados si está visible
                     if (showCerrados) {
                         setTicketsCerrados(prev => {
@@ -344,19 +342,19 @@ export function SupervisorPage() {
         try {
             console.log(`⚡ ASIGNANDO TICKET ${ticketId} A ANALISTA ${analistaId} INMEDIATAMENTE`);
             const token = store.auth.token;
-            
+
             // Buscar el ticket para determinar si es una reasignación
             const ticket = tickets.find(t => t.id === ticketId);
             const esReasignacion = ticket && ticket.asignacion_actual && ticket.asignacion_actual.id_analista;
-            
+
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/asignar`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    id_analista: analistaId, 
+                body: JSON.stringify({
+                    id_analista: analistaId,
                     es_reasignacion: esReasignacion
                 })
             });
@@ -422,7 +420,7 @@ export function SupervisorPage() {
                 body: JSON.stringify({ id_ticket: ticketId, texto })
             });
             if (!response.ok) throw new Error('Error al agregar comentario');
-            
+
             // Actualizar tickets sin recargar la página
             await actualizarTodasLasTablas();
         } catch (err) {
@@ -460,7 +458,7 @@ export function SupervisorPage() {
             setUpdatingInfo(true);
             const token = store.auth.token;
             const userId = tokenUtils.getUserId(token);
-            
+
             // Preparar datos para actualizar
             const updateData = {
                 nombre: infoData.nombre,
@@ -473,7 +471,7 @@ export function SupervisorPage() {
             if (infoData.password) {
                 updateData.contraseña_hash = infoData.password;
             }
-            
+
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/supervisores/${userId}`, {
                 method: 'PUT',
                 headers: {
@@ -496,7 +494,7 @@ export function SupervisorPage() {
                 email: infoData.email,
                 area_responsable: infoData.area_responsable
             }));
-            
+
             alert('Información actualizada exitosamente');
             setShowInfoForm(false);
             setError('');
@@ -535,8 +533,8 @@ export function SupervisorPage() {
         if (!ticket.comentarios || !Array.isArray(ticket.comentarios)) {
             return false;
         }
-        
-        return ticket.comentarios.some(comentario => 
+
+        return ticket.comentarios.some(comentario =>
             comentario.texto === "Cliente solicita reapertura del ticket" &&
             comentario.autor?.rol === "cliente"
         );
@@ -544,6 +542,8 @@ export function SupervisorPage() {
 
     return (
         <div className="container py-4">
+            <div className="d-flex justify-content-end mb-3">
+            </div>
             {/* Header con información del supervisor */}
             <div className="row mb-4">
                 <div className="col-12">
@@ -735,9 +735,14 @@ export function SupervisorPage() {
                     <div className="card">
                         <div className="card-header d-flex justify-content-between align-items-center">
                             <h5 className="mb-0">Todos los Tickets</h5>
-                            <small className="text-muted">
-                                {analistas.length} analista{analistas.length !== 1 ? 's' : ''} disponible{analistas.length !== 1 ? 's' : ''}
-                            </small>
+                            <div className="d-flex align-items-center gap-3">
+                                <small className="text-muted">
+                                    {analistas.length} analista{analistas.length !== 1 ? 's' : ''} disponible{analistas.length !== 1 ? 's' : ''}
+                                </small>
+                                <button className="btn btn-primary" onClick={actualizarTickets}>
+                                    <i className="fas fa-refresh"></i> Actualizar Lista
+                                </button>
+                            </div>
                         </div>
                         <div className="card-body">
                             {loading ? (
@@ -795,7 +800,7 @@ export function SupervisorPage() {
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        {ticket.asignacion_actual?.analista ? 
+                                                        {ticket.asignacion_actual?.analista ?
                                                             `${ticket.asignacion_actual.analista.nombre} ${ticket.asignacion_actual.analista.apellido}` :
                                                             'Sin asignar'
                                                         }
@@ -805,6 +810,13 @@ export function SupervisorPage() {
                                                     </td>
                                                     <td>
                                                         <div className="btn-group" role="group">
+                                                            <Link
+                                                                to={`/supervisor/ticket/${ticket.id}`}
+                                                                className="btn btn-primary btn-sm"
+                                                                title="Ver ticket"
+                                                            >
+                                                                <i className="fas fa-eye"></i>
+                                                            </Link>
                                                             {ticket.estado.toLowerCase() === 'creado' && (
                                                                 <select
                                                                     className="form-select form-select-sm"
@@ -889,7 +901,7 @@ export function SupervisorPage() {
                                                                     defaultValue=""
                                                                 >
                                                                     <option value="">
-                                                                         Reasignar a...
+                                                                        Reasignar a...
                                                                     </option>
                                                                     {analistas.map(analista => (
                                                                         <option key={analista.id} value={analista.id}>
@@ -1019,7 +1031,7 @@ export function SupervisorPage() {
                                                             </span>
                                                         </td>
                                                         <td>
-                                                            {ticket.asignacion_actual?.analista ? 
+                                                            {ticket.asignacion_actual?.analista ?
                                                                 `${ticket.asignacion_actual.analista.nombre} ${ticket.asignacion_actual.analista.apellido}` :
                                                                 'Sin asignar'
                                                             }
@@ -1058,8 +1070,6 @@ export function SupervisorPage() {
                     </div>
                 </div>
             </div>
-
-            <SemaforoTickets />
 
         </div>
     );

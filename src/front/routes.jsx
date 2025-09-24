@@ -58,9 +58,13 @@ import { ActualizarGestion } from "./pages/ActualizarGestion";
 import { AuthForm } from "./authentication/AuthForm";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ClientePage } from "./protectedViewsRol/cliente/ClientePage";
-import { AnalistaPage } from "./protectedViewsRol/analista/AnalistaPage";
+import VerTicketCliente from "./protectedViewsRol/cliente/VerTicketCliente";
+import AnalistaPage from "./protectedViewsRol/analista/AnalistaPage";
+import VerTicketAnalista from "./protectedViewsRol/analista/VerTicketAnalista";
 import { SupervisorPage } from "./protectedViewsRol/supervisor/SupervisorPage";
 import { AdministradorPage } from "./protectedViewsRol/administrador/AdministradorPage";
+import VerTicketSupervisor from "./protectedViewsRol/supervisor/VerTicketSupervisor";
+import RankingAnalista from "./protectedViewsRol/analista/RankingAnalista";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -78,6 +82,12 @@ export const router = createBrowserRouter(
       <Route path="/cliente" element={
         <ProtectedRoute allowedRoles={["cliente"]}>
           <ClientePage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/cliente/ver-ticket/:id" element={
+        <ProtectedRoute allowedRoles={["cliente"]}>
+          <VerTicketCliente />
         </ProtectedRoute>
       } />
 
@@ -297,6 +307,24 @@ export const router = createBrowserRouter(
       <Route path="/ver-gestion/:id" element={
         <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
           <VerGestion />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/analista/ver-ticket/:id" element={
+        <ProtectedRoute allowedRoles={["analista"]}>
+          <VerTicketAnalista />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/supervisor/ticket/:ticketId" element={
+        <ProtectedRoute allowedRoles={["supervisor"]}>
+          <VerTicketSupervisor />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/analista/ranking" element={
+        <ProtectedRoute allowedRoles={["analista"]}>
+          <RankingAnalista />
         </ProtectedRoute>
       } />
     </Route>

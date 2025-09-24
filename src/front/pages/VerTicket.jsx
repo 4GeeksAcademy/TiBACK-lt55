@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
@@ -17,17 +17,17 @@ export const VerTicket = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const cargarTicket = () => {
@@ -52,7 +52,7 @@ export const VerTicket = () => {
         if (id && store.websocket.socket && store.websocket.connected) {
             // Unirse al room del ticket
             joinTicketRoom(store.websocket.socket, parseInt(id));
-            
+
             // Cleanup: salir del room cuando el componente se desmonte
             return () => {
                 leaveTicketRoom(store.websocket.socket, parseInt(id));
@@ -95,6 +95,8 @@ export const VerTicket = () => {
     };
 
     const ticket = store.ticketDetail;
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [showModal, setShowModal] = useState(false);
 
 
     if (store.api.error) return <div className="alert alert-danger">{store.api.error}</div>;
@@ -120,6 +122,53 @@ export const VerTicket = () => {
                     <p><strong>Comentario:</strong> {ticket.comentario || "Sin comentarios"}</p>
                 </div>
             </div>
+
+
+            {/* Miniaturas de imágenes, visible para todos los roles */}
+            {Array.isArray(ticket.img_urls) && ticket.img_urls.length > 0 && (
+                <div className="my-4">
+                    <h5>Imágenes adjuntas</h5>
+                    <div className="d-flex gap-2 flex-wrap">
+                        {ticket.img_urls.map((url, idx) => (
+                            <img
+                                key={idx}
+                                src={url}
+                                alt={`thumb-${idx}`}
+                                style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc', cursor: 'pointer' }}
+                                onClick={() => { setSelectedImageIndex(idx); setShowModal(true); }}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Modal con carrusel */}
+            {showModal && Array.isArray(ticket.img_urls) && ticket.img_urls.length > 0 && (
+                <div className="modal fade show" style={{ display: 'block', background: 'rgba(0,0,0,0.7)' }} tabIndex="-1" role="dialog">
+                    <div className="modal-dialog modal-dialog-centered" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Imagen {selectedImageIndex + 1} de {ticket.img_urls.length}</h5>
+                                <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowModal(false)}></button>
+                            </div>
+                            <div className="modal-body d-flex flex-column align-items-center">
+                                <img
+                                    src={ticket.img_urls[selectedImageIndex]}
+                                    alt={`ticket-img-${selectedImageIndex}`}
+                                    style={{ maxWidth: 500, maxHeight: 400, borderRadius: 8, border: '1px solid #ccc' }}
+                                />
+                                {ticket.img_urls.length > 1 && (
+                                    <div className="mt-3">
+                                        <button className="btn btn-secondary btn-sm me-2" onClick={() => setSelectedImageIndex((selectedImageIndex - 1 + ticket.img_urls.length) % ticket.img_urls.length)}>&lt;</button>
+                                        <button className="btn btn-secondary btn-sm" onClick={() => setSelectedImageIndex((selectedImageIndex + 1) % ticket.img_urls.length)}>&gt;</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="mt-3">
                 <button className="btn btn-secondary me-2" onClick={() => navigate("/tickets")}>
                     <i className="fas fa-arrow-left"></i> Volver

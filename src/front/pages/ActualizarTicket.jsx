@@ -8,6 +8,7 @@ export const ActualizarTicket = () => {
     const navigate = useNavigate();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
     const [ticket, setTicket] = useState(null);
+    const [imagenes, setImagenes] = useState([]); // URLs de Cloudinary
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
@@ -18,17 +19,17 @@ export const ActualizarTicket = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const cargarTicket = () => {
@@ -37,6 +38,7 @@ export const ActualizarTicket = () => {
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
                 setTicket(data);
+                setImagenes(Array.isArray(data.img_urls) ? data.img_urls : []);
             })
             .catch(setError)
             .finally(() => setLoading(false));
@@ -60,7 +62,7 @@ export const ActualizarTicket = () => {
         setLoading(true);
         fetchJson(`${API}/tickets/${id}`, {
             method: "PUT",
-            body: JSON.stringify(ticket)
+            body: JSON.stringify({ ...ticket, img_urls: imagenes })
         })
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(data.message);
@@ -69,6 +71,33 @@ export const ActualizarTicket = () => {
             })
             .catch(setError)
             .finally(() => setLoading(false));
+    };
+
+    // Cloudinary widget
+    const openCloudinaryWidget = () => {
+        if (!window.cloudinary) {
+            alert('Cloudinary no está cargado');
+            return;
+        }
+        const widget = window.cloudinary.createUploadWidget({
+            cloudName: 'dda53mpsn', // Reemplaza por tu cloudName
+            uploadPreset: 'Ticket-TiBACK', // Reemplaza por tu uploadPreset
+            sources: ['local', 'url', 'camera'],
+            multiple: true,
+            maxFiles: 5,
+            cropping: false,
+            resourceType: 'image',
+            language: 'es',
+        }, (error, result) => {
+            if (!error && result && result.event === "success") {
+                setImagenes(prev => [...prev, result.info.secure_url]);
+            }
+        });
+        widget.open();
+    };
+
+    const eliminarImagen = (idx) => {
+        setImagenes(prev => prev.filter((_, i) => i !== idx));
     };
 
 
@@ -98,6 +127,24 @@ export const ActualizarTicket = () => {
                         onChange={controlCambio}
                     />
                 </div>
+
+                {/* Imágenes con Cloudinary */}
+                <div className="mb-3">
+                    <button type="button" className="btn btn-primary mb-2" onClick={openCloudinaryWidget}>
+                        Subir imágenes
+                    </button>
+                    {imagenes.length > 0 && (
+                        <div className="d-flex gap-2 flex-wrap mt-2">
+                            {imagenes.map((url, idx) => (
+                                <div key={idx} className="position-relative">
+                                    <img src={url} alt={`preview-${idx}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc' }} />
+                                    <button type="button" className="btn btn-sm btn-danger position-absolute top-0 end-0" style={{ borderRadius: '50%' }} onClick={() => eliminarImagen(idx)}>&times;</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 <button className="btn btn-primary me-2" type="submit">Actualizar</button>
                 <button className="btn btn-secondary" onClick={() => navigate(-1)}>Cancelar</button>
             </form>

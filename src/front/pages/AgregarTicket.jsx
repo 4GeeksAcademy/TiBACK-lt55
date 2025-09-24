@@ -16,6 +16,7 @@ const AgregarTicket = () => {
         fecha_creacion: new Date().toISOString().split('T')[0],
         prioridad: "media"
     });
+    const [imagenes, setImagenes] = useState([]); // URLs de Cloudinary
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
@@ -26,34 +27,65 @@ const AgregarTicket = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
-    const manejarEnvio = (e) => {
+
+    const manejarEnvio = async (e) => {
         e.preventDefault();
         setLoading(true);
+        try {
+            // 1. Crear el ticket con URLs de Cloudinary
+            const res = await fetchJson(`${API}/tickets`, {
+                method: "POST",
+                body: JSON.stringify({ ...nuevoTicket, img_urls: imagenes })
+            });
+            if (!res.ok) throw new Error(res.data.message);
+            const ticketCreado = res.data;
+            dispatch({ type: "tickets_add", payload: ticketCreado });
+            navigate("/tickets");
+        } catch (err) {
+            setError(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchJson(`${API}/tickets`, {
-            method: "POST",
-            body: JSON.stringify(nuevoTicket)
-        })
-            .then(({ ok, data }) => {
-                if (!ok) throw new Error(data.message);
-                dispatch({ type: "tickets_add", payload: data });
-                navigate("/tickets");
-            })
-            .catch(setError)
-            .finally(() => setLoading(false));
+    // Cloudinary widget
+    const openCloudinaryWidget = () => {
+        if (!window.cloudinary) {
+            alert('Cloudinary no está cargado');
+            return;
+        }
+        const widget = window.cloudinary.createUploadWidget({
+            cloudName: 'dda53mpsn', 
+            uploadPreset: 'Ticket-TiBACK',
+            sources: ['local', 'url', 'camera'],
+            multiple: true,
+            maxFiles: 5,
+            cropping: false,
+            resourceType: 'image',
+            language: 'es',
+        }, (error, result) => {
+            if (!error && result && result.event === "success") {
+                setImagenes(prev => [...prev, result.info.secure_url]);
+            }
+        });
+        widget.open();
+    };
+
+    const eliminarImagen = (idx) => {
+        setImagenes(prev => prev.filter((_, i) => i !== idx));
     };
 
     return (
@@ -136,19 +168,36 @@ const AgregarTicket = () => {
                             <option value="baja">Baja</option>
                         </select>
                     </div>
-                </div>
 
-                <div className="mt-4">
-                    <button type="submit" className="btn btn-primary me-2">
-                        <i className="fas fa-save"></i> Guardar
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => navigate(-1)}
-                    >
-                        Cancelar
-                    </button>
+                    {/* Imágenes con Cloudinary */}
+                    <div className="col-12">
+                        <button type="button" className="btn btn-primary mb-2" onClick={openCloudinaryWidget}>
+                            Subir imágenes
+                        </button>
+                        {imagenes.length > 0 && (
+                            <div className="d-flex gap-2 flex-wrap mt-2">
+                                {imagenes.map((url, idx) => (
+                                    <div key={idx} className="position-relative">
+                                        <img src={url} alt={`preview-${idx}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc' }} />
+                                        <button type="button" className="btn btn-sm btn-danger position-absolute top-0 end-0" style={{ borderRadius: '50%' }} onClick={() => eliminarImagen(idx)}>&times;</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-4">
+                        <button type="submit" className="btn btn-primary me-2">
+                            <i className="fas fa-save"></i> Guardar
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => navigate(-1)}
+                        >
+                            Cancelar
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

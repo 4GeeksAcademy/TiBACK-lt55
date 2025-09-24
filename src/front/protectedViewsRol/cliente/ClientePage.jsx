@@ -1,31 +1,87 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 import GoogleMapsLocation from '../../components/GoogleMapsLocation';
+import axios from 'axios';
+// Configuración de Cloudinary
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dda53mpsn/upload";
+const CLOUDINARY_PRESET = "Ticket-TiBACK";
+const CLOUDINARY_WIDGET_URL = "https://widget.cloudinary.com/v2.0/global/all.js";
 
 // Utilidades de token seguras
 const tokenUtils = {
-  decodeToken: (token) => {
-    try {
-      if (!token) return null;
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      return JSON.parse(atob(parts[1]));
-    } catch (error) {
-      return null;
+    decodeToken: (token) => {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (error) {
+            return null;
+        }
+    },
+    getUserId: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.user_id : null;
+    },
+    getRole: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.role : null;
     }
-  },
-  getUserId: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.user_id : null;
-  },
-  getRole: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.role : null;
-  }
 };
 
 export function ClientePage() {
+    // Para modal de imágenes
+    const [selectedTicketImages, setSelectedTicketImages] = useState(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    // Estados para imágenes nuevas (ahora solo URLs)
+    const [newTicketImages, setNewTicketImages] = useState([]); // URLs de Cloudinary
+    const [uploading, setUploading] = useState(false);
+    const cloudinaryWidgetRef = useRef(null);
+
+    // Feedback visual para actualización de tickets
+    const [feedback, setFeedback] = useState("");
+
+    // Cargar el script del widget de Cloudinary solo una vez
+    useEffect(() => {
+        if (!window.cloudinary) {
+            const script = document.createElement('script');
+            script.src = CLOUDINARY_WIDGET_URL;
+            script.async = true;
+            script.onload = () => { };
+            document.body.appendChild(script);
+        }
+    }, []);
+
+    // Inicializar el widget
+    const abrirWidgetCloudinary = () => {
+        if (window.cloudinary) {
+            if (!cloudinaryWidgetRef.current) {
+                cloudinaryWidgetRef.current = window.cloudinary.createUploadWidget({
+                    cloudName: 'dda53mpsn', // cloud name real
+                    uploadPreset: 'Ticket-TiBACK', // upload preset real
+                    multiple: true,
+                    maxFiles: 5,
+                    sources: ['local', 'url', 'camera', 'image_search'],
+                    resourceType: 'image',
+                    cropping: false,
+                    folder: 'tickets',
+                }, (error, result) => {
+                    if (!error && result && result.event === "success") {
+                        setNewTicketImages(prev => [...prev, result.info.secure_url]);
+                    }
+                });
+            }
+            cloudinaryWidgetRef.current.open();
+        } else {
+            alert('El widget de Cloudinary aún no está listo. Espera unos segundos y vuelve a intentar.');
+        }
+    };
+
+    // Eliminar imagen subida (solo de la lista local, no de Cloudinary)
+    const eliminarImagenNueva = (idx) => {
+        setNewTicketImages(urls => urls.filter((_, i) => i !== idx));
+    };
     const navigate = useNavigate();
     const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
@@ -60,7 +116,8 @@ export function ClientePage() {
             if (ticketsResponse.ok) {
                 const ticketsData = await ticketsResponse.json();
                 setTickets(ticketsData);
-                
+                setFeedback("Lista actualizada correctamente");
+                setTimeout(() => setFeedback(""), 2000);
                 // Limpiar solicitudes de reapertura para tickets que ya no están en estado 'solucionado'
                 setSolicitudesReapertura(prev => {
                     const newSet = new Set();
@@ -73,6 +130,8 @@ export function ClientePage() {
                 });
             }
         } catch (err) {
+            setFeedback("Error al actualizar la lista");
+            setTimeout(() => setFeedback(""), 2000);
             console.error('Error al actualizar tickets:', err);
         }
     };
@@ -110,11 +169,11 @@ export function ClientePage() {
         if (store.websocket.notifications.length > 0) {
             const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
             console.log('🔔 CLIENTE - Notificación recibida:', lastNotification);
-            
+
             // Manejo específico para tickets eliminados - sincronización inmediata
             if (lastNotification.tipo === 'eliminado' || lastNotification.tipo === 'ticket_eliminado') {
                 console.log('🗑️ CLIENTE - TICKET ELIMINADO DETECTADO:', lastNotification);
-                
+
                 // Remover inmediatamente de la lista de tickets
                 if (lastNotification.ticket_id) {
                     setTickets(prev => {
@@ -124,7 +183,7 @@ export function ClientePage() {
                         }
                         return prev.filter(ticket => ticket.id !== lastNotification.ticket_id);
                     });
-                    
+
                     // También remover de las solicitudes de reapertura si existe
                     setSolicitudesReapertura(prev => {
                         const newSet = new Set(prev);
@@ -134,13 +193,13 @@ export function ClientePage() {
                 }
                 return; // No continuar con el resto de la lógica
             }
-            
+
             // Actualización ULTRA RÁPIDA para todos los eventos críticos
             if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado' || lastNotification.tipo === 'creado') {
                 console.log('⚡ CLIENTE - ACTUALIZACIÓN INMEDIATA:', lastNotification.tipo);
                 // Los datos ya están en el store por el WebSocket - actualización instantánea
             }
-            
+
             // Sincronización ULTRA RÁPIDA con servidor para TODOS los eventos
             console.log('⚡ CLIENTE - SINCRONIZACIÓN INMEDIATA:', lastNotification.tipo);
             actualizarTickets();
@@ -205,16 +264,17 @@ export function ClientePage() {
 
     const crearTicket = async (e) => {
         e.preventDefault();
+        setUploading(true);
         const formData = new FormData(e.target);
+        const img_urls = newTicketImages;
         const ticketData = {
             titulo: formData.get('titulo'),
             descripcion: formData.get('descripcion'),
-            prioridad: formData.get('prioridad')
+            prioridad: formData.get('prioridad'),
+            img_urls
         };
-
         try {
             const token = store.auth.token;
-
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets`, {
                 method: 'POST',
                 headers: {
@@ -223,18 +283,12 @@ export function ClientePage() {
                 },
                 body: JSON.stringify(ticketData)
             });
-
             if (!response.ok) {
                 throw new Error('Error al crear ticket');
             }
-
-             // Limpiar el formulario después de crear el ticket exitosamente
             e.target.reset();
-
-            // Actualizar tickets sin recargar la página
+            setNewTicketImages([]);
             await actualizarTickets();
-            
-            // Unirse al room del nuevo ticket
             if (store.websocket.socket) {
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
                     headers: {
@@ -244,7 +298,7 @@ export function ClientePage() {
                 });
                 if (response.ok) {
                     const ticketsData = await response.json();
-                    const nuevoTicket = ticketsData[ticketsData.length - 1]; // El último ticket creado
+                    const nuevoTicket = ticketsData[ticketsData.length - 1];
                     if (nuevoTicket) {
                         joinTicketRoom(store.websocket.socket, nuevoTicket.id);
                     }
@@ -253,6 +307,7 @@ export function ClientePage() {
         } catch (err) {
             setError(err.message);
         }
+        setUploading(false);
     };
 
     const getEstadoColor = (estado) => {
@@ -364,7 +419,7 @@ export function ClientePage() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     estado: 'cerrado',
                     calificacion: parseInt(calificacion)
                 })
@@ -414,7 +469,7 @@ export function ClientePage() {
             setUpdatingInfo(true);
             const token = store.auth.token;
             const userId = tokenUtils.getUserId(token);
-            
+
             // Preparar datos para actualizar
             const updateData = {
                 nombre: infoData.nombre,
@@ -430,7 +485,7 @@ export function ClientePage() {
             if (infoData.password) {
                 updateData.contraseña_hash = infoData.password;
             }
-            
+
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${userId}`, {
                 method: 'PUT',
                 headers: {
@@ -456,7 +511,7 @@ export function ClientePage() {
                 latitude: infoData.lat,
                 longitude: infoData.lng
             }));
-            
+
             alert('Información actualizada exitosamente');
             setShowInfoForm(false);
             setError('');
@@ -504,6 +559,8 @@ export function ClientePage() {
 
     return (
         <div className="container py-4">
+            <div className="d-flex justify-content-end mb-3">
+            </div>
             {/* Header con información del usuario */}
             <div className="row mb-4">
                 <div className="col-12">
@@ -746,8 +803,21 @@ export function ClientePage() {
                                         ></textarea>
                                     </div>
                                     <div className="col-12">
-                                        <button type="submit" className="btn btn-primary">
-                                            Crear Ticket
+                                        <button type="button" className="btn btn-primary mb-2" onClick={abrirWidgetCloudinary}>
+                                            Subir imágenes
+                                        </button>
+                                        <div className="d-flex flex-wrap gap-2 mt-2">
+                                            {newTicketImages.map((url, i) => (
+                                                <div key={i} className="position-relative">
+                                                    <img src={url} alt="preview" className="img-thumbnail" style={{ width: '75px', height: '75px', objectFit: 'cover' }} />
+                                                    <button type="button" className="btn btn-sm btn-danger position-absolute top-0 end-0" onClick={() => eliminarImagenNueva(i)}>×</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="col-12">
+                                        <button type="submit" className="btn btn-primary" disabled={uploading}>
+                                            {uploading ? 'Subiendo...' : 'Crear Ticket'}
                                         </button>
                                     </div>
                                 </div>
@@ -761,8 +831,18 @@ export function ClientePage() {
             <div className="row">
                 <div className="col-12">
                     <div className="card">
-                        <div className="card-header">
-                            <h5 className="mb-0">Mis Tickets</h5>
+                        <div className="card-header d-flex align-items-center justify-content-between">
+                            <div>
+                                <h5 className="mb-0">Mis Tickets</h5>
+                                {feedback && (
+                                    <div className="alert alert-info py-1 px-3 mb-0 mt-2" style={{ display: 'inline-block', fontSize: '0.95em' }} role="alert">
+                                        {feedback}
+                                    </div>
+                                )}
+                            </div>
+                            <button className="btn btn-primary" onClick={actualizarTickets}>
+                                <i className="fas fa-refresh"></i> Actualizar Lista
+                            </button>
                         </div>
                         <div className="card-body">
                             {loading ? (
@@ -782,6 +862,7 @@ export function ClientePage() {
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Título</th>
+                                                <th>Imágenes</th>
                                                 <th>Estado</th>
                                                 <th>Prioridad</th>
                                                 <th>Asignado a</th>
@@ -806,14 +887,32 @@ export function ClientePage() {
                                                             </small>
                                                         </div>
                                                     </td>
+                                                    {/* Miniaturas de imágenes */}
+                                                    <td>
+                                                        {ticket.img_urls && ticket.img_urls.length > 0 ? (
+                                                            <div className="d-flex flex-wrap gap-1">
+                                                                {ticket.img_urls.slice(0, 3).map((url, idx) => (
+                                                                    <img
+                                                                        key={idx}
+                                                                        src={url}
+                                                                        alt={`ticket-${ticket.id}-img-${idx}`}
+                                                                        className="img-thumbnail"
+                                                                        style={{ width: '50px', height: '50px', objectFit: 'cover', cursor: 'pointer' }}
+                                                                        onClick={() => { setSelectedTicketImages(ticket.img_urls); setSelectedImageIndex(idx); }}
+                                                                    />
+                                                                ))}
+                                                                {ticket.img_urls.length > 3 && <span className="badge bg-secondary">+{ticket.img_urls.length - 3}</span>}
+                                                            </div>
+                                                        ) : <span className="text-muted">Sin imágenes</span>}
+                                                    </td>
                                                     <td>
                                                         <div className="d-flex align-items-center gap-2">
                                                             <span className={getEstadoColor(ticket.estado)}>
                                                                 {ticket.estado}
                                                             </span>
                                                             {tieneAnalistaAsignado(ticket) && (
-                                                                <span 
-                                                                    className="badge bg-success" 
+                                                                <span
+                                                                    className="badge bg-success"
                                                                     title={`Asignado a ${getAnalistaAsignado(ticket)}`}
                                                                 >
                                                                     <i className="fas fa-user-tie me-1"></i>
@@ -849,19 +948,24 @@ export function ClientePage() {
                                                         {new Date(ticket.fecha_creacion).toLocaleDateString()}
                                                     </td>
                                                     <td>
-                                                        {ticket.calificacion ? (
-                                                            <div className="d-flex align-items-center">
-                                                                {[...Array(5)].map((_, i) => (
+                                                        <div className="d-flex align-items-center">
+                                                            {ticket.calificacion ? (
+                                                                [...Array(5)].map((_, i) => (
                                                                     <i
                                                                         key={i}
-                                                                        className={`fas fa-star ${i < ticket.calificacion ? 'text-warning' : 'text-muted'
-                                                                            }`}
+                                                                        className={`fas fa-star ${i < ticket.calificacion ? 'text-warning' : 'text-muted'}`}
                                                                     ></i>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-muted">Sin calificar</span>
-                                                        )}
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-muted">Sin calificar</span>
+                                                            )}
+                                                            <button
+                                                                className="btn btn-info btn-sm ms-2"
+                                                                onClick={() => navigate(`/cliente/ver-ticket/${ticket.id}`)}
+                                                            >
+                                                                <i className="fas fa-eye"></i> Ver
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                     <td>
                                                         <div className="btn-group" role="group">
@@ -919,22 +1023,20 @@ export function ClientePage() {
                                                             </button>
                                                             <Link
                                                                 to={`/ticket/${ticket.id}/chat-analista-cliente`}
-                                                                className={`btn btn-sm ${
-                                                                    tieneAnalistaAsignado(ticket) 
-                                                                        ? 'btn-success' 
-                                                                        : 'btn-primary'
-                                                                }`}
+                                                                className={`btn btn-sm ${tieneAnalistaAsignado(ticket)
+                                                                    ? 'btn-success'
+                                                                    : 'btn-primary'
+                                                                    }`}
                                                                 title={
-                                                                    tieneAnalistaAsignado(ticket) 
-                                                                        ? `Chat con ${getAnalistaAsignado(ticket)} - Asignado el ${getFechaAsignacion(ticket)}` 
+                                                                    tieneAnalistaAsignado(ticket)
+                                                                        ? `Chat con ${getAnalistaAsignado(ticket)} - Asignado el ${getFechaAsignacion(ticket)}`
                                                                         : "Chat con analista - Sin asignar"
                                                                 }
                                                             >
-                                                                <i className={`fas ${
-                                                                    tieneAnalistaAsignado(ticket) 
-                                                                        ? 'fa-signal' 
-                                                                        : 'fa-comments'
-                                                                }`}></i> 
+                                                                <i className={`fas ${tieneAnalistaAsignado(ticket)
+                                                                    ? 'fa-signal'
+                                                                    : 'fa-comments'
+                                                                    }`}></i>
                                                                 {tieneAnalistaAsignado(ticket) ? ' Conectado' : ' Chat'}
                                                             </Link>
                                                             {ticket.estado.toLowerCase() === 'cerrado' && ticket.calificacion && (
@@ -959,6 +1061,36 @@ export function ClientePage() {
                 </div>
             </div>
 
+            {/* Modal de imágenes tipo carrusel */}
+            {selectedTicketImages && (
+                <div className="modal fade show" style={{ display: 'block', backgroundColor: 'transparent' }} tabIndex="-1" onClick={() => setSelectedTicketImages(null)}>
+                    <div className="modal-dialog modal-dialog-centered modal-md" onClick={e => e.stopPropagation()}>
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Vista previa</h5>
+                                <button type="button" className="btn-close" onClick={() => setSelectedTicketImages(null)}></button>
+                            </div>
+                            <div className="modal-body text-center">
+                                <div className="position-relative">
+                                    <img src={selectedTicketImages[selectedImageIndex]} alt={`img-${selectedImageIndex}`} className="img-fluid rounded" style={{ maxHeight: '400px', objectFit: 'contain' }} />
+                                    {selectedTicketImages.length > 1 && (
+                                        <>
+                                            <button className="btn btn-secondary position-absolute top-50 start-0 translate-middle-y" style={{ zIndex: 2 }} onClick={() => setSelectedImageIndex((prev) => (prev - 1 + selectedTicketImages.length) % selectedTicketImages.length)}>‹</button>
+                                            <button className="btn btn-secondary position-absolute top-50 end-0 translate-middle-y" style={{ zIndex: 2 }} onClick={() => setSelectedImageIndex((prev) => (prev + 1) % selectedTicketImages.length)}>›</button>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="mt-2">
+                                    {selectedTicketImages.map((_, idx) => (
+                                        <span key={idx} className={`mx-1 rounded-circle ${idx === selectedImageIndex ? 'bg-primary' : 'bg-secondary'}`} style={{ display: 'inline-block', width: '10px', height: '10px', cursor: 'pointer' }} onClick={() => setSelectedImageIndex(idx)}></span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="modal-backdrop fade show" style={{ zIndex: 0 }} onClick={() => setSelectedTicketImages(null)}></div>
+                </div>
+            )}
         </div>
     );
 }

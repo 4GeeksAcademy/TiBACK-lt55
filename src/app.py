@@ -1,6 +1,10 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
+import cloudinary.api
+import cloudinary.uploader
+import cloudinary
+from flask_cors import CORS
 import os
 from flask import Flask, request, jsonify, url_for, send_from_directory
 from dotenv import load_dotenv
@@ -23,9 +27,24 @@ static_file_dir = os.path.join(os.path.dirname(
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
+# Habilitar CORS para todas las rutas HTTP (incluyendo blueprints y login)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# Configurar Cloudinary
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dda53mpsn"),
+    api_key=os.getenv("CLOUDINARY_API_KEY", "468757167358985"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET",
+                         "tZIEHxaJWsxR2g-YpeHiT-NukUQ"),
+    secure=True
+)
+
 # Configurar CORS para SocketIO
-app.config['SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-super-secret-jwt-key-change-in-production')
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
+app.config['SECRET_KEY'] = os.getenv(
+    'JWT_SECRET_KEY', 'your-super-secret-jwt-key-change-in-production')
+socketio = SocketIO(app, cors_allowed_origins="*",
+                    logger=True, engineio_logger=True)
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
@@ -49,18 +68,24 @@ setup_commands(app)
 app.register_blueprint(api, url_prefix='/api')
 
 # Función para obtener la instancia de socketio
+
+
 def get_socketio():
     return socketio
 
 # Eventos de WebSocket
+
+
 @socketio.on('connect')
 def handle_connect():
     print('Cliente conectado')
     emit('connected', {'data': 'Conectado al servidor'})
 
+
 @socketio.on('disconnect')
 def handle_disconnect():
     print('Cliente desconectado')
+
 
 @socketio.on('join_room')
 def handle_join_room(data):
@@ -69,6 +94,7 @@ def handle_join_room(data):
     print(f'Cliente se unió a la sala: {room}')
     emit('joined_room', {'room': room})
 
+
 @socketio.on('join_ticket')
 def handle_join_ticket(data):
     """Unirse al room de un ticket específico"""
@@ -76,11 +102,12 @@ def handle_join_ticket(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'room_ticket_{ticket_id}'
     join_room(room)
     print(f'Usuario se unió al ticket room: {room}')
     emit('joined_ticket', {'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('leave_ticket')
 def handle_leave_ticket(data):
@@ -89,11 +116,12 @@ def handle_leave_ticket(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'room_ticket_{ticket_id}'
     leave_room(room)
     print(f'Usuario salió del ticket room: {room}')
     emit('left_ticket', {'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('join_chat_supervisor_analista')
 def handle_join_chat_supervisor_analista(data):
@@ -104,11 +132,13 @@ def handle_join_chat_supervisor_analista(data):
         print('❌ ERROR: ticket_id requerido')
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'chat_supervisor_analista_{ticket_id}'
     join_room(room)
     print(f'✅ Usuario se unió al chat supervisor-analista: {room}')
-    emit('joined_chat_supervisor_analista', {'room': room, 'ticket_id': ticket_id})
+    emit('joined_chat_supervisor_analista', {
+         'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('leave_chat_supervisor_analista')
 def handle_leave_chat_supervisor_analista(data):
@@ -117,11 +147,13 @@ def handle_leave_chat_supervisor_analista(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'chat_supervisor_analista_{ticket_id}'
     leave_room(room)
     print(f'Usuario salió del chat supervisor-analista: {room}')
-    emit('left_chat_supervisor_analista', {'room': room, 'ticket_id': ticket_id})
+    emit('left_chat_supervisor_analista', {
+         'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('join_chat_analista_cliente')
 def handle_join_chat_analista_cliente(data):
@@ -132,11 +164,13 @@ def handle_join_chat_analista_cliente(data):
         print('❌ ERROR: ticket_id requerido')
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'chat_analista_cliente_{ticket_id}'
     join_room(room)
     print(f'✅ Usuario se unió al chat analista-cliente: {room}')
-    emit('joined_chat_analista_cliente', {'room': room, 'ticket_id': ticket_id})
+    emit('joined_chat_analista_cliente', {
+         'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('leave_chat_analista_cliente')
 def handle_leave_chat_analista_cliente(data):
@@ -145,7 +179,7 @@ def handle_leave_chat_analista_cliente(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'chat_analista_cliente_{ticket_id}'
     leave_room(room)
     print(f'Usuario salió del chat analista-cliente: {room}')

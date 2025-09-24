@@ -1,33 +1,36 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 // Utilidades de token seguras
 const tokenUtils = {
-  decodeToken: (token) => {
-    try {
-      if (!token) return null;
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      return JSON.parse(atob(parts[1]));
-    } catch (error) {
-      return null;
+    decodeToken: (token) => {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (error) {
+            return null;
+        }
+    },
+    getUserId: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.user_id : null;
+    },
+    getRole: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.role : null;
     }
-  },
-  getUserId: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.user_id : null;
-  },
-  getRole: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.role : null;
-  }
 };
 
 export const Ticket = () => {
     const { store, dispatch, connectWebSocket, disconnectWebSocket, joinRoom } = useGlobalReducer();
     const API = import.meta.env.VITE_BACKEND_URL + "/api";
     const navigate = useNavigate();
+    const [showModal, setShowModal] = useState(false);
+    const [modalImages, setModalImages] = useState([]);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
@@ -38,17 +41,17 @@ export const Ticket = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const listarTodosLosTickets = () => {
@@ -99,11 +102,11 @@ export const Ticket = () => {
         if (store.websocket.notifications.length > 0) {
             const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
             console.log('🔔 TICKETS - Notificación recibida:', lastNotification);
-            
+
             // Si es un evento relacionado con tickets, recargar la lista
-            if (lastNotification.tipo === 'creado' || 
-                lastNotification.tipo === 'actualizado' || 
-                lastNotification.tipo === 'asignado' || 
+            if (lastNotification.tipo === 'creado' ||
+                lastNotification.tipo === 'actualizado' ||
+                lastNotification.tipo === 'asignado' ||
                 lastNotification.tipo === 'eliminado' ||
                 lastNotification.tipo === 'ticket_creado') {
                 console.log('⚡ TICKETS - Recargando lista por notificación:', lastNotification.tipo);
@@ -113,9 +116,9 @@ export const Ticket = () => {
     }, [store.websocket.notifications]);
 
     useEffect(() => {
-          if (!store.tickets || store.tickets.length === 0) {
+        if (!store.tickets || store.tickets.length === 0) {
             listarTodosLosTickets();
-          }
+        }
     }, []);
 
     const getEstadoBadgeClass = (estado) => {
@@ -172,7 +175,7 @@ export const Ticket = () => {
             <div className="card">
                 <div className="card-header d-flex justify-content-between align-items-center">
                     <h5 className="mb-0">Lista de Tickets</h5>
-                    <button className="btn btn-outline-primary" onClick={listarTodosLosTickets}>
+                    <button className="btn btn-primary" onClick={listarTodosLosTickets}>
                         <i className="fas fa-refresh"></i> Actualizar Lista
                     </button>
                 </div>
@@ -184,6 +187,7 @@ export const Ticket = () => {
                                     <tr>
                                         <th>ID</th>
                                         <th>Cliente</th>
+                                        <th>Imagen</th>
                                         <th>Estado</th>
                                         <th>Título</th>
                                         <th>Prioridad</th>
@@ -197,6 +201,22 @@ export const Ticket = () => {
                                             <td>{ticket.id}</td>
                                             <td>
                                                 {ticket.cliente ? `${ticket.cliente.nombre} ${ticket.cliente.apellido}` : ticket.id_cliente}
+                                            </td>
+                                            <td>
+                                                {Array.isArray(ticket.img_urls) && ticket.img_urls.length > 0 ? (
+                                                    <img
+                                                        src={ticket.img_urls[0]}
+                                                        alt={`ticket-${ticket.id}-img`}
+                                                        style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc', cursor: 'pointer' }}
+                                                        onClick={() => {
+                                                            setModalImages(ticket.img_urls);
+                                                            setSelectedImageIndex(0);
+                                                            setShowModal(true);
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted">Sin imagen</span>
+                                                )}
                                             </td>
                                             <td>
                                                 <span className={getEstadoBadgeClass(ticket.estado)}>{ticket.estado}</span>
@@ -241,6 +261,33 @@ export const Ticket = () => {
                     )}
                 </div>
             </div>
+
+            {/* Modal de imágenes con carrusel */}
+            {showModal && Array.isArray(modalImages) && modalImages.length > 0 && (
+                <div className="modal fade show" style={{ display: 'block', background: 'rgba(0,0,0,0.7)' }} tabIndex="-1" role="dialog">
+                    <div className="modal-dialog modal-dialog-centered" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Imagen {selectedImageIndex + 1} de {modalImages.length}</h5>
+                                <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowModal(false)}></button>
+                            </div>
+                            <div className="modal-body d-flex flex-column align-items-center">
+                                <img
+                                    src={modalImages[selectedImageIndex]}
+                                    alt={`ticket-img-${selectedImageIndex}`}
+                                    style={{ maxWidth: 500, maxHeight: 400, borderRadius: 8, border: '1px solid #ccc' }}
+                                />
+                                {modalImages.length > 1 && (
+                                    <div className="mt-3">
+                                        <button className="btn btn-secondary btn-sm me-2" onClick={() => setSelectedImageIndex((selectedImageIndex - 1 + modalImages.length) % modalImages.length)}>&lt;</button>
+                                        <button className="btn btn-secondary btn-sm" onClick={() => setSelectedImageIndex((selectedImageIndex + 1) % modalImages.length)}>&gt;</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
