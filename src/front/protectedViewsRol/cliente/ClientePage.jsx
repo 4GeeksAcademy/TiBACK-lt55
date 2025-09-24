@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 import GoogleMapsLocation from '../../components/GoogleMapsLocation';
+import ImageUpload from '../../components/ImageUpload';
 
 // Utilidades de token seguras
 const tokenUtils = {
@@ -33,6 +34,7 @@ export function ClientePage() {
     const [error, setError] = useState('');
     const [showInfoForm, setShowInfoForm] = useState(false);
     const [updatingInfo, setUpdatingInfo] = useState(false);
+    const [showTicketForm, setShowTicketForm] = useState(false);
     const [userData, setUserData] = useState(null);
     const [solicitudesReapertura, setSolicitudesReapertura] = useState(new Set());
     const [infoData, setInfoData] = useState({
@@ -46,6 +48,44 @@ export function ClientePage() {
         password: '',
         confirmPassword: ''
     });
+    const [ticketImageUrl, setTicketImageUrl] = useState('');
+    const [clienteImageUrl, setClienteImageUrl] = useState('');
+
+    // Funciones para manejar la imagen del ticket
+    const handleImageUpload = (imageUrl) => {
+        setTicketImageUrl(imageUrl);
+    };
+
+    const handleImageRemove = () => {
+        setTicketImageUrl('');
+    };
+
+    // Funciones para manejar la imagen del cliente
+    const handleClienteImageUpload = (imageUrl) => {
+        setClienteImageUrl(imageUrl);
+        // Actualizar inmediatamente userData para mostrar la imagen
+        setUserData(prev => ({
+            ...prev,
+            url_imagen: imageUrl
+        }));
+    };
+
+    const handleClienteImageRemove = () => {
+        setClienteImageUrl('');
+        // Actualizar userData para remover la imagen
+        setUserData(prev => ({
+            ...prev,
+            url_imagen: null
+        }));
+    };
+
+    const toggleTicketForm = () => {
+        setShowTicketForm(!showTicketForm);
+        if (showTicketForm) {
+            // Limpiar el formulario cuando se cierre
+            setTicketImageUrl('');
+        }
+    };
 
     // Función helper para actualizar tickets sin recargar la página
     const actualizarTickets = async () => {
@@ -177,6 +217,7 @@ export function ClientePage() {
                         password: '',
                         confirmPassword: ''
                     });
+                    setClienteImageUrl(userData.url_imagen || '');
                 }
 
                 // Cargar tickets del cliente
@@ -209,7 +250,8 @@ export function ClientePage() {
         const ticketData = {
             titulo: formData.get('titulo'),
             descripcion: formData.get('descripcion'),
-            prioridad: formData.get('prioridad')
+            prioridad: formData.get('prioridad'),
+            url_imagen: ticketImageUrl
         };
 
         try {
@@ -230,6 +272,8 @@ export function ClientePage() {
 
              // Limpiar el formulario después de crear el ticket exitosamente
             e.target.reset();
+            setTicketImageUrl(''); // Limpiar la imagen también
+            setShowTicketForm(false); // Cerrar el formulario
 
             // Actualizar tickets sin recargar la página
             await actualizarTickets();
@@ -348,6 +392,77 @@ export function ClientePage() {
         }
     };
 
+    // Función para actualizar información del cliente
+    const updateInfo = async () => {
+        try {
+            setUpdatingInfo(true);
+            const token = store.auth.token;
+            const userId = tokenUtils.getUserId(token);
+
+            // Validar contraseñas si se están cambiando
+            if (infoData.password && infoData.password !== infoData.confirmPassword) {
+                setError('Las contraseñas no coinciden');
+                return;
+            }
+
+            const updateData = {
+                nombre: infoData.nombre,
+                apellido: infoData.apellido,
+                email: infoData.email,
+                telefono: infoData.telefono,
+                direccion: infoData.direccion,
+                latitude: infoData.lat,
+                longitude: infoData.lng,
+                url_imagen: clienteImageUrl || userData?.url_imagen
+            };
+
+            // Solo incluir contraseña si se está cambiando
+            if (infoData.password) {
+                updateData.password = infoData.password;
+            }
+
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al actualizar información');
+            }
+
+            const updatedUser = await response.json();
+            setUserData(updatedUser);
+            setShowInfoForm(false);
+            setClienteImageUrl(''); // Limpiar imagen temporal
+            setError('');
+
+            // Limpiar contraseñas del formulario
+            setInfoData(prev => ({
+                ...prev,
+                password: '',
+                confirmPassword: ''
+            }));
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setUpdatingInfo(false);
+        }
+    };
+
+    // Función para manejar cambios en el formulario de información
+    const handleInfoChange = (e) => {
+        const { name, value } = e.target;
+        setInfoData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
     const cerrarTicket = async (ticketId) => {
         try {
             // Solicitar calificación antes de cerrar
@@ -381,14 +496,6 @@ export function ClientePage() {
         }
     };
 
-    const handleInfoChange = (e) => {
-        const { name, value } = e.target;
-        setInfoData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
     const handleLocationChange = (location) => {
         setInfoData(prev => ({
             ...prev,
@@ -396,75 +503,6 @@ export function ClientePage() {
             lat: location.lat,
             lng: location.lng
         }));
-    };
-
-    const updateInfo = async () => {
-        try {
-            // Validar contraseñas si se proporcionan
-            if (infoData.password && infoData.password !== infoData.confirmPassword) {
-                setError('Las contraseñas no coinciden');
-                return;
-            }
-
-            if (infoData.password && infoData.password.length < 6) {
-                setError('La contraseña debe tener al menos 6 caracteres');
-                return;
-            }
-
-            setUpdatingInfo(true);
-            const token = store.auth.token;
-            const userId = tokenUtils.getUserId(token);
-            
-            // Preparar datos para actualizar
-            const updateData = {
-                nombre: infoData.nombre,
-                apellido: infoData.apellido,
-                email: infoData.email,
-                telefono: infoData.telefono,
-                direccion: infoData.direccion,
-                latitude: infoData.lat,
-                longitude: infoData.lng
-            };
-
-            // Solo incluir contraseña si se proporciona
-            if (infoData.password) {
-                updateData.contraseña_hash = infoData.password;
-            }
-            
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${userId}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(updateData)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al actualizar información');
-            }
-
-            // Actualizar los datos locales
-            setUserData(prev => ({
-                ...prev,
-                nombre: infoData.nombre,
-                apellido: infoData.apellido,
-                email: infoData.email,
-                telefono: infoData.telefono,
-                direccion: infoData.direccion,
-                latitude: infoData.lat,
-                longitude: infoData.lng
-            }));
-            
-            alert('Información actualizada exitosamente');
-            setShowInfoForm(false);
-            setError('');
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setUpdatingInfo(false);
-        }
     };
 
     const generarRecomendacion = (ticket) => {
@@ -510,9 +548,26 @@ export function ClientePage() {
                     <div className="card">
                         <div className="card-body d-flex justify-content-between align-items-center">
                             <div>
-                                <h2 className="mb-1">
-                                    Bienvenido, {userData?.nombre === 'Pendiente' ? 'Cliente' : userData?.nombre} {userData?.apellido === 'Pendiente' ? '' : userData?.apellido}
-                                </h2>
+                                <div className="d-flex align-items-center mb-1">
+                                    {userData?.url_imagen ? (
+                                        <img 
+                                            src={userData.url_imagen} 
+                                            alt="Imagen del cliente" 
+                                            className="img-thumbnail me-3"
+                                            style={{ width: '105px', height: '105px', objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <div 
+                                            className="bg-light d-flex align-items-center justify-content-center me-3"
+                                            style={{ width: '105px', height: '105px', borderRadius: '4px' }}
+                                        >
+                                            <i className="fas fa-user text-muted"></i>
+                                        </div>
+                                    )}
+                                    <h2 className="mb-0">
+                                        Bienvenido, {userData?.nombre === 'Pendiente' ? 'Cliente' : userData?.nombre} {userData?.apellido === 'Pendiente' ? '' : userData?.apellido}
+                                    </h2>
+                                </div>
                                 <p className="text-muted mb-0">Panel de Cliente - Gestión de Tickets</p>
                                 <div className="mt-2">
                                     <span className="badge bg-success">
@@ -545,6 +600,13 @@ export function ClientePage() {
                                 )}
                             </div>
                             <div className="d-flex gap-2">
+                                <button
+                                    className="btn btn-success"
+                                    onClick={toggleTicketForm}
+                                >
+                                    <i className="fas fa-plus me-1"></i>
+                                    {showTicketForm ? 'Ocultar Crear Ticket' : 'Crear Ticket'}
+                                </button>
                                 <button
                                     className="btn btn-info"
                                     onClick={() => setShowInfoForm(!showInfoForm)}
@@ -644,6 +706,14 @@ export function ClientePage() {
                                             initialLng={infoData.lng}
                                         />
                                     </div>
+                                    <div className="col-12">
+                                        <label className="form-label">Imagen de Perfil</label>
+                                        <ImageUpload
+                                            onImageUpload={handleClienteImageUpload}
+                                            onImageRemove={handleClienteImageRemove}
+                                            currentImageUrl={clienteImageUrl || userData?.url_imagen}
+                                        />
+                                    </div>
                                     <div className="col-md-6">
                                         <label htmlFor="password" className="form-label">Nueva Contraseña (opcional)</label>
                                         <input
@@ -705,13 +775,17 @@ export function ClientePage() {
             )}
 
             {/* Formulario para crear nuevo ticket */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-header">
-                            <h5 className="mb-0">Crear Nuevo Ticket</h5>
-                        </div>
-                        <div className="card-body">
+            {showTicketForm && (
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="card">
+                            <div className="card-header">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-plus me-2"></i>
+                                    Crear Nuevo Ticket
+                                </h5>
+                            </div>
+                            <div className="card-body">
                             <form onSubmit={crearTicket}>
                                 <div className="row g-3">
                                     <div className="col-md-8">
@@ -746,6 +820,13 @@ export function ClientePage() {
                                         ></textarea>
                                     </div>
                                     <div className="col-12">
+                                        <ImageUpload
+                                            onImageUpload={handleImageUpload}
+                                            onImageRemove={handleImageRemove}
+                                            currentImageUrl={ticketImageUrl}
+                                        />
+                                    </div>
+                                    <div className="col-12">
                                         <button type="submit" className="btn btn-primary">
                                             Crear Ticket
                                         </button>
@@ -756,6 +837,7 @@ export function ClientePage() {
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Lista de tickets */}
             <div className="row">
@@ -793,7 +875,23 @@ export function ClientePage() {
                                         <tbody>
                                             {tickets.map((ticket) => (
                                                 <tr key={ticket.id}>
-                                                    <td>#{ticket.id}</td>
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
+                                                            <span className="me-2">#{ticket.id}</span>
+                                                            {ticket.url_imagen ? (
+                                                                <img 
+                                                                    src={ticket.url_imagen} 
+                                                                    alt="Imagen del ticket" 
+                                                                    className="img-thumbnail"
+                                                                    style={{ width: '30px', height: '30px', objectFit: 'cover' }}
+                                                                />
+                                                            ) : (
+                                                                <span className="text-muted">
+                                                                    <i className="fas fa-image" style={{ fontSize: '12px' }}></i>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td>
                                                         <div>
                                                             <strong>{ticket.titulo}</strong>

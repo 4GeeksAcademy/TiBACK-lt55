@@ -32,6 +32,7 @@ class Cliente(db.Model):
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     contraseña_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    url_imagen: Mapped[str] = mapped_column(String(500), nullable=True)
     tickets: Mapped[List["Ticket"]] = relationship(
         "Ticket", back_populates="cliente", cascade="all, delete-orphan"
     )
@@ -45,7 +46,8 @@ class Cliente(db.Model):
             "direccion": self.direccion,
             "latitude": self.latitude,
             "longitude": self.longitude,
-            "telefono": self.telefono
+            "telefono": self.telefono,
+            "url_imagen": self.url_imagen
         }
 
 
@@ -187,6 +189,7 @@ class Ticket(db.Model):
     calificacion: Mapped[int] = mapped_column(nullable=True)
     comentario: Mapped[str] = mapped_column(String(500), nullable=True)
     fecha_evaluacion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    url_imagen: Mapped[str] = mapped_column(String(500), nullable=True)
     cliente = relationship("Cliente", back_populates="tickets")
 
     def serialize(self):
@@ -216,6 +219,7 @@ class Ticket(db.Model):
             "calificacion": self.calificacion,
             "comentario": self.comentario,
             "fecha_evaluacion": self.fecha_evaluacion.isoformat() if self.fecha_evaluacion else None,
+            "url_imagen": self.url_imagen,
             "cliente": self.cliente.serialize() if self.cliente else None,
             "asignacion_actual": asignacion_actual,
             "comentarios": [c.serialize() for c in self.comentarios] if hasattr(self, 'comentarios') else []

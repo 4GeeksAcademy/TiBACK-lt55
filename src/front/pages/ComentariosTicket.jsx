@@ -14,6 +14,9 @@ const ComentariosTicket = () => {
     const [mostrarHistorial, setMostrarHistorial] = useState(false);
     const [historialTicket, setHistorialTicket] = useState([]);
     const [sincronizando, setSincronizando] = useState(false);
+    
+    // Detectar si es un ticket cerrado basándose en la URL
+    const esTicketCerrado = window.location.pathname.includes('/comentarios-cerrado');
 
     // Hook para transcripción de voz
     const {
@@ -177,7 +180,7 @@ const ComentariosTicket = () => {
             ).sort((a, b) => new Date(b.fecha_comentario) - new Date(a.fecha_comentario));
             setHistorialTicket(movimientos);
             
-            // Filtrar comentarios de usuarios (excluir movimientos automáticos y recomendaciones IA)
+            // Filtrar comentarios de usuarios (excluir movimientos automáticos, recomendaciones IA y chats individuales)
             const comentariosUsuarios = data.filter(comentario => 
                 !comentario.texto.includes('Ticket asignado') &&
                 !comentario.texto.includes('Ticket reasignado') &&
@@ -186,7 +189,9 @@ const ComentariosTicket = () => {
                 !comentario.texto.includes('Ticket iniciado') &&
                 !comentario.texto.includes('Ticket reabierto') &&
                 !comentario.texto.includes('Cliente solicita reapertura') &&
-                !comentario.texto.includes('🤖 RECOMENDACIÓN DE IA GENERADA')
+                !comentario.texto.includes('🤖 RECOMENDACIÓN DE IA GENERADA') &&
+                !comentario.texto.includes('CHAT_SUPERVISOR_ANALISTA:') &&
+                !comentario.texto.includes('CHAT_ANALISTA_CLIENTE:')
             ).sort((a, b) => new Date(b.fecha_comentario) - new Date(a.fecha_comentario));
             setComentarios(comentariosUsuarios);
         } catch (err) {
@@ -271,7 +276,13 @@ const ComentariosTicket = () => {
                         <div className="d-flex align-items-center">
                             <h2>
                                 <i className="fas fa-comments me-2"></i>
-                                Comentarios del Ticket #{ticketId}
+                                {esTicketCerrado ? 'Historial del Ticket Cerrado' : 'Comentarios del Ticket'} #{ticketId}
+                                {esTicketCerrado && (
+                                    <span className="badge bg-dark ms-2">
+                                        <i className="fas fa-lock me-1"></i>
+                                        Solo Lectura
+                                    </span>
+                                )}
                             </h2>
                             <button 
                                 className="btn btn-outline-info btn-sm ms-3"
@@ -313,14 +324,15 @@ const ComentariosTicket = () => {
                         </div>
                     )}
 
-                    {/* Formulario para agregar comentario */}
-                    <div className="card mb-4">
-                        <div className="card-header">
-                            <h5 className="mb-0">
-                                <i className="fas fa-plus me-2"></i>
-                                Agregar Comentario
-                            </h5>
-                        </div>
+                    {/* Formulario para agregar comentario - Solo mostrar si no es ticket cerrado */}
+                    {!esTicketCerrado && (
+                        <div className="card mb-4">
+                            <div className="card-header">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-plus me-2"></i>
+                                    Agregar Comentario
+                                </h5>
+                            </div>
                         <div className="card-body">
                             <div className="mb-3">
                                 <label htmlFor="nuevoComentario" className="form-label">
@@ -395,6 +407,7 @@ const ComentariosTicket = () => {
                             </div>
                         </div>
                     </div>
+                    )}
 
                     {/* Botones de navegación */}
                     <div className="card mb-4">
@@ -405,7 +418,7 @@ const ComentariosTicket = () => {
                                     onClick={() => setMostrarHistorial(false)}
                                 >
                                     <i className="fas fa-comments me-2"></i>
-                                    Historial de Comentarios ({comentarios.length})
+                                    {esTicketCerrado ? 'Comentarios y Chats' : 'Historial de Comentarios'} ({comentarios.length})
                                 </button>
                                 <button
                                     className={`btn ${mostrarHistorial ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -423,7 +436,7 @@ const ComentariosTicket = () => {
                         <div className="card-header">
                             <h5 className="mb-0">
                                 <i className={`fas ${mostrarHistorial ? 'fa-history' : 'fa-comments'} me-2`}></i>
-                                {mostrarHistorial ? 'Historial del Ticket' : 'Historial de Comentarios'}
+                                {mostrarHistorial ? 'Historial del Ticket' : (esTicketCerrado ? 'Comentarios y Chats (Solo Lectura)' : 'Historial de Comentarios')}
                             </h5>
                         </div>
                         <div className="card-body">
@@ -471,7 +484,13 @@ const ComentariosTicket = () => {
                                 comentarios.length === 0 ? (
                                     <div className="text-center text-muted py-4">
                                         <i className="fas fa-comment-slash fa-3x mb-3"></i>
-                                        <p>No hay comentarios para este ticket</p>
+                                        <p>{esTicketCerrado ? 'No hay comentarios o chats registrados para este ticket cerrado' : 'No hay comentarios para este ticket'}</p>
+                                        {esTicketCerrado && (
+                                            <small className="text-info">
+                                                <i className="fas fa-info-circle me-1"></i>
+                                                Esta vista muestra el historial completo de comunicaciones del ticket
+                                            </small>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="timeline">

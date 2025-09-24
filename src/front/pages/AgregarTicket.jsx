@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import ImageUpload from "../components/ImageUpload";
 
 const AgregarTicket = () => {
     const { store, dispatch } = useGlobalReducer();
@@ -14,11 +15,26 @@ const AgregarTicket = () => {
         titulo: "",
         descripcion: "",
         fecha_creacion: new Date().toISOString().split('T')[0],
-        prioridad: "media"
+        prioridad: "media",
+        url_imagen: ""
     });
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
     const setError = (e) => dispatch({ type: "api_error", payload: e?.message || e });
+
+    const handleImageUpload = (imageUrl) => {
+        setNuevoTicket(prev => ({
+            ...prev,
+            url_imagen: imageUrl
+        }));
+    };
+
+    const handleImageRemove = () => {
+        setNuevoTicket(prev => ({
+            ...prev,
+            url_imagen: ""
+        }));
+    };
 
     const fetchJson = (url, options = {}) => {
         const token = store.auth.token;
@@ -112,6 +128,13 @@ const AgregarTicket = () => {
                             value={nuevoTicket.descripcion}
                             onChange={e => setNuevoTicket(s => ({ ...s, descripcion: e.target.value }))}
                             required
+                        />
+                    </div>
+                    <div className="col-12">
+                        <ImageUpload
+                            onImageUpload={handleImageUpload}
+                            onImageRemove={handleImageRemove}
+                            currentImageUrl={nuevoTicket.url_imagen}
                         />
                     </div>
                     <div className="col-md-6">

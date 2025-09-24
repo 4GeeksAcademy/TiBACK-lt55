@@ -597,7 +597,23 @@ export function AnalistaPage() {
                                         <tbody>
                                             {tickets.map((ticket) => (
                                                 <tr key={ticket.id}>
-                                                    <td>#{ticket.id}</td>
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
+                                                            <span className="me-2">#{ticket.id}</span>
+                                                            {ticket.url_imagen ? (
+                                                                <img 
+                                                                    src={ticket.url_imagen} 
+                                                                    alt="Imagen del ticket" 
+                                                                    className="img-thumbnail"
+                                                                    style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                                                                />
+                                                            ) : (
+                                                                <span className="text-muted">
+                                                                    <i className="fas fa-image" style={{ fontSize: '12px' }}></i>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td>
                                                         {ticket.cliente?.nombre} {ticket.cliente?.apellido}
                                                     </td>
