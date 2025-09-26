@@ -6,24 +6,24 @@ import ImageUpload from '../../components/ImageUpload';
 
 // Utilidades de token seguras
 const tokenUtils = {
-  decodeToken: (token) => {
-    try {
-      if (!token) return null;
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      return JSON.parse(atob(parts[1]));
-    } catch (error) {
-      return null;
+    decodeToken: (token) => {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (error) {
+            return null;
+        }
+    },
+    getUserId: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.user_id : null;
+    },
+    getRole: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.role : null;
     }
-  },
-  getUserId: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.user_id : null;
-  },
-  getRole: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.role : null;
-  }
 };
 
 export function ClientePage() {
@@ -49,6 +49,7 @@ export function ClientePage() {
         confirmPassword: ''
     });
     const [ticketImageUrl, setTicketImageUrl] = useState('');
+    const [ticketsConRecomendaciones, setTicketsConRecomendaciones] = useState(new Set());
     const [clienteImageUrl, setClienteImageUrl] = useState('');
 
     // Funciones para manejar la imagen del ticket
@@ -100,7 +101,7 @@ export function ClientePage() {
             if (ticketsResponse.ok) {
                 const ticketsData = await ticketsResponse.json();
                 setTickets(ticketsData);
-                
+
                 // Limpiar solicitudes de reapertura para tickets que ya no están en estado 'solucionado'
                 setSolicitudesReapertura(prev => {
                     const newSet = new Set();
@@ -139,32 +140,34 @@ export function ClientePage() {
     // Unirse automáticamente a los rooms de tickets del cliente
     useEffect(() => {
         if (store.websocket.socket && tickets.length > 0) {
+            // Solo unirse a rooms de tickets que no estén ya unidos
+            const joinedRooms = new Set();
             tickets.forEach(ticket => {
-                joinTicketRoom(store.websocket.socket, ticket.id);
+                if (!joinedRooms.has(ticket.id)) {
+                    joinTicketRoom(store.websocket.socket, ticket.id);
+                    joinedRooms.add(ticket.id);
+                }
             });
         }
-    }, [store.websocket.socket, tickets]);
+    }, [store.websocket.socket, tickets.length]); // Solo cuando cambia la cantidad de tickets
 
     // Actualizar tickets cuando lleguen notificaciones WebSocket
     useEffect(() => {
         if (store.websocket.notifications.length > 0) {
             const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
-            console.log('🔔 CLIENTE - Notificación recibida:', lastNotification);
-            
+
             // Manejo específico para tickets eliminados - sincronización inmediata
             if (lastNotification.tipo === 'eliminado' || lastNotification.tipo === 'ticket_eliminado') {
-                console.log('🗑️ CLIENTE - TICKET ELIMINADO DETECTADO:', lastNotification);
-                
+
                 // Remover inmediatamente de la lista de tickets
                 if (lastNotification.ticket_id) {
                     setTickets(prev => {
                         const ticketRemovido = prev.find(t => t.id === lastNotification.ticket_id);
                         if (ticketRemovido) {
-                            console.log('🗑️ CLIENTE - Ticket eliminado removido de lista:', ticketRemovido.titulo);
                         }
                         return prev.filter(ticket => ticket.id !== lastNotification.ticket_id);
                     });
-                    
+
                     // También remover de las solicitudes de reapertura si existe
                     setSolicitudesReapertura(prev => {
                         const newSet = new Set(prev);
@@ -174,15 +177,13 @@ export function ClientePage() {
                 }
                 return; // No continuar con el resto de la lógica
             }
-            
+
             // Actualización ULTRA RÁPIDA para todos los eventos críticos
             if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado' || lastNotification.tipo === 'creado') {
-                console.log('⚡ CLIENTE - ACTUALIZACIÓN INMEDIATA:', lastNotification.tipo);
                 // Los datos ya están en el store por el WebSocket - actualización instantánea
             }
-            
+
             // Sincronización ULTRA RÁPIDA con servidor para TODOS los eventos
-            console.log('⚡ CLIENTE - SINCRONIZACIÓN INMEDIATA:', lastNotification.tipo);
             actualizarTickets();
         }
     }, [store.websocket.notifications]);
@@ -244,6 +245,44 @@ export function ClientePage() {
         cargarDatos();
     }, [store.auth.token]);
 
+    // Verificar recomendaciones para todos los tickets
+    useEffect(() => {
+        if (tickets.length > 0) {
+            verificarRecomendaciones();
+        }
+    }, [tickets]);
+
+    const verificarRecomendaciones = async () => {
+        try {
+            const token = store.auth.token;
+            const recomendacionesPromises = tickets.map(async (ticket) => {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticket.id}/recomendaciones-similares`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return { ticketId: ticket.id, tieneRecomendaciones: data.total_encontrados > 0 };
+                }
+                return { ticketId: ticket.id, tieneRecomendaciones: false };
+            });
+
+            const resultados = await Promise.all(recomendacionesPromises);
+            const ticketsConRecomendacionesSet = new Set();
+            resultados.forEach(({ ticketId, tieneRecomendaciones }) => {
+                if (tieneRecomendaciones) {
+                    ticketsConRecomendacionesSet.add(ticketId);
+                }
+            });
+            setTicketsConRecomendaciones(ticketsConRecomendacionesSet);
+        } catch (error) {
+            console.error('Error verificando recomendaciones:', error);
+        }
+    };
+
     const crearTicket = async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -270,14 +309,14 @@ export function ClientePage() {
                 throw new Error('Error al crear ticket');
             }
 
-             // Limpiar el formulario después de crear el ticket exitosamente
+            // Limpiar el formulario después de crear el ticket exitosamente
             e.target.reset();
             setTicketImageUrl(''); // Limpiar la imagen también
             setShowTicketForm(false); // Cerrar el formulario
 
             // Actualizar tickets sin recargar la página
             await actualizarTickets();
-            
+
             // Unirse al room del nuevo ticket
             if (store.websocket.socket) {
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
@@ -479,7 +518,7 @@ export function ClientePage() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     estado: 'cerrado',
                     calificacion: parseInt(calificacion)
                 })
@@ -550,14 +589,14 @@ export function ClientePage() {
                             <div>
                                 <div className="d-flex align-items-center mb-1">
                                     {userData?.url_imagen ? (
-                                        <img 
-                                            src={userData.url_imagen} 
-                                            alt="Imagen del cliente" 
+                                        <img
+                                            src={userData.url_imagen}
+                                            alt="Imagen del cliente"
                                             className="img-thumbnail me-3"
                                             style={{ width: '105px', height: '105px', objectFit: 'cover' }}
                                         />
                                     ) : (
-                                        <div 
+                                        <div
                                             className="bg-light d-flex align-items-center justify-content-center me-3"
                                             style={{ width: '105px', height: '105px', borderRadius: '4px' }}
                                         >
@@ -786,57 +825,57 @@ export function ClientePage() {
                                 </h5>
                             </div>
                             <div className="card-body">
-                            <form onSubmit={crearTicket}>
-                                <div className="row g-3">
-                                    <div className="col-md-8">
-                                        <label htmlFor="titulo" className="form-label">Título del Ticket *</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            id="titulo"
-                                            name="titulo"
-                                            required
-                                            placeholder="Describe brevemente el problema"
-                                        />
+                                <form onSubmit={crearTicket}>
+                                    <div className="row g-3">
+                                        <div className="col-md-8">
+                                            <label htmlFor="titulo" className="form-label">Título del Ticket *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="titulo"
+                                                name="titulo"
+                                                required
+                                                placeholder="Describe brevemente el problema"
+                                            />
+                                        </div>
+                                        <div className="col-md-4">
+                                            <label htmlFor="prioridad" className="form-label">Prioridad *</label>
+                                            <select className="form-select" id="prioridad" name="prioridad" required>
+                                                <option value="">Seleccionar...</option>
+                                                <option value="baja">Baja</option>
+                                                <option value="media">Media</option>
+                                                <option value="alta">Alta</option>
+                                            </select>
+                                        </div>
+                                        <div className="col-12">
+                                            <label htmlFor="descripcion" className="form-label">Descripción Detallada *</label>
+                                            <textarea
+                                                className="form-control"
+                                                id="descripcion"
+                                                name="descripcion"
+                                                rows="4"
+                                                required
+                                                placeholder="Describe detalladamente el problema que necesitas resolver"
+                                            ></textarea>
+                                        </div>
+                                        <div className="col-12">
+                                            <ImageUpload
+                                                onImageUpload={handleImageUpload}
+                                                onImageRemove={handleImageRemove}
+                                                currentImageUrl={ticketImageUrl}
+                                            />
+                                        </div>
+                                        <div className="col-12">
+                                            <button type="submit" className="btn btn-primary">
+                                                Crear Ticket
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="col-md-4">
-                                        <label htmlFor="prioridad" className="form-label">Prioridad *</label>
-                                        <select className="form-select" id="prioridad" name="prioridad" required>
-                                            <option value="">Seleccionar...</option>
-                                            <option value="baja">Baja</option>
-                                            <option value="media">Media</option>
-                                            <option value="alta">Alta</option>
-                                        </select>
-                                    </div>
-                                    <div className="col-12">
-                                        <label htmlFor="descripcion" className="form-label">Descripción Detallada *</label>
-                                        <textarea
-                                            className="form-control"
-                                            id="descripcion"
-                                            name="descripcion"
-                                            rows="4"
-                                            required
-                                            placeholder="Describe detalladamente el problema que necesitas resolver"
-                                        ></textarea>
-                                    </div>
-                                    <div className="col-12">
-                                        <ImageUpload
-                                            onImageUpload={handleImageUpload}
-                                            onImageRemove={handleImageRemove}
-                                            currentImageUrl={ticketImageUrl}
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <button type="submit" className="btn btn-primary">
-                                            Crear Ticket
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             )}
 
             {/* Lista de tickets */}
@@ -879,9 +918,9 @@ export function ClientePage() {
                                                         <div className="d-flex align-items-center">
                                                             <span className="me-2">#{ticket.id}</span>
                                                             {ticket.url_imagen ? (
-                                                                <img 
-                                                                    src={ticket.url_imagen} 
-                                                                    alt="Imagen del ticket" 
+                                                                <img
+                                                                    src={ticket.url_imagen}
+                                                                    alt="Imagen del ticket"
                                                                     className="img-thumbnail"
                                                                     style={{ width: '30px', height: '30px', objectFit: 'cover' }}
                                                                 />
@@ -910,8 +949,8 @@ export function ClientePage() {
                                                                 {ticket.estado}
                                                             </span>
                                                             {tieneAnalistaAsignado(ticket) && (
-                                                                <span 
-                                                                    className="badge bg-success" 
+                                                                <span
+                                                                    className="badge bg-success"
                                                                     title={`Asignado a ${getAnalistaAsignado(ticket)}`}
                                                                 >
                                                                     <i className="fas fa-user-tie me-1"></i>
@@ -1008,31 +1047,62 @@ export function ClientePage() {
                                                             >
                                                                 <i className="fas fa-comments"></i> Comentar
                                                             </Link>
-                                                            <button
-                                                                className="btn btn-warning btn-sm"
-                                                                onClick={() => generarRecomendacion(ticket)}
-                                                                title="Generar recomendación con IA"
-                                                            >
-                                                                <i className="fas fa-robot"></i> IA
-                                                            </button>
+                                                            <div className="btn-group" role="group">
+                                                                <button
+                                                                    className="btn btn-warning btn-sm dropdown-toggle"
+                                                                    type="button"
+                                                                    data-bs-toggle="dropdown"
+                                                                    aria-expanded="false"
+                                                                    title="Opciones de IA"
+                                                                >
+                                                                    <i className="fas fa-robot"></i> IA
+                                                                </button>
+                                                                <ul className="dropdown-menu">
+                                                                    <li>
+                                                                        <button
+                                                                            className="dropdown-item"
+                                                                            onClick={() => generarRecomendacion(ticket)}
+                                                                        >
+                                                                            <i className="fas fa-lightbulb me-2"></i>
+                                                                            Generar Recomendación
+                                                                        </button>
+                                                                    </li>
+                                                                    <li>
+                                                                        <Link
+                                                                            to={`/ticket/${ticket.id}/identificar-imagen`}
+                                                                            className="dropdown-item"
+                                                                        >
+                                                                            <i className="fas fa-camera me-2"></i>
+                                                                            Analizar Imagen
+                                                                        </Link>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                            {ticketsConRecomendaciones.has(ticket.id) && (
+                                                                <Link
+                                                                    to={`/ticket/${ticket.id}/recomendaciones-similares`}
+                                                                    className="btn btn-success btn-sm"
+                                                                    title="Ver tickets similares resueltos"
+                                                                >
+                                                                    <i className="fas fa-thumbs-up"></i>
+                                                                </Link>
+                                                            )}
                                                             <Link
                                                                 to={`/ticket/${ticket.id}/chat-analista-cliente`}
-                                                                className={`btn btn-sm ${
-                                                                    tieneAnalistaAsignado(ticket) 
-                                                                        ? 'btn-success' 
-                                                                        : 'btn-primary'
-                                                                }`}
+                                                                className={`btn btn-sm ${tieneAnalistaAsignado(ticket)
+                                                                    ? 'btn-success'
+                                                                    : 'btn-primary'
+                                                                    }`}
                                                                 title={
-                                                                    tieneAnalistaAsignado(ticket) 
-                                                                        ? `Chat con ${getAnalistaAsignado(ticket)} - Asignado el ${getFechaAsignacion(ticket)}` 
+                                                                    tieneAnalistaAsignado(ticket)
+                                                                        ? `Chat con ${getAnalistaAsignado(ticket)} - Asignado el ${getFechaAsignacion(ticket)}`
                                                                         : "Chat con analista - Sin asignar"
                                                                 }
                                                             >
-                                                                <i className={`fas ${
-                                                                    tieneAnalistaAsignado(ticket) 
-                                                                        ? 'fa-signal' 
-                                                                        : 'fa-comments'
-                                                                }`}></i> 
+                                                                <i className={`fas ${tieneAnalistaAsignado(ticket)
+                                                                    ? 'fa-signal'
+                                                                    : 'fa-comments'
+                                                                    }`}></i>
                                                                 {tieneAnalistaAsignado(ticket) ? ' Conectado' : ' Chat'}
                                                             </Link>
                                                             {ticket.estado.toLowerCase() === 'cerrado' && ticket.calificacion && (

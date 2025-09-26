@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_cors import CORS
 from api.utils import APIException, generate_sitemap
 from api.models import db
 from api.routes import api
@@ -23,9 +24,24 @@ static_file_dir = os.path.join(os.path.dirname(
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
+# Configurar CORS global
+CORS(app, origins="*", allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
 # Configurar CORS para SocketIO
 app.config['SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-super-secret-jwt-key-change-in-production')
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
+
+# Configuración más robusta para SocketIO
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="*",
+    logger=True, 
+    engineio_logger=True,
+    ping_timeout=60,
+    ping_interval=25,
+    max_http_buffer_size=1000000,
+    allow_upgrades=True,
+    transports=['polling', 'websocket']
+)
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
@@ -98,10 +114,8 @@ def handle_leave_ticket(data):
 @socketio.on('join_chat_supervisor_analista')
 def handle_join_chat_supervisor_analista(data):
     """Unirse al room de chat supervisor-analista"""
-    print(f'🔍 DEBUG: join_chat_supervisor_analista recibido:', data)
     ticket_id = data.get('ticket_id')
     if not ticket_id:
-        print('❌ ERROR: ticket_id requerido')
         emit('error', {'message': 'ticket_id requerido'})
         return
     
@@ -126,10 +140,8 @@ def handle_leave_chat_supervisor_analista(data):
 @socketio.on('join_chat_analista_cliente')
 def handle_join_chat_analista_cliente(data):
     """Unirse al room de chat analista-cliente"""
-    print(f'🔍 DEBUG: join_chat_analista_cliente recibido:', data)
     ticket_id = data.get('ticket_id')
     if not ticket_id:
-        print('❌ ERROR: ticket_id requerido')
         emit('error', {'message': 'ticket_id requerido'})
         return
     

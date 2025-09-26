@@ -25,6 +25,7 @@ python-socketio = "==5.8.0"
 flask = "*"
 cloudinary = "*"
 flask-sqlalchemy = "*"
+google-cloud-vision = "*"
 
 [requires]
 python_version = "3.13"
