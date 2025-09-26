@@ -14,7 +14,7 @@ const ComentariosTicket = () => {
     const [mostrarHistorial, setMostrarHistorial] = useState(false);
     const [historialTicket, setHistorialTicket] = useState([]);
     const [sincronizando, setSincronizando] = useState(false);
-    
+
     // Detectar si es un ticket cerrado basándose en la URL
     const esTicketCerrado = window.location.pathname.includes('/comentarios-cerrado');
 
@@ -77,7 +77,7 @@ const ComentariosTicket = () => {
     const handleTextChange = (e) => {
         const newValue = e.target.value;
         setNuevoComentario(newValue);
-        
+
         // Actualizar el texto base para que la transcripción continúe desde aquí
         if (isListening) {
             // Si hay un interim transcript activo, intentar extraer el texto base
@@ -111,10 +111,10 @@ const ComentariosTicket = () => {
         if (ticketId && store.websocket.socket && store.websocket.connected) {
             // Unirse al room del ticket
             joinTicketRoom(store.websocket.socket, parseInt(ticketId));
-            
+
             // Configurar listeners para el room del ticket
             const socket = store.websocket.socket;
-            
+
             // Escuchar nuevos comentarios del room del ticket
             const handleNuevoComentario = (data) => {
                 console.log('💬 NUEVO COMENTARIO EN ROOM DEL TICKET:', data);
@@ -149,6 +149,7 @@ const ComentariosTicket = () => {
         }
     }, [ticketId, store.websocket.socket, store.websocket.connected, joinTicketRoom, leaveTicketRoom]);
 
+
     const cargarDatos = async (showLoading = true) => {
         try {
             if (showLoading) {
@@ -167,9 +168,9 @@ const ComentariosTicket = () => {
             }
 
             const data = await response.json();
-            
+
             // Filtrar solo comentarios del sistema (movimientos automáticos)
-            const movimientos = data.filter(comentario => 
+            const movimientos = data.filter(comentario =>
                 comentario.texto.includes('Ticket asignado') ||
                 comentario.texto.includes('Ticket reasignado') ||
                 comentario.texto.includes('Ticket solucionado') ||
@@ -179,9 +180,9 @@ const ComentariosTicket = () => {
                 comentario.texto.includes('Cliente solicita reapertura')
             ).sort((a, b) => new Date(b.fecha_comentario) - new Date(a.fecha_comentario));
             setHistorialTicket(movimientos);
-            
+
             // Filtrar comentarios de usuarios (excluir movimientos automáticos, recomendaciones IA y chats individuales)
-            const comentariosUsuarios = data.filter(comentario => 
+            const comentariosUsuarios = data.filter(comentario =>
                 !comentario.texto.includes('Ticket asignado') &&
                 !comentario.texto.includes('Ticket reasignado') &&
                 !comentario.texto.includes('Ticket solucionado') &&
@@ -190,6 +191,7 @@ const ComentariosTicket = () => {
                 !comentario.texto.includes('Ticket reabierto') &&
                 !comentario.texto.includes('Cliente solicita reapertura') &&
                 !comentario.texto.includes('🤖 RECOMENDACIÓN DE IA GENERADA') &&
+                !comentario.texto.includes('🤖 ANÁLISIS DE IMAGEN CON IA:') &&
                 !comentario.texto.includes('CHAT_SUPERVISOR_ANALISTA:') &&
                 !comentario.texto.includes('CHAT_ANALISTA_CLIENTE:')
             ).sort((a, b) => new Date(b.fecha_comentario) - new Date(a.fecha_comentario));
@@ -284,14 +286,16 @@ const ComentariosTicket = () => {
                                     </span>
                                 )}
                             </h2>
-                            <button 
-                                className="btn btn-outline-info btn-sm ms-3"
-                                onClick={() => navigate(`/ticket/${ticketId}/recomendaciones-ia`)}
-                                title="Ver recomendaciones guardadas de IA"
-                            >
-                                <i className="fas fa-robot me-1"></i>
-                                Ver recomendaciones guardadas IA
-                            </button>
+                            <div className="d-flex gap-2 ms-3">
+                                <button
+                                    className="btn btn-outline-info btn-sm"
+                                    onClick={() => navigate(`/ticket/${ticketId}/recomendaciones-ia`)}
+                                    title="Ver recomendaciones guardadas de IA"
+                                >
+                                    <i className="fas fa-robot me-1"></i>
+                                    Ver recomendaciones guardadas IA
+                                </button>
+                            </div>
                             {sincronizando && (
                                 <div className="ms-3">
                                     <div className="spinner-border spinner-border-sm text-primary" role="status">
@@ -301,7 +305,7 @@ const ComentariosTicket = () => {
                                 </div>
                             )}
                         </div>
-                        <button 
+                        <button
                             className="btn btn-secondary"
                             onClick={() => navigate(-1)}
                         >
@@ -333,80 +337,80 @@ const ComentariosTicket = () => {
                                     Agregar Comentario
                                 </h5>
                             </div>
-                        <div className="card-body">
-                            <div className="mb-3">
-                                <label htmlFor="nuevoComentario" className="form-label">
-                                    Tu comentario:
-                                </label>
-                                <div className="input-group">
-                                    <textarea
-                                        id="nuevoComentario"
-                                        className="form-control"
-                                        rows="3"
-                                        value={nuevoComentario}
-                                        onChange={handleTextChange}
-                                        placeholder="Escribe tu comentario aquí..."
-                                    ></textarea>
+                            <div className="card-body">
+                                <div className="mb-3">
+                                    <label htmlFor="nuevoComentario" className="form-label">
+                                        Tu comentario:
+                                    </label>
+                                    <div className="input-group">
+                                        <textarea
+                                            id="nuevoComentario"
+                                            className="form-control"
+                                            rows="3"
+                                            value={nuevoComentario}
+                                            onChange={handleTextChange}
+                                            placeholder="Escribe tu comentario aquí..."
+                                        ></textarea>
+                                        <button
+                                            type="button"
+                                            className={`btn ${isListening ? (isPaused ? 'btn-warning' : 'btn-danger') : 'btn-outline-primary'}`}
+                                            onClick={handleTranscription}
+                                            disabled={!isSupported}
+                                            title={isListening ? (isPaused ? 'Reanudar transcripción' : 'Detener transcripción') : 'Iniciar transcripción de voz'}
+                                        >
+                                            <i className={`fas ${isListening ? (isPaused ? 'fa-play' : 'fa-stop') : 'fa-microphone'}`}></i>
+                                            <i className="fas fa-keyboard ms-1"></i>
+                                        </button>
+                                    </div>
+                                    {isListening && (
+                                        <div className="mt-2">
+                                            <small className={`text-${isPaused ? 'warning' : 'success'}`}>
+                                                <i className={`fas fa-circle ${isPaused ? 'text-warning' : 'text-success'}`}></i>
+                                                {isPaused ? ' Transcripción pausada - Haz clic para reanudar' : ' Escuchando... - Haz clic para detener'}
+                                            </small>
+                                            {interimTranscript && (
+                                                <div className="mt-1">
+                                                    <small className="text-info">
+                                                        <i className="fas fa-microphone me-1"></i>
+                                                        Transcribiendo: <em>"{interimTranscript}"</em>
+                                                    </small>
+                                                    <div className="progress mt-1" style={{ height: '2px' }}>
+                                                        <div className="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                                                            style={{ width: '100%' }}></div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {!isSupported && (
+                                        <div className="mt-2">
+                                            <small className="text-muted">
+                                                <i className="fas fa-info-circle me-1"></i>
+                                                Tu navegador no soporta reconocimiento de voz
+                                            </small>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="d-flex gap-2">
                                     <button
-                                        type="button"
-                                        className={`btn ${isListening ? (isPaused ? 'btn-warning' : 'btn-danger') : 'btn-outline-primary'}`}
-                                        onClick={handleTranscription}
-                                        disabled={!isSupported}
-                                        title={isListening ? (isPaused ? 'Reanudar transcripción' : 'Detener transcripción') : 'Iniciar transcripción de voz'}
+                                        className="btn btn-primary"
+                                        onClick={agregarComentario}
+                                        disabled={!nuevoComentario.trim()}
                                     >
-                                        <i className={`fas ${isListening ? (isPaused ? 'fa-play' : 'fa-stop') : 'fa-microphone'}`}></i>
-                                        <i className="fas fa-keyboard ms-1"></i>
+                                        <i className="fas fa-paper-plane me-2"></i>
+                                        Enviar Comentario
+                                    </button>
+                                    <button
+                                        className="btn btn-outline-secondary"
+                                        onClick={limpiarComentario}
+                                        disabled={!nuevoComentario.trim()}
+                                    >
+                                        <i className="fas fa-trash me-2"></i>
+                                        Limpiar
                                     </button>
                                 </div>
-                                {isListening && (
-                                    <div className="mt-2">
-                                        <small className={`text-${isPaused ? 'warning' : 'success'}`}>
-                                            <i className={`fas fa-circle ${isPaused ? 'text-warning' : 'text-success'}`}></i>
-                                            {isPaused ? ' Transcripción pausada - Haz clic para reanudar' : ' Escuchando... - Haz clic para detener'}
-                                        </small>
-                                        {interimTranscript && (
-                                            <div className="mt-1">
-                                                <small className="text-info">
-                                                    <i className="fas fa-microphone me-1"></i>
-                                                    Transcribiendo: <em>"{interimTranscript}"</em>
-                                                </small>
-                                                <div className="progress mt-1" style={{height: '2px'}}>
-                                                    <div className="progress-bar progress-bar-striped progress-bar-animated bg-info" 
-                                                         style={{width: '100%'}}></div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                {!isSupported && (
-                                    <div className="mt-2">
-                                        <small className="text-muted">
-                                            <i className="fas fa-info-circle me-1"></i>
-                                            Tu navegador no soporta reconocimiento de voz
-                                        </small>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="d-flex gap-2">
-                                <button 
-                                    className="btn btn-primary"
-                                    onClick={agregarComentario}
-                                    disabled={!nuevoComentario.trim()}
-                                >
-                                    <i className="fas fa-paper-plane me-2"></i>
-                                    Enviar Comentario
-                                </button>
-                                <button 
-                                    className="btn btn-outline-secondary"
-                                    onClick={limpiarComentario}
-                                    disabled={!nuevoComentario.trim()}
-                                >
-                                    <i className="fas fa-trash me-2"></i>
-                                    Limpiar
-                                </button>
                             </div>
                         </div>
-                    </div>
                     )}
 
                     {/* Botones de navegación */}
@@ -453,8 +457,8 @@ const ComentariosTicket = () => {
                                             <div key={movimiento.id} className="timeline-item mb-4">
                                                 <div className="d-flex">
                                                     <div className="flex-shrink-0 me-3">
-                                                        <div className="rounded-circle d-flex align-items-center justify-content-center bg-info text-white" 
-                                                             style={{width: '40px', height: '40px'}}>
+                                                        <div className="rounded-circle d-flex align-items-center justify-content-center bg-info text-white"
+                                                            style={{ width: '40px', height: '40px' }}>
                                                             <i className="fas fa-cog"></i>
                                                         </div>
                                                     </div>
@@ -498,8 +502,8 @@ const ComentariosTicket = () => {
                                             <div key={comentario.id} className="timeline-item mb-4">
                                                 <div className="d-flex">
                                                     <div className="flex-shrink-0 me-3">
-                                                        <div className={`rounded-circle d-flex align-items-center justify-content-center ${getRoleColor(comentario.autor?.rol)}`} 
-                                                             style={{width: '40px', height: '40px', backgroundColor: '#f8f9fa'}}>
+                                                        <div className={`rounded-circle d-flex align-items-center justify-content-center ${getRoleColor(comentario.autor?.rol)}`}
+                                                            style={{ width: '40px', height: '40px', backgroundColor: '#f8f9fa' }}>
                                                             <i className={getRoleIcon(comentario.autor?.rol)}></i>
                                                         </div>
                                                     </div>

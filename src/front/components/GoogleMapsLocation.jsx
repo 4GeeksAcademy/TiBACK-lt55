@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useGoogleMaps } from '../hooks/useGoogleMaps';
 
-const GoogleMapsLocation = ({ 
-    onLocationChange, 
-    initialAddress = '', 
-    initialLat = null, 
-    initialLng = null 
+const GoogleMapsLocation = ({
+    onLocationChange,
+    initialAddress = '',
+    initialLat = null,
+    initialLng = null
 }) => {
     const mapRef = useRef(null);
     const autocompleteRef = useRef(null);
@@ -12,16 +13,37 @@ const GoogleMapsLocation = ({
     const mapInstanceRef = useRef(null);
     const [address, setAddress] = useState(initialAddress);
     const [coordinates, setCoordinates] = useState({
-        lat: initialLat || 19.4326,  
+        lat: initialLat || 19.4326,
         lng: initialLng || -99.1332
     });
+    const { isLoaded, error } = useGoogleMaps();
 
     useEffect(() => {
+        if (!isLoaded || error) return;
+
         const initializeMap = () => {
-            if (!window.google) {
-                console.error('Google Maps API no está cargada');
+            if (!window.google || !window.google.maps) {
+                console.error('Google Maps API no está disponible');
                 return;
             }
+
+            // Suprimir warnings específicos de Google Maps API
+            const originalConsoleWarn = console.warn;
+            console.warn = (...args) => {
+                const message = args.join(' ');
+                // Suprimir warnings específicos de Google Maps
+                if (
+                    message.includes('google.maps.Marker is deprecated') ||
+                    message.includes('Please use google.maps.marker.AdvancedMarkerElement') ||
+                    message.includes('As of February 21st, 2024, google.maps.Marker is deprecated') ||
+                    message.includes('google.maps.places.Autocomplete is not available to new customers') ||
+                    message.includes('Please use google.maps.places.PlaceAutocompleteElement instead') ||
+                    message.includes('As of March 1st, 2025, google.maps.places.Autocomplete')
+                ) {
+                    return; // No mostrar estos warnings
+                }
+                originalConsoleWarn.apply(console, args);
+            };
 
             // Inicializar el mapa
             const map = new window.google.maps.Map(mapRef.current, {
@@ -56,14 +78,14 @@ const GoogleMapsLocation = ({
                 if (place.geometry && place.geometry.location) {
                     const lat = place.geometry.location.lat();
                     const lng = place.geometry.location.lng();
-                    
+
                     setCoordinates({ lat, lng });
                     setAddress(place.formatted_address);
-                    
+
                     // Mover el marcador y el mapa
                     marker.setPosition({ lat, lng });
                     map.setCenter({ lat, lng });
-                    
+
                     // Notificar al componente padre
                     onLocationChange({
                         address: place.formatted_address,
@@ -78,16 +100,16 @@ const GoogleMapsLocation = ({
                 const newPosition = marker.getPosition();
                 const lat = newPosition.lat();
                 const lng = newPosition.lng();
-                
+
                 setCoordinates({ lat, lng });
-                
+
                 // Geocodificación inversa para obtener la dirección
                 const geocoder = new window.google.maps.Geocoder();
                 geocoder.geocode({ location: { lat, lng } }, (results, status) => {
                     if (status === 'OK' && results[0]) {
                         const newAddress = results[0].formatted_address;
                         setAddress(newAddress);
-                        
+
                         // Notificar al componente padre
                         onLocationChange({
                             address: newAddress,
@@ -105,17 +127,8 @@ const GoogleMapsLocation = ({
             });
         };
 
-        // Cargar la API de Google Maps si no está cargada
-        if (!window.google) {
-            const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
-            script.async = true;
-            script.defer = true;
-            script.onload = initializeMap;
-            document.head.appendChild(script);
-        } else {
-            initializeMap();
-        }
+        // Inicializar el mapa cuando Google Maps esté listo
+        initializeMap();
 
         return () => {
             // Cleanup
@@ -123,11 +136,35 @@ const GoogleMapsLocation = ({
                 markerRef.current.setMap(null);
             }
         };
-    }, []);
+    }, [isLoaded, error, coordinates.lat, coordinates.lng, onLocationChange]);
 
     const handleAddressChange = (e) => {
         setAddress(e.target.value);
     };
+
+    // Mostrar estado de carga
+    if (!isLoaded) {
+        return (
+            <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+                <div className="text-center">
+                    <div className="spinner-border text-primary mb-3" role="status">
+                        <span className="visually-hidden">Cargando mapa...</span>
+                    </div>
+                    <p className="text-muted">Cargando Google Maps...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Mostrar error
+    if (error) {
+        return (
+            <div className="alert alert-danger" role="alert">
+                <i className="fas fa-exclamation-triangle me-2"></i>
+                Error al cargar Google Maps: {error.message}
+            </div>
+        );
+    }
 
     return (
         <div className="google-maps-location">
@@ -146,11 +183,11 @@ const GoogleMapsLocation = ({
                     required
                 />
                 <div className="form-text">
-                     Escribe tu dirección (cualquier país) y selecciona una opción del menú desplegable, 
+                    Escribe tu dirección (cualquier país) y selecciona una opción del menú desplegable,
                     o mueve el marcador en el mapa para ajustar la ubicación.
                 </div>
             </div>
-            
+
             <div className="mb-3">
                 <div className="row">
                     <div className="col-md-6">
@@ -175,12 +212,12 @@ const GoogleMapsLocation = ({
             </div>
 
             <div className="map-container" style={{ height: '400px', width: '100%' }}>
-                <div 
-                    ref={mapRef} 
+                <div
+                    ref={mapRef}
                     style={{ height: '100%', width: '100%', borderRadius: '8px' }}
                 />
             </div>
-            
+
             <div className="mt-2">
                 <small className="text-muted">
                     <i className="fas fa-info-circle me-1"></i>

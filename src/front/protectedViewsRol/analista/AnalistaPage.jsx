@@ -4,24 +4,24 @@ import useGlobalReducer from '../../hooks/useGlobalReducer';
 
 // Utilidades de token seguras
 const tokenUtils = {
-  decodeToken: (token) => {
-    try {
-      if (!token) return null;
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      return JSON.parse(atob(parts[1]));
-    } catch (error) {
-      return null;
+    decodeToken: (token) => {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (error) {
+            return null;
+        }
+    },
+    getUserId: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.user_id : null;
+    },
+    getRole: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.role : null;
     }
-  },
-  getUserId: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.user_id : null;
-  },
-  getRole: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.role : null;
-  }
 };
 
 export function AnalistaPage() {
@@ -41,6 +41,7 @@ export function AnalistaPage() {
         password: '',
         confirmPassword: ''
     });
+    const [ticketsConRecomendaciones, setTicketsConRecomendaciones] = useState(new Set());
 
     // Función helper para actualizar tickets sin recargar la página
     const actualizarTickets = async () => {
@@ -67,7 +68,7 @@ export function AnalistaPage() {
             try {
                 const token = store.auth.token;
                 const userId = tokenUtils.getUserId(token);
-                
+
                 if (userId) {
                     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analistas/${userId}`, {
                         headers: {
@@ -75,7 +76,7 @@ export function AnalistaPage() {
                             'Content-Type': 'application/json'
                         }
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         setUserData(data);
@@ -87,6 +88,9 @@ export function AnalistaPage() {
                             password: '',
                             confirmPassword: ''
                         });
+                    } else {
+                        const errorText = await response.text();
+                        console.error('Error al cargar datos del analista:', response.status, errorText);
                     }
                 }
             } catch (err) {
@@ -99,9 +103,47 @@ export function AnalistaPage() {
         }
     }, [store.auth.isAuthenticated, store.auth.token]);
 
+    // Verificar recomendaciones para todos los tickets
+    useEffect(() => {
+        if (tickets.length > 0) {
+            verificarRecomendaciones();
+        }
+    }, [tickets]);
+
+    const verificarRecomendaciones = async () => {
+        try {
+            const token = store.auth.token;
+            const recomendacionesPromises = tickets.map(async (ticket) => {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticket.id}/recomendaciones-similares`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return { ticketId: ticket.id, tieneRecomendaciones: data.total_encontrados > 0 };
+                }
+                return { ticketId: ticket.id, tieneRecomendaciones: false };
+            });
+
+            const resultados = await Promise.all(recomendacionesPromises);
+            const ticketsConRecomendacionesSet = new Set();
+            resultados.forEach(({ ticketId, tieneRecomendaciones }) => {
+                if (tieneRecomendaciones) {
+                    ticketsConRecomendacionesSet.add(ticketId);
+                }
+            });
+            setTicketsConRecomendaciones(ticketsConRecomendacionesSet);
+        } catch (error) {
+            console.error('Error verificando recomendaciones:', error);
+        }
+    };
+
     // Conectar WebSocket cuando el usuario esté autenticado
     useEffect(() => {
-        if (store.auth.isAuthenticated && store.auth.token && !store.websocket.connected) {
+        if (store.auth.isAuthenticated && store.auth.token && !store.websocket.connected && !store.websocket.connecting) {
             const socket = connectWebSocket(store.auth.token);
             if (socket) {
                 const userId = tokenUtils.getUserId(store.auth.token);
@@ -116,44 +158,40 @@ export function AnalistaPage() {
                 disconnectWebSocket(store.websocket.socket);
             }
         };
-    }, [store.auth.isAuthenticated, store.auth.token]);
+    }, [store.auth.isAuthenticated, store.auth.token, store.websocket.connected, store.websocket.connecting]);
 
     // Actualizar tickets cuando lleguen notificaciones WebSocket (optimizado)
     useEffect(() => {
         if (store.websocket.notifications.length > 0) {
             const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
-            
+
             // Manejo específico para tickets eliminados - sincronización inmediata
             if (lastNotification.tipo === 'eliminado' || lastNotification.tipo === 'ticket_eliminado') {
-                console.log('🗑️ ANALISTA - TICKET ELIMINADO DETECTADO:', lastNotification);
-                
+
                 // Remover inmediatamente de la lista de tickets
                 if (lastNotification.ticket_id) {
                     setTickets(prev => {
                         const ticketRemovido = prev.find(t => t.id === lastNotification.ticket_id);
                         if (ticketRemovido) {
-                            console.log('🗑️ ANALISTA - Ticket eliminado removido de lista:', ticketRemovido.titulo);
                         }
                         return prev.filter(ticket => ticket.id !== lastNotification.ticket_id);
                     });
                 }
                 return; // No continuar con el resto de la lógica
             }
-            
+
             // Solo actualizar para eventos relevantes para analistas
             const eventosRelevantes = ['asignado', 'estado_cambiado', 'iniciado', 'escalado', 'ticket_actualizado'];
             if (eventosRelevantes.includes(lastNotification.tipo)) {
                 // Para escalaciones, actualizar inmediatamente
                 if (lastNotification.tipo === 'escalado' || lastNotification.tipo === 'asignado' || lastNotification.tipo === 'iniciado') {
-                    console.log('⚡ ANALISTA - ACTUALIZACIÓN INMEDIATA:', lastNotification.tipo);
                     actualizarTickets();
                 } else {
                     // Debounce mínimo para otros eventos
                     const timeoutId = setTimeout(() => {
-                        console.log('🔄 ANALISTA - Actualización con debounce mínimo');
                         actualizarTickets();
                     }, 500); // 0.5 segundos de debounce mínimo
-                    
+
                     return () => clearTimeout(timeoutId);
                 }
             }
@@ -306,7 +344,7 @@ export function AnalistaPage() {
             setUpdatingInfo(true);
             const token = store.auth.token;
             const userId = tokenUtils.getUserId(token);
-            
+
             // Preparar datos para actualizar
             const updateData = {
                 nombre: infoData.nombre,
@@ -319,7 +357,7 @@ export function AnalistaPage() {
             if (infoData.password) {
                 updateData.contraseña_hash = infoData.password;
             }
-            
+
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analistas/${userId}`, {
                 method: 'PUT',
                 headers: {
@@ -342,7 +380,7 @@ export function AnalistaPage() {
                 email: infoData.email,
                 especialidad: infoData.especialidad
             }));
-            
+
             alert('Información actualizada exitosamente');
             setShowInfoForm(false);
             setError('');
@@ -600,10 +638,10 @@ export function AnalistaPage() {
                                                     <td>
                                                         <div className="d-flex align-items-center">
                                                             <span className="me-2">#{ticket.id}</span>
-                                                            {ticket.url_imagen ? (
-                                                                <img 
-                                                                    src={ticket.url_imagen} 
-                                                                    alt="Imagen del ticket" 
+                                                            {ticket.url_imagen && !ticket.url_imagen.includes('placeholder.com') && !ticket.url_imagen.includes('data:image/svg+xml') ? (
+                                                                <img
+                                                                    src={ticket.url_imagen}
+                                                                    alt="Imagen del ticket"
                                                                     className="img-thumbnail"
                                                                     style={{ width: '40px', height: '40px', objectFit: 'cover' }}
                                                                 />
@@ -662,52 +700,85 @@ export function AnalistaPage() {
                                                                     </button>
                                                                 </>
                                                             )}
-                                                              {ticket.estado.toLowerCase() === 'en_proceso' && (
-                                                                  <>
-                                                                      <button
-                                                                          className="btn btn-success btn-sm"
-                                                                          onClick={() => cambiarEstadoTicket(ticket.id, 'solucionado')}
-                                                                          title="Marcar como solucionado"
-                                                                      >
-                                                                          <i className="fas fa-check"></i> Solucionar
-                                                                      </button>
-                                                                      <button
-                                                                          className="btn btn-warning btn-sm"
-                                                                          onClick={() => cambiarEstadoTicket(ticket.id, 'en_espera')}
-                                                                          title="Escalar al supervisor"
-                                                                      >
-                                                                          <i className="fas fa-arrow-up"></i> Escalar
-                                                                      </button>
-                                                                  </>
-                                                              )}
-                                                              <Link
-                                                                  to={`/ticket/${ticket.id}/comentarios`}
-                                                                  className="btn btn-info btn-sm"
-                                                                  title="Ver y agregar comentarios"
-                                                              >
-                                                                  <i className="fas fa-comments"></i> Comentar
-                                                              </Link>
-                                                              <button
-                                                                  className="btn btn-info btn-sm"
-                                                                  onClick={() => generarRecomendacion(ticket)}
-                                                                  title="Generar recomendación con IA"
-                                                              >
-                                                                  <i className="fas fa-robot"></i> IA
-                                                              </button>
-                                                              <Link
-                                                                  to={`/ticket/${ticket.id}/chat-supervisor-analista`}
-                                                                  className="btn btn-secondary btn-sm"
-                                                                  title="Chat con supervisor"
-                                                              >
-                                                                  <i className="fas fa-user-shield"></i> Chat Sup
-                                                              </Link>
-                                                              <Link
-                                                                  to={`/ticket/${ticket.id}/chat-analista-cliente`}
-                                                                  className="btn btn-success btn-sm"
-                                                                  title="Chat con cliente"
-                                                              >
-                                                                  <i className="fas fa-user"></i> Chat Cliente
-                                                              </Link>
+                                                            {ticket.estado.toLowerCase() === 'en_proceso' && (
+                                                                <>
+                                                                    <button
+                                                                        className="btn btn-success btn-sm"
+                                                                        onClick={() => cambiarEstadoTicket(ticket.id, 'solucionado')}
+                                                                        title="Marcar como solucionado"
+                                                                    >
+                                                                        <i className="fas fa-check"></i> Solucionar
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-warning btn-sm"
+                                                                        onClick={() => cambiarEstadoTicket(ticket.id, 'en_espera')}
+                                                                        title="Escalar al supervisor"
+                                                                    >
+                                                                        <i className="fas fa-arrow-up"></i> Escalar
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            <Link
+                                                                to={`/ticket/${ticket.id}/comentarios`}
+                                                                className="btn btn-info btn-sm"
+                                                                title="Ver y agregar comentarios"
+                                                            >
+                                                                <i className="fas fa-comments"></i> Comentar
+                                                            </Link>
+                                                            <div className="btn-group" role="group">
+                                                                <button
+                                                                    className="btn btn-info btn-sm dropdown-toggle"
+                                                                    type="button"
+                                                                    data-bs-toggle="dropdown"
+                                                                    aria-expanded="false"
+                                                                    title="Opciones de IA"
+                                                                >
+                                                                    <i className="fas fa-robot"></i> IA
+                                                                </button>
+                                                                <ul className="dropdown-menu">
+                                                                    <li>
+                                                                        <button
+                                                                            className="dropdown-item"
+                                                                            onClick={() => generarRecomendacion(ticket)}
+                                                                        >
+                                                                            <i className="fas fa-lightbulb me-2"></i>
+                                                                            Generar Recomendación
+                                                                        </button>
+                                                                    </li>
+                                                                    <li>
+                                                                        <Link
+                                                                            to={`/ticket/${ticket.id}/identificar-imagen`}
+                                                                            className="dropdown-item"
+                                                                        >
+                                                                            <i className="fas fa-camera me-2"></i>
+                                                                            Analizar Imagen
+                                                                        </Link>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                            {ticketsConRecomendaciones.has(ticket.id) && (
+                                                                <Link
+                                                                    to={`/ticket/${ticket.id}/recomendaciones-similares`}
+                                                                    className="btn btn-success btn-sm"
+                                                                    title="Ver tickets similares resueltos"
+                                                                >
+                                                                    <i className="fas fa-thumbs-up"></i>
+                                                                </Link>
+                                                            )}
+                                                            <Link
+                                                                to={`/ticket/${ticket.id}/chat-supervisor-analista`}
+                                                                className="btn btn-secondary btn-sm"
+                                                                title="Chat con supervisor"
+                                                            >
+                                                                <i className="fas fa-user-shield"></i> Chat Sup
+                                                            </Link>
+                                                            <Link
+                                                                to={`/ticket/${ticket.id}/chat-analista-cliente`}
+                                                                className="btn btn-success btn-sm"
+                                                                title="Chat con cliente"
+                                                            >
+                                                                <i className="fas fa-user"></i> Chat Cliente
+                                                            </Link>
                                                         </div>
                                                     </td>
                                                 </tr>
