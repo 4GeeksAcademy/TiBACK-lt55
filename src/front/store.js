@@ -105,7 +105,6 @@ export const initialStore = () => {
     tickets: [],
     ticketDetail: null,
 
-
     api: { loading: false, error: null }
   };
   
