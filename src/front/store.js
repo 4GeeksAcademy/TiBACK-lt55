@@ -105,6 +105,21 @@ export const initialStore = () => {
     tickets: [],
     ticketDetail: null,
 
+    imagegentle: [
+      {
+      id: 1,
+      src: "https://picsum.photos/id/30/500/300",
+      },
+      {
+      id: 2,
+      src: "https://picsum.photos/id/31/500/300",
+      },
+      {
+      id: 3,
+      src: "https://picsum.photos/id/32/500/300",
+      }
+    ],
+
     api: { loading: false, error: null }
   };
   

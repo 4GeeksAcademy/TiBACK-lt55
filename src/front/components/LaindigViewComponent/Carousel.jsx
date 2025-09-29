@@ -1,40 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 
 const Carousel = () => {
-  // const images = [
-  //   "https://picsum.photos/id/9/1200/400",
-  //   "https://picsum.photos/id/6/1200/400",
-  //   "https://picsum.photos/id/4/1200/400",
-  // ];
-
-  // const [currentIndex, setCurrentIndex] = useState(0);
-  // const [carouselHeight, setCarouselHeight] = useState(0);
-  // const containerRef = useRef(null);
-
-  // // Cambia automáticamente de imagen cada 4 segundos
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
-  //   }, 5000);
-  //   return () => clearInterval(interval);
-  // }, [images.length]);
-
-  // // Calcula altura del contenedor según su ancho (aspect ratio)
-  // useEffect(() => {
-  //   const calculateHeight = () => {
-  //     if (containerRef.current) {
-  //       const width = containerRef.current.offsetWidth;
-  //       setCarouselHeight(width * 0.4); // 40% del ancho como alto
-  //     }
-  //   };
-  //   calculateHeight();
-  //   window.addEventListener("resize", calculateHeight);
-  //   return () => window.removeEventListener("resize", calculateHeight);
-  // }, []);
+  
 
   return (
 
-    <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Ratione quod eveniet eligendi? Magnam incidunt aspernatur aliquam nulla pariatur? Mollitia facilis quisquam tempora quam assumenda adipisci hic dignissimos dicta commodi nulla.
+  <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Ratione quod eveniet eligendi? Magnam incidunt aspernatur aliquam nulla pariatur? Mollitia facilis quisquam tempora quam assumenda adipisci hic dignissimos dicta commodi nulla.
       Quos, magni fuga repellat voluptates atque laborum expedita blanditiis porro consequatur autem amet placeat ducimus commodi odio perspiciatis quae ea ab voluptatibus? Optio saepe accusamus voluptatum quasi rem at fuga.
       Similique recusandae quia quam porro. Illum dolorem numquam vitae odio obcaecati soluta, expedita suscipit, perferendis repellendus impedit excepturi quo dolorum temporibus, at dolore laudantium porro aperiam ratione aliquam voluptatum eaque?
       Reiciendis aperiam hic consequuntur perferendis, molestiae quis nostrum veritatis, laboriosam commodi ab quo doloribus ad. Hic, molestiae labore vitae quasi inventore quae dolorum vero quidem assumenda neque commodi quos dolorem!
@@ -63,37 +34,9 @@ const Carousel = () => {
       Soluta similique nobis harum provident consequatur modi maxime odio nisi ipsam. Consequuntur quisquam vitae facilis omnis ea, nulla dolore sequi in blanditiis molestiae labore doloremque assumenda enim aut laboriosam quod.
       Distinctio quisquam esse nobis modi recusandae, error magni eaque adipisci deleniti fugiat dolor voluptatem aliquam. Deleniti voluptates iste fugiat velit eligendi, itaque eaque atque corrupti qui necessitatibus rem. Cupiditate, eius?
       Velit quisquam corporis a ad deserunt alias ullam similique maxime natus reprehenderit? Fugiat nostrum aspernatur beatae sapiente! Accusantium enim neque assumenda eius amet necessitatibus commodi ratione, qui nemo beatae aspernatur?
-      Minus, repellat aliquid! Vel, iusto officiis dolores alias nobis ullam a doloremque nihil rerum consectetur velit, explicabo neque ipsum eaque fuga debitis minus facilis quas quae quaerat. Animi, dolorem assumenda?</p>
-    // <div
-    //   ref={containerRef}
-    //   className="position-relative w-100"
-    //   style={{ height: carouselHeight, minHeight: "200px", overflow: "hidden" }}
-    // >
-    //   {/* Fade carousel: todas las imágenes absolutas */}
-    //   {images.map((src, index) => (
-    //     <img
-    //       key={index}
-    //       src={src}
-    //       alt={`Slide ${index + 1}`}
-    //       className="position-absolute object-fit-cover top-0 start-50 translate-middle-x w-100 h-100"
-    //       style={{
-    //         transition: "opacity 1s ease-in-out",
-    //         opacity: index === currentIndex ? 1 : 0,
-    //       }}
-    //     />
-    //   ))}
-
-    //   {/* Texto centrado */}
-    //   <div className="position-absolute top-50 start-50 translate-middle text-center rounded-2 shadow p-3 mb-5 text-light bg-secondary bg-opacity-50">
-    //     <h1 style={{ fontSize: "clamp(1.5rem, 5vw, 4rem)", lineHeight: 1.4 }}>
-    //       Bienvenidos <br /> a <br /> TiBACK
-    //     </h1>
-    //     <p style={{ fontSize: "clamp(1rem, 2.5vw, 1.8rem)" }} className="mt-5">
-    //       Tu turno, tu tiempo, tu solución. Con la velocidad que mereces.
-    //     </p>
-    //   </div>
-    // </div>
-  );
+      Minus, repellat aliquid! Vel, iusto officiis dolores alias nobis ullam a doloremque nihil rerum consectetur velit, explicabo neque ipsum eaque fuga debitis minus facilis quas quae quaerat. Animi, dolorem assumenda?
+  </p>
+  )
 };
 
 export default Carousel;

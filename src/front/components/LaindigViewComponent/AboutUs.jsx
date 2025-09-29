@@ -1,9 +1,12 @@
 import React from "react";
+import Carousel from "./Carousel"
 
 const AboutUs = () => {
 
     return (
-        <h1>esto es acerca de nosotros</h1>
+        <>
+        <Carousel />
+        </>
     )
 }
 

@@ -27,6 +27,9 @@
 .shutter-text-panel:nth-child(even) {
   animation-delay: 0.4s;
 }
+.cutter {
+  clip-path: polygon(0% 15%, 0 0, 15% 0%, 100% 0, 100% 26%, 60.7% 26%, 60.7% 74%, 100% 74%, 100% 100%, 15% 100%, 0 100%, 0% 85%)
+}
 
 @keyframes shutterTextOpen {
   0% {

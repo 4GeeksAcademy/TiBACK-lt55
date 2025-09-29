@@ -10,8 +10,7 @@ export const Landing = () => {
                 <div className="container">
                     <Carousel />
                 </div>
-
-
+                
             </section>
         </>
     )
