@@ -56,11 +56,17 @@
 	"dependencies": {
 		"@cloudinary/react": "^1.14.3",
 		"@cloudinary/url-gen": "^1.22.0",
+		"@emailjs/browser": "^4.4.1",
 		"@google-cloud/speech": "^7.2.0",
+		"@react-google-maps/api": "^2.20.7",
+		"bootstrap": "^5.3.8",
 		"prop-types": "^15.8.1",
 		"react": "^18.2.0",
+		"react-bootstrap": "^2.10.10",
 		"react-dom": "^18.2.0",
 		"react-router-dom": "^6.18.0",
+		"react-textarea-autosize": "^8.5.9",
+		"reactstrap": "^9.2.3",
 		"socket.io-client": "^4.7.4"
 	}
 }
