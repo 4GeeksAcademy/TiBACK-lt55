@@ -16,10 +16,42 @@ import os
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
+import os
+import requests
+import json
+import cloudinary
+import cloudinary.uploader
+from flask import Flask, request, jsonify, url_for, Blueprint
+from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
+from api.utils import generate_sitemap, APIException
+from api.jwt_utils import (
+    generate_token, verify_token, 
+    require_auth, require_role, refresh_token, get_user_from_token
+)
+from flask_cors import CORS
+from flask_socketio import emit, join_room, leave_room
+from sqlalchemy.exc import IntegrityError
 
 api = Blueprint('api', __name__)
 
-CORS(api)
+# Allow CORS requests to this API
+CORS(api, origins="*", allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
+# Configurar Cloudinary usando CLOUDINARY_URL
+cloudinary_url = os.getenv('CLOUDINARY_URL')
+cloudinary_cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
+cloudinary_api_key = os.getenv('CLOUDINARY_API_KEY')
+cloudinary_api_secret = os.getenv('CLOUDINARY_API_SECRET')
+
+
+if cloudinary_url:
+    cloudinary.config(cloudinary_url=cloudinary_url)
+elif cloudinary_cloud_name and cloudinary_api_key and cloudinary_api_secret:
+    cloudinary.config(
+        cloud_name=cloudinary_cloud_name,
+        api_key=cloudinary_api_key,
+        api_secret=cloudinary_api_secret
+    )
 
 # Función para obtener la instancia de socketio
 
@@ -27,9 +59,40 @@ CORS(api)
 def get_socketio():
     try:
         from app import get_socketio as get_socketio_from_app
-        return get_socketio_from_app()
+        socketio_instance = get_socketio_from_app()
+        return socketio_instance
     except ImportError:
         return None
+    except Exception as e:
+        # Log del error pero no interrumpir la funcionalidad
+        return None
+
+# Función helper para emitir eventos WebSocket de manera segura
+def emit_websocket_event(event_name, data, room=None):
+    """Emite un evento WebSocket de manera segura, sin interrumpir la funcionalidad si falla"""
+    try:
+        socketio = get_socketio()
+        if socketio:
+            if room:
+                socketio.emit(event_name, data, room=room)
+            else:
+                socketio.emit(event_name, data)
+    except Exception as e:
+        # WebSocket no disponible o error, continuar sin notificación
+        pass
+
+# Funciones helper para manejo de errores
+def handle_database_error(e, operation="operación"):
+    """Maneja errores de base de datos de manera consistente"""
+    db.session.rollback()
+    if isinstance(e, IntegrityError):
+        return jsonify({"message": "Error de integridad en la base de datos"}), 400
+    else:
+        return jsonify({"message": f"Error en {operation}: {str(e)}"}), 500
+
+def handle_general_error(e, operation="operación"):
+    """Maneja errores generales de manera consistente"""
+    return jsonify({"message": f"Error en {operation}: {str(e)}"}), 500
 
 
 @api.route('/hello', methods=['POST', 'GET'])
@@ -40,6 +103,33 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+# Manejar solicitudes OPTIONS para CORS
+@api.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    return '', 200
+
+
+@api.route('/cloudinary-status', methods=['GET'])
+def cloudinary_status():
+    """Verificar el estado de la configuración de Cloudinary"""
+    cloudinary_url = os.getenv('CLOUDINARY_URL')
+    cloudinary_cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
+    cloudinary_api_key = os.getenv('CLOUDINARY_API_KEY')
+    cloudinary_api_secret = os.getenv('CLOUDINARY_API_SECRET')
+    
+    cloudinary_configured = (
+        cloudinary_url or 
+        (cloudinary_cloud_name and cloudinary_api_key and cloudinary_api_secret)
+    )
+    
+    return jsonify({
+        "cloudinary_configured": cloudinary_configured,
+        "cloudinary_url": bool(cloudinary_url),
+        "cloudinary_cloud_name": cloudinary_cloud_name,
+        "cloudinary_api_key": bool(cloudinary_api_key),
+        "cloudinary_api_secret": bool(cloudinary_api_secret)
+    }), 200
 
 
 @api.route('/clientes', methods=['GET'])
@@ -65,7 +155,9 @@ def create_cliente():
             cliente_data['latitude'] = body['latitude']
         if 'longitude' in body:
             cliente_data['longitude'] = body['longitude']
-
+        if 'url_imagen' in body:
+            cliente_data['url_imagen'] = body['url_imagen']
+            
         cliente = Cliente(**cliente_data)
         db.session.add(cliente)
         db.session.commit()
@@ -95,7 +187,7 @@ def update_cliente(id):
     if not cliente:
         return jsonify({"message": "Cliente no encontrado"}), 404
     try:
-        for field in ["direccion", "telefono", "nombre", "apellido", "email", "contraseña_hash", "latitude", "longitude"]:
+        for field in ["direccion", "telefono", "nombre", "apellido", "email", "contraseña_hash", "latitude", "longitude", "url_imagen"]:
             if field in body:
                 setattr(cliente, field, body[field])
         db.session.commit()
@@ -128,8 +220,11 @@ def delete_cliente(id):
 @api.route('/analistas', methods=['GET'])
 @require_role(['administrador', 'analista', 'supervisor'])
 def listar_analistas():
-    analistas = Analista.query.all()
-    return jsonify([a.serialize() for a in analistas]), 200
+    try:
+        analistas = Analista.query.all()
+        return jsonify([a.serialize() for a in analistas]), 200
+    except Exception as e:
+        return handle_general_error(e, "listar analistas")
 
 
 @api.route('/analistas', methods=['POST'])
@@ -162,9 +257,7 @@ def create_analista():
                     'tipo': 'analista_creado',
                     'timestamp': datetime.now().isoformat()
                 }, room='administradores')
-
-                print(
-                    f"📤 WebSocket enviado a supervisores y administradores: analista creado")
+                
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
 
@@ -180,10 +273,13 @@ def create_analista():
 @api.route('/analistas/<int:id>', methods=['GET'])
 @require_role(['administrador', 'analista', 'supervisor'])
 def get_analista(id):
-    analista = db.session.get(Analista, id)
-    if not analista:
-        return jsonify({"message": "Analista no encontrado"}), 404
-    return jsonify(analista.serialize()), 200
+    try:
+        analista = db.session.get(Analista, id)
+        if not analista:
+            return jsonify({"message": "Analista no encontrado"}), 404
+        return jsonify(analista.serialize()), 200
+    except Exception as e:
+        return handle_general_error(e, "obtener analista")
 
 
 @api.route('/analistas/<int:id>', methods=['PUT'])
@@ -240,18 +336,12 @@ def delete_analista(id):
                 }
 
                 # Notificar a todos los roles sobre la eliminación del analista
-                socketio.emit('analista_eliminado',
-                              eliminacion_data, room='clientes')
-                socketio.emit('analista_eliminado',
-                              eliminacion_data, room='analistas')
-                socketio.emit('analista_eliminado',
-                              eliminacion_data, room='supervisores')
-                socketio.emit('analista_eliminado',
-                              eliminacion_data, room='administradores')
-
-                print(
-                    f"📤 ANALISTA ELIMINADO NOTIFICADO A TODOS LOS ROLES: {eliminacion_data}")
-
+                socketio.emit('analista_eliminado', eliminacion_data, room='clientes')
+                socketio.emit('analista_eliminado', eliminacion_data, room='analistas')
+                socketio.emit('analista_eliminado', eliminacion_data, room='supervisores')
+                socketio.emit('analista_eliminado', eliminacion_data, room='administradores')
+                
+                    
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
 
@@ -419,10 +509,8 @@ def create_comentario():
                     'tipo': 'comentario_agregado',
                     'timestamp': datetime.now().isoformat()
                 }, room=ticket_room)
-
-                print(
-                    f"📤 Comentario enviado al room del ticket: {ticket_room}")
-
+                
+                    
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
 
@@ -647,8 +735,42 @@ def delete_administrador(id):
 @api.route('/tickets', methods=['GET'])
 @require_role(['administrador', 'supervisor', 'analista'])
 def listar_tickets():
-    tickets = Ticket.query.all()
-    return jsonify([t.serialize() for t in tickets]), 200
+    try:
+        print("Iniciando consulta de tickets...")
+        tickets = Ticket.query.all()
+        print(f"Tickets encontrados: {len(tickets)}")
+        
+        # Serializar tickets uno por uno para identificar problemas
+        serialized_tickets = []
+        for i, ticket in enumerate(tickets):
+            try:
+                serialized_ticket = ticket.serialize()
+                serialized_tickets.append(serialized_ticket)
+            except Exception as serialize_error:
+                print(f"Error serializando ticket {ticket.id}: {str(serialize_error)}")
+                # Agregar ticket básico sin relaciones problemáticas
+                serialized_tickets.append({
+                    "id": ticket.id,
+                    "id_cliente": ticket.id_cliente,
+                    "estado": ticket.estado,
+                    "titulo": ticket.titulo,
+                    "descripcion": ticket.descripcion,
+                    "fecha_creacion": ticket.fecha_creacion.isoformat() if ticket.fecha_creacion else None,
+                    "fecha_cierre": ticket.fecha_cierre.isoformat() if ticket.fecha_cierre else None,
+                    "prioridad": ticket.prioridad,
+                    "calificacion": ticket.calificacion,
+                    "comentario": ticket.comentario,
+                    "fecha_evaluacion": ticket.fecha_evaluacion.isoformat() if ticket.fecha_evaluacion else None,
+                    "url_imagen": ticket.url_imagen,
+                    "cliente": None,
+                    "asignacion_actual": None
+                })
+        
+        print(f"Tickets serializados exitosamente: {len(serialized_tickets)}")
+        return jsonify(serialized_tickets), 200
+    except Exception as e:
+        print(f"Error en listar_tickets: {str(e)}")
+        return handle_general_error(e, "listar tickets")
 
 
 @api.route('/tickets', methods=['POST'])
@@ -683,7 +805,7 @@ def create_ticket():
             descripcion=body['descripcion'],
             fecha_creacion=datetime.now(),
             prioridad=body['prioridad'],
-            img_urls=body.get('img_urls', [])
+            url_imagen=body.get('url_imagen')
         )
         db.session.add(ticket)
         db.session.commit()
@@ -714,10 +836,8 @@ def create_ticket():
                               ticket_data, room='administradores')
 
                 # Notificar a administradores para actualizar CRUD de tickets
-                socketio.emit('nuevo_ticket', ticket_data,
-                              room='administradores')
-
-                print(f"📤 NUEVO TICKET NOTIFICADO: {ticket_data}")
+                socketio.emit('nuevo_ticket', ticket_data, room='administradores')
+                
             except Exception as e:
                 print(f"Error enviando WebSocket de nuevo ticket: {e}")
 
@@ -736,7 +856,7 @@ def create_ticket():
             descripcion=body["descripcion"],
             fecha_creacion=datetime.fromisoformat(body["fecha_creacion"]),
             prioridad=body["prioridad"],
-            img_urls=body.get('img_urls', [])
+            url_imagen=body.get("url_imagen")
         )
         db.session.add(ticket)
         db.session.commit()
@@ -747,6 +867,74 @@ def create_ticket():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error inesperado: {str(e)}"}), 500
+
+
+@api.route('/upload-image', methods=['POST'])
+@require_auth
+def upload_image():
+    """Subir imagen a Cloudinary y devolver la URL"""
+    try:
+        # Verificar configuración de Cloudinary con más detalle
+        cloudinary_url = os.getenv('CLOUDINARY_URL')
+        cloudinary_cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
+        cloudinary_api_key = os.getenv('CLOUDINARY_API_KEY')
+        cloudinary_api_secret = os.getenv('CLOUDINARY_API_SECRET')
+        
+        
+        # Verificar si Cloudinary está configurado (al menos una forma)
+        cloudinary_configured = (
+            cloudinary_url or 
+            (cloudinary_cloud_name and cloudinary_api_key and cloudinary_api_secret)
+        )
+        
+        # Si no está configurado, intentar reconfigurar Cloudinary
+        if not cloudinary_configured:
+            # Intentar reconfigurar con las variables disponibles
+            if cloudinary_url:
+                cloudinary.config(cloudinary_url=cloudinary_url)
+                cloudinary_configured = True
+            elif cloudinary_cloud_name and cloudinary_api_key and cloudinary_api_secret:
+                cloudinary.config(
+                    cloud_name=cloudinary_cloud_name,
+                    api_key=cloudinary_api_key,
+                    api_secret=cloudinary_api_secret
+                )
+                cloudinary_configured = True
+        
+        if not cloudinary_configured:
+            # Fallback: devolver una URL de imagen placeholder
+            return jsonify({
+                "url": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjY2NjY2NjIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbiBubyBkaXNwb25pYmxlPC90ZXh0Pjwvc3ZnPg==",
+                "public_id": "placeholder"
+            }), 200
+        
+        if 'image' not in request.files:
+            return jsonify({"message": "No se encontró archivo de imagen"}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({"message": "No se seleccionó archivo"}), 400
+        
+        
+        # Subir imagen a Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="tickets",  # Carpeta en Cloudinary
+            resource_type="image"
+        )
+        
+        
+        return jsonify({
+            "url": upload_result['secure_url'],
+            "public_id": upload_result['public_id']
+        }), 200
+        
+    except Exception as e:
+        # Fallback en caso de error: devolver placeholder
+        return jsonify({
+            "url": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjY2NjY2NjIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkVycm9yIHN1YmllbmRvIGltYWdlbjwvdGV4dD48L3N2Zz4=",
+            "public_id": "error_placeholder"
+        }), 200
 
 
 @api.route('/tickets/<int:id>', methods=['GET'])
@@ -778,7 +966,7 @@ def update_ticket(id):
         return jsonify({"message": "Ticket no encontrado"}), 404
     try:
         for field in ["id_cliente", "estado", "titulo", "descripcion", "fecha_creacion",
-                      "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion", "img_urls"]:
+                      "fecha_cierre", "prioridad", "calificacion", "comentario", "fecha_evaluacion", "url_imagen"]:
             if field in body:
                 value = body[field]
                 if field in ["fecha_creacion", "fecha_cierre", "fecha_evaluacion"] and value:
@@ -798,9 +986,8 @@ def update_ticket(id):
                     'usuario': get_user_from_token()['role'],
                     'timestamp': datetime.now().isoformat()
                 }, room=ticket_room)
-
-                print(f"📤 Ticket actualizado enviado al room: {ticket_room}")
-
+                
+                    
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
 
@@ -888,12 +1075,9 @@ def delete_ticket(id):
 
                 # Notificar al room del ticket (si hay usuarios conectados)
                 ticket_room = f'room_ticket_{id}'
-                socketio.emit('ticket_eliminado',
-                              eliminacion_data, room=ticket_room)
-
-                print(
-                    f"📤 TICKET ELIMINADO NOTIFICADO A TODOS LOS ROLES: {eliminacion_data}")
-
+                socketio.emit('ticket_eliminado', eliminacion_data, room=ticket_room)
+                
+                    
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
 
@@ -995,18 +1179,15 @@ def eliminar_gestion(id):
 def register():
     """Registrar nuevo cliente con JWT - Soporte para registro en dos pasos"""
     body = request.get_json(silent=True) or {}
-    print(f"📝 REGISTER - Datos recibidos: {body}")
-
+    
     # Verificar si el email ya existe
     existing_cliente = Cliente.query.filter_by(email=body['email']).first()
     if existing_cliente:
-        print(f"❌ REGISTER - Email ya existe: {body['email']}")
         return jsonify({"message": "Email ya registrado"}), 400
 
     try:
         # Si es un cliente con datos básicos (registro en dos pasos)
         if body.get('role') == 'cliente' and body.get('nombre') == 'Pendiente':
-            print(f"✅ REGISTER - Creando cliente básico para: {body['email']}")
             # Crear cliente básico solo con email y contraseña
             cliente_data = {
                 'nombre': 'Pendiente',
@@ -1020,9 +1201,7 @@ def register():
             cliente = Cliente(**cliente_data)
             db.session.add(cliente)
             db.session.commit()
-
-            print(
-                f"✅ REGISTER - Cliente básico creado exitosamente: {cliente.id}")
+            
             return jsonify({
                 "message": "Cliente básico creado. Completa tu información.",
                 "success": True
@@ -1062,7 +1241,6 @@ def register():
             }), 201
 
     except Exception as e:
-        print(f"❌ REGISTER - Error al registrar: {str(e)}")
         db.session.rollback()
         return jsonify({"message": f"Error al registrar: {str(e)}"}), 500
 
@@ -1199,36 +1377,30 @@ def get_cliente_tickets():
         return jsonify({"message": f"Error al obtener tickets: {str(e)}"}), 500
 
 
-@api.route('/analistas/ranking', methods=['GET'])
-@require_role(['analista', 'administrador', 'supervisor'])
-def ranking_analistas():
-    analistas = Analista.query.all()
-    resultado = []
-    for analista in analistas:
-        # Tickets asignados a este analista
-        asignaciones = analista.asignaciones
-        tickets = [a.ticket for a in asignaciones if a.ticket is not None]
-
-        tickets_totales = len(tickets)
-        tickets_resueltos = sum(
-            1 for t in tickets if t.estado.lower() == "solucionado")
-        tickets_escalados = sum(1 for t in tickets if t.estado.lower() in [
-                                "escalado", "en_espera"])
-
-        resultado.append({
-            "id": analista.id,
-            "nombre": analista.nombre,
-            "apellido": analista.apellido,
-            "email": analista.email,
-            "especialidad": analista.especialidad,
-            "tickets_totales": tickets_totales,
-            "tickets_resueltos": tickets_resueltos,
-            "tickets_escalados": tickets_escalados
-        })
-
-    # Ordenar por tickets resueltos descendente
-    resultado.sort(key=lambda x: x["tickets_resueltos"], reverse=True)
-    return jsonify(resultado), 200
+@api.route('/tickets/analista/<int:id>', methods=['GET'])
+@require_role(['supervisor', 'administrador'])
+def get_analista_tickets_by_id(id):
+    """Obtener tickets de un analista específico por ID"""
+    try:
+        # Verificar que el analista existe
+        analista = db.session.get(Analista, id)
+        if not analista:
+            return jsonify({"message": "Analista no encontrado"}), 404
+        
+        # Obtener asignaciones del analista
+        asignaciones = Asignacion.query.filter_by(id_analista=id).all()
+        ticket_ids = [a.id_ticket for a in asignaciones]
+        
+        if not ticket_ids:
+            return jsonify([]), 200
+        
+        # Obtener todos los tickets asignados al analista
+        tickets = Ticket.query.filter(Ticket.id.in_(ticket_ids)).all()
+        
+        return jsonify([t.serialize() for t in tickets]), 200
+        
+    except Exception as e:
+        return handle_general_error(e, "obtener tickets del analista")
 
 
 @api.route('/tickets/analista', methods=['GET'])
@@ -1237,7 +1409,9 @@ def get_analista_tickets():
     """Obtener tickets asignados al analista autenticado (excluyendo tickets escalados)"""
     try:
         user = get_user_from_token()
-        if not user or user['role'] != 'analista':
+        if not user:
+            return jsonify({"message": "Token inválido o expirado"}), 401
+        if user['role'] not in ['analista', 'administrador']:
             return jsonify({"message": "Acceso denegado"}), 403
 
         # Obtener asignaciones del analista
@@ -1295,7 +1469,8 @@ def get_analista_tickets():
         return jsonify([t.serialize() for t in tickets_filtrados]), 200
 
     except Exception as e:
-        return jsonify({"message": f"Error al obtener tickets: {str(e)}"}), 500
+        # Log del error para debugging
+        return handle_general_error(e, "obtener tickets del analista")
 
 
 @api.route('/tickets/supervisor', methods=['GET'])
@@ -1801,14 +1976,17 @@ def asignar_ticket(id):
         socketio = get_socketio()
         if socketio:
             try:
-                # Crear datos de asignación
+                # Crear datos de asignación con estructura consistente
                 asignacion_data = {
+                    'id': ticket.id,
                     'ticket_id': ticket.id,
-                    'ticket_estado': ticket.estado,
-                    'ticket_titulo': ticket.titulo,
-                    'ticket_prioridad': ticket.prioridad,
-                    'cliente_id': ticket.id_cliente,
-                    'analista_id': id_analista,
+                    'estado': ticket.estado,
+                    'titulo': ticket.titulo,
+                    'prioridad': ticket.prioridad,
+                    'descripcion': ticket.descripcion,
+                    'fecha_creacion': ticket.fecha_creacion.isoformat() if ticket.fecha_creacion else None,
+                    'id_cliente': ticket.id_cliente,
+                    'id_analista': id_analista,
                     'analista_nombre': f"{analista.nombre} {analista.apellido}",
                     'tipo': 'asignado',
                     'accion': "reasignado" if es_reasignacion else "asignado",
@@ -1847,6 +2025,73 @@ def asignar_ticket(id):
         return jsonify({"message": f"Error al asignar ticket: {str(e)}"}), 500
 
 
+@api.route('/tickets/<int:ticket_id>/recomendaciones-similares', methods=['GET'])
+@require_auth
+def obtener_tickets_similares(ticket_id):
+    """Obtener tickets similares basados en título y descripción"""
+    try:
+        # Obtener el ticket actual
+        ticket_actual = Ticket.query.get(ticket_id)
+        if not ticket_actual:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        # Obtener todos los tickets cerrados y solucionados
+        tickets_cerrados = Ticket.query.filter(
+            Ticket.estado.in_(['cerrado', 'cerrado_por_supervisor']),
+            Ticket.id != ticket_id
+        ).all()
+        
+        if not tickets_cerrados:
+            return jsonify({
+                "tickets_similares": [],
+                "total_encontrados": 0,
+                "ticket_actual": ticket_actual.serialize()
+            }), 200
+        
+        # Algoritmo simple de similitud basado en palabras clave
+        def calcular_similitud(titulo1, descripcion1, titulo2, descripcion2):
+            # Convertir a minúsculas y dividir en palabras
+            palabras1 = set((titulo1 + " " + descripcion1).lower().split())
+            palabras2 = set((titulo2 + " " + descripcion2).lower().split())
+            
+            # Calcular intersección de palabras
+            interseccion = palabras1.intersection(palabras2)
+            union = palabras1.union(palabras2)
+            
+            # Calcular similitud de Jaccard
+            if len(union) == 0:
+                return 0
+            return len(interseccion) / len(union)
+        
+        # Calcular similitud para cada ticket cerrado
+        tickets_con_similitud = []
+        for ticket in tickets_cerrados:
+            similitud = calcular_similitud(
+                ticket_actual.titulo, ticket_actual.descripcion,
+                ticket.titulo, ticket.descripcion
+            )
+            
+            if similitud > 0.1:  # Umbral mínimo de similitud
+                ticket_data = ticket.serialize()
+                ticket_data['similitud'] = round(similitud, 3)
+                tickets_con_similitud.append(ticket_data)
+        
+        # Ordenar por similitud descendente
+        tickets_con_similitud.sort(key=lambda x: x['similitud'], reverse=True)
+        
+        # Limitar a los 5 más similares
+        tickets_similares = tickets_con_similitud[:5]
+        
+        return jsonify({
+            "tickets_similares": tickets_similares,
+            "total_encontrados": len(tickets_similares),
+            "ticket_actual": ticket_actual.serialize()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener tickets similares: {str(e)}"}), 500
+
+
 @api.route('/tickets/<int:ticket_id>/recomendacion-ia', methods=['POST'])
 @require_auth
 def generar_recomendacion_ia(ticket_id):
@@ -1873,8 +2118,7 @@ def generar_recomendacion_ia(ticket_id):
 
         # Obtener API key de OpenAI
         api_key = os.getenv('API_KEY_IA')
-        print(f"DEBUG: API_KEY_IA = {api_key}")  # Debug log
-
+        
         # Si no hay API key válida, generar recomendación básica
         if not api_key or api_key.strip() == '' or api_key == 'clave api':
             recomendacion_basica = {
@@ -2108,12 +2352,10 @@ def enviar_mensaje_supervisor_analista():
 
         # Emitir evento WebSocket
         socketio = get_socketio()
-        print(f"🔍 DEBUG: socketio = {socketio}")
         if socketio:
             # Room específico para chat supervisor-analista
             chat_room = f'chat_supervisor_analista_{ticket_id}'
-            print(f"🔍 DEBUG: Enviando a room {chat_room}")
-
+            
             socketio.emit('nuevo_mensaje_chat_supervisor_analista', {
                 'ticket_id': ticket_id,
                 'mensaje': mensaje,
@@ -2127,7 +2369,6 @@ def enviar_mensaje_supervisor_analista():
 
             # También notificar al room general del ticket para otros eventos
             general_room = f'room_ticket_{ticket_id}'
-            print(f"🔍 DEBUG: Enviando a room general {general_room}")
             socketio.emit('nuevo_mensaje_chat', {
                 'ticket_id': ticket_id,
                 'tipo': 'chat_supervisor_analista',
@@ -2140,8 +2381,9 @@ def enviar_mensaje_supervisor_analista():
                 'fecha': datetime.now().isoformat()
             }, room=general_room)
         else:
-            print("❌ ERROR: socketio es None, no se puede enviar evento WebSocket")
-
+            # WebSocket no disponible, continuar sin notificación
+            pass
+        
         return jsonify({
             "message": "Mensaje enviado exitosamente",
             "mensaje_id": comentario.id
@@ -2150,6 +2392,337 @@ def enviar_mensaje_supervisor_analista():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al enviar mensaje: {str(e)}"}), 500
+
+
+# ==================== RUTAS DE CLOUD VISION API ====================
+
+@api.route('/cloud-vision-status', methods=['GET'])
+@require_auth
+def cloud_vision_status():
+    """Verificar estado de configuración de Cloud Vision API"""
+    try:
+        cloud_vision_api_key = os.getenv('CLOUD_VISION_API')
+        cloudinary_url = os.getenv('CLOUDINARY_URL')
+        
+        return jsonify({
+            "cloud_vision_configured": bool(cloud_vision_api_key),
+            "cloudinary_configured": bool(cloudinary_url),
+            "cloud_vision_key_length": len(cloud_vision_api_key) if cloud_vision_api_key else 0,
+            "cloudinary_url_length": len(cloudinary_url) if cloudinary_url else 0,
+            "message": "Configuración verificada"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "message": "Error verificando configuración",
+            "error": str(e)
+        }), 500
+
+@api.route('/analyze-image', methods=['POST'])
+@require_auth
+def analyze_image():
+    """Analizar imagen usando Google Cloud Vision API"""
+    try:
+        # Importar Google Cloud Vision solo cuando sea necesario
+        from google.cloud import vision
+        # Verificar que se proporcionó una imagen
+        if 'image' not in request.files:
+            return jsonify({"message": "No se encontró archivo de imagen"}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({"message": "No se seleccionó archivo"}), 400
+        
+        # Obtener datos del formulario
+        ticket_id = request.form.get('ticket_id')
+        use_ticket_context = request.form.get('use_ticket_context', 'true').lower() == 'true'
+        ticket_title = request.form.get('ticket_title', '')
+        ticket_description = request.form.get('ticket_description', '')
+        additional_details = request.form.get('additional_details', '')
+        
+        # Verificar configuración de Cloud Vision API
+        cloud_vision_api_key = os.getenv('CLOUD_VISION_API')
+        if not cloud_vision_api_key:
+            return jsonify({
+                "message": "Cloud Vision API no configurada",
+                "error": "CLOUD_VISION_API no está definida en las variables de entorno",
+                "debug": f"Variables de entorno disponibles: {list(os.environ.keys())}"
+            }), 500
+        
+        # Configurar cliente de Vision API con API key
+        try:
+            # Usar API key en lugar de autenticación por defecto
+            client = vision.ImageAnnotatorClient(
+                client_options={'api_key': cloud_vision_api_key}
+            )
+        except Exception as e:
+            return jsonify({
+                "message": "Error configurando Cloud Vision API",
+                "error": str(e),
+                "debug": f"API Key length: {len(cloud_vision_api_key) if cloud_vision_api_key else 0}"
+            }), 500
+        
+        # Leer contenido de la imagen
+        image_content = file.read()
+        image = vision.Image(content=image_content)
+        
+        # Construir el prompt detallado según el contexto
+        context_description = ""
+        if use_ticket_context and ticket_title and ticket_description:
+            context_description = f"La descripción del problema es la siguiente: '{ticket_description}'. El título del ticket es: '{ticket_title}'."
+        elif additional_details:
+            context_description = f"El usuario ha proporcionado los siguientes detalles adicionales: '{additional_details}'."
+        
+        # Prompt específico para análisis de calidad con método Feynman mejorado
+        analysis_prompt = """Analiza la imagen cargada por el usuario con máxima atención y empatía. El usuario está reportando un problema y necesita tu ayuda experta. Considera cuidadosamente el contexto completo: la descripción del ticket, el título del problema, y todos los detalles adicionales proporcionados. Tu misión es ser un asistente comprensivo que siempre encuentra una manera de ayudar.
+
+Evalúa la imagen con precisión para identificar elementos clave, texto visible, objetos relacionados, y cualquier detalle visual que pueda contribuir al diagnóstico. Aplica lógica avanzada para detectar similitudes semánticas, sinónimos, conceptos relacionados, y conexiones indirectas entre la imagen y el problema reportado.
+
+SIEMPRE proporciona soluciones paso a paso usando el método Feynman, sin importar el nivel de relación detectado. Sé verboso, comprensivo y de apoyo. Explica cada paso como si fueras un mentor paciente enseñando a alguien que realmente quiere aprender. Usa analogías claras, ejemplos concretos, y un tono alentador que motive al usuario a seguir adelante. Recuerda: tu objetivo es ayudar genuinamente, no solo analizar."""
+        
+        # Realizar análisis con múltiples características
+        features = [
+            vision.Feature(type_=vision.Feature.Type.LABEL_DETECTION),
+            vision.Feature(type_=vision.Feature.Type.TEXT_DETECTION),
+            vision.Feature(type_=vision.Feature.Type.OBJECT_LOCALIZATION),
+            vision.Feature(type_=vision.Feature.Type.IMAGE_PROPERTIES)
+        ]
+        
+        # Realizar análisis
+        response = client.annotate_image({
+            'image': image,
+            'features': features
+        })
+        
+        # Procesar resultados
+        labels = []
+        if response.label_annotations:
+            labels = [
+                {
+                    'description': label.description,
+                    'score': label.score,
+                    'mid': label.mid
+                }
+                for label in response.label_annotations
+            ]
+        
+        text_detections = []
+        if response.text_annotations:
+            text_detections = [
+                {
+                    'description': text.description,
+                    'locale': text.locale,
+                    'bounding_poly': [
+                        {
+                            'x': vertex.x,
+                            'y': vertex.y
+                        }
+                        for vertex in text.bounding_poly.vertices
+                    ] if text.bounding_poly else []
+                }
+                for text in response.text_annotations
+            ]
+        
+        objects = []
+        if response.localized_object_annotations:
+            objects = [
+                {
+                    'name': obj.name,
+                    'score': obj.score,
+                    'bounding_poly': [
+                        {
+                            'x': vertex.x,
+                            'y': vertex.y
+                        }
+                        for vertex in obj.bounding_poly.normalized_vertices
+                    ]
+                }
+                for obj in response.localized_object_annotations
+            ]
+        
+        # Diccionario de traducción de elementos detectados
+        translation_dict = {
+            'lips': 'labios', 'skin': 'piel', 'jaw': 'mandíbula', 'facial expression': 'expresión facial',
+            'tooth': 'dientes', 'close-up': 'primer plano', 'eyelash': 'pestañas', 'pink': 'rosa',
+            'lipstick': 'pintalabios', 'muscle': 'músculo', 'hair': 'cabello', 'eye': 'ojo',
+            'nose': 'nariz', 'cheek': 'mejilla', 'forehead': 'frente', 'chin': 'barbilla',
+            'eyebrow': 'ceja', 'mouth': 'boca', 'face': 'cara', 'head': 'cabeza',
+            'person': 'persona', 'woman': 'mujer', 'man': 'hombre', 'child': 'niño',
+            'smile': 'sonrisa', 'frown': 'ceño fruncido', 'anger': 'enojo', 'happiness': 'felicidad',
+            'sadness': 'tristeza', 'fear': 'miedo', 'surprise': 'sorpresa', 'disgust': 'asco',
+            'clothing': 'ropa', 'shirt': 'camisa', 'dress': 'vestido', 'pants': 'pantalones',
+            'shoes': 'zapatos', 'hat': 'sombrero', 'glasses': 'anteojos', 'jewelry': 'joyería',
+            'watch': 'reloj', 'ring': 'anillo', 'necklace': 'collar', 'earring': 'arete',
+            'hand': 'mano', 'finger': 'dedo', 'arm': 'brazo', 'leg': 'pierna', 'foot': 'pie',
+            'body': 'cuerpo', 'torso': 'torso', 'back': 'espalda', 'chest': 'pecho',
+            'stomach': 'estómago', 'waist': 'cintura', 'hip': 'cadera', 'thigh': 'muslo',
+            'knee': 'rodilla', 'ankle': 'tobillo', 'heel': 'talón', 'toe': 'dedo del pie',
+            'nail': 'uña', 'thumb': 'pulgar', 'index finger': 'índice', 'middle finger': 'medio',
+            'ring finger': 'anular', 'little finger': 'meñique', 'palm': 'palma', 'wrist': 'muñeca',
+            'elbow': 'codo', 'shoulder': 'hombro', 'neck': 'cuello', 'throat': 'garganta',
+            'cheekbone': 'pómulo', 'temple': 'sien', 'forehead': 'frente', 'eyebrow': 'ceja',
+            'eyelid': 'párpado', 'eyelash': 'pestaña', 'iris': 'iris', 'pupil': 'pupila',
+            'sclera': 'esclerótica', 'tear': 'lágrima', 'teardrop': 'gota de lágrima',
+            'wrinkle': 'arruga', 'line': 'línea', 'spot': 'mancha', 'mole': 'lunar',
+            'freckle': 'peca', 'scar': 'cicatriz', 'cut': 'corte', 'wound': 'herida',
+            'bruise': 'moretón', 'swelling': 'hinchazón', 'redness': 'enrojecimiento',
+            'inflammation': 'inflamación', 'rash': 'erupción', 'acne': 'acné', 'pimple': 'espinilla',
+            'blackhead': 'punto negro', 'whitehead': 'punto blanco', 'cyst': 'quiste',
+            'tumor': 'tumor', 'growth': 'crecimiento', 'lump': 'bulto', 'bump': 'protuberancia',
+            'blister': 'ampolla', 'burn': 'quemadura', 'sunburn': 'quemadura solar',
+            'tan': 'bronceado', 'pale': 'pálido', 'dark': 'oscuro', 'light': 'claro',
+            'fair': 'justo', 'beautiful': 'hermoso', 'pretty': 'bonito', 'handsome': 'guapo',
+            'ugly': 'feo', 'attractive': 'atractivo', 'unattractive': 'poco atractivo',
+            'young': 'joven', 'old': 'viejo', 'middle-aged': 'de mediana edad', 'elderly': 'anciano',
+            'baby': 'bebé', 'toddler': 'niño pequeño', 'teenager': 'adolescente',
+            'adult': 'adulto', 'senior': 'mayor', 'infant': 'infante', 'newborn': 'recién nacido'
+        }
+        
+        # Función para traducir elementos
+        def translate_element(element):
+            element_lower = element.lower()
+            return translation_dict.get(element_lower, element)
+        
+        # Generar análisis enfocado en describir qué se ve
+        analysis_text = f"Análisis de la imagen para el ticket #{ticket_id}. "
+        
+        # Describir qué se ve en la imagen
+        if labels:
+            # Obtener los elementos más relevantes
+            top_labels = sorted(labels, key=lambda x: x['score'], reverse=True)[:10]
+            
+            # Traducir elementos al español
+            translated_elements = []
+            for label in top_labels:
+                translated = translate_element(label['description'])
+                translated_elements.append(f"{translated} ({int(label['score'] * 100)}%)")
+            
+            analysis_text += f"La imagen muestra los siguientes elementos: {', '.join(translated_elements[:5])}. "
+            
+            # Describir el contexto general de la imagen
+            if any('person' in label['description'].lower() or 'face' in label['description'].lower() for label in top_labels):
+                analysis_text += "Se trata de una imagen que incluye una persona o rostro. "
+            elif any('clothing' in label['description'].lower() or 'shirt' in label['description'].lower() for label in top_labels):
+                analysis_text += "La imagen muestra elementos de ropa o vestimenta. "
+            elif any('hand' in label['description'].lower() or 'finger' in label['description'].lower() for label in top_labels):
+                analysis_text += "La imagen incluye manos o dedos. "
+        
+        # Lógica avanzada de similitudes semánticas
+        context_keywords = []
+        if ticket_title:
+            context_keywords.extend(ticket_title.lower().split())
+        if ticket_description:
+            context_keywords.extend(ticket_description.lower().split())
+        if additional_details:
+            context_keywords.extend(additional_details.lower().split())
+        
+        image_keywords = []
+        if labels:
+            image_keywords.extend([label['description'].lower() for label in labels if label['score'] > 0.6])
+        
+        # Diccionario de sinónimos y conceptos relacionados
+        semantic_relations = {
+            'piel': ['skin', 'cutáneo', 'dermatológico', 'epidermis', 'dermis', 'tejido', 'superficie'],
+            'dolor': ['pain', 'ache', 'hurt', 'suffering', 'discomfort', 'agony', 'soreness'],
+            'error': ['error', 'bug', 'fault', 'mistake', 'problem', 'issue', 'glitch', 'failure'],
+            'problema': ['problem', 'issue', 'trouble', 'difficulty', 'challenge', 'obstacle'],
+            'herida': ['wound', 'injury', 'cut', 'scratch', 'lesion', 'trauma', 'damage'],
+            'inflamación': ['inflammation', 'swelling', 'redness', 'irritation', 'soreness'],
+            'enrojecimiento': ['redness', 'red', 'inflamed', 'irritated', 'sore'],
+            'mancha': ['spot', 'stain', 'mark', 'blemish', 'patch', 'discoloration'],
+            'equipo': ['equipment', 'device', 'machine', 'tool', 'apparatus', 'instrument'],
+            'pantalla': ['screen', 'display', 'monitor', 'interface', 'window'],
+            'cable': ['cable', 'wire', 'cord', 'connection', 'link', 'connector'],
+            'botón': ['button', 'switch', 'control', 'key', 'press', 'click'],
+            'archivo': ['file', 'document', 'data', 'information', 'record'],
+            'programa': ['program', 'software', 'application', 'app', 'system'],
+            'internet': ['internet', 'network', 'connection', 'online', 'web', 'browser'],
+            'correo': ['email', 'mail', 'message', 'communication', 'correspondence'],
+            'contraseña': ['password', 'pass', 'key', 'code', 'access', 'security'],
+            'usuario': ['user', 'person', 'account', 'profile', 'member'],
+            'sistema': ['system', 'platform', 'environment', 'framework', 'structure']
+        }
+        
+        # Buscar coincidencias directas e indirectas
+        direct_matches = set(context_keywords) & set(image_keywords)
+        semantic_matches = set()
+        
+        for context_word in context_keywords:
+            for semantic_key, related_words in semantic_relations.items():
+                if context_word in semantic_key or any(context_word in word for word in related_words):
+                    for image_word in image_keywords:
+                        if image_word in related_words or any(image_word in word for word in related_words):
+                            semantic_matches.add((context_word, image_word))
+        
+        # Calcular relación mejorada
+        total_matches = len(direct_matches) + len(semantic_matches)
+        total_context_words = len(context_keywords)
+        relation_percentage = (total_matches / total_context_words * 100) if total_context_words > 0 else 0
+        
+        # Explicación estándar de lo que se ve en la imagen
+        analysis_text += "\n\n📋 DESCRIPCIÓN DE LA IMAGEN:\n"
+        
+        # Describir el tipo de imagen
+        if labels:
+            top_labels = sorted(labels, key=lambda x: x['score'], reverse=True)[:5]
+            main_elements = [translate_element(label['description']) for label in top_labels]
+            analysis_text += f"La imagen muestra principalmente: {', '.join(main_elements)}.\n"
+            
+            # Describir el contexto general
+            if any('person' in label['description'].lower() or 'face' in label['description'].lower() for label in top_labels):
+                analysis_text += "Se trata de una imagen que incluye una persona o rostro humano.\n"
+            elif any('clothing' in label['description'].lower() or 'shirt' in label['description'].lower() for label in top_labels):
+                analysis_text += "La imagen muestra elementos de ropa o vestimenta.\n"
+            elif any('hand' in label['description'].lower() or 'finger' in label['description'].lower() for label in top_labels):
+                analysis_text += "La imagen incluye manos o dedos.\n"
+            elif any('equipment' in label['description'].lower() or 'device' in label['description'].lower() for label in top_labels):
+                analysis_text += "La imagen muestra equipos o dispositivos.\n"
+            else:
+                analysis_text += "La imagen presenta elementos diversos que requieren análisis detallado.\n"
+        
+        # Análisis de calidad de la imagen
+        if labels:
+            high_confidence_count = len([l for l in labels if l['score'] > 0.8])
+            if high_confidence_count >= 3:
+                analysis_text += "La imagen tiene buena calidad y elementos claramente identificables.\n"
+            elif high_confidence_count >= 1:
+                analysis_text += "La imagen tiene calidad aceptable con algunos elementos identificables.\n"
+            else:
+                analysis_text += "La imagen puede tener calidad limitada o elementos poco claros.\n"
+        
+        # Análisis directo de relación imagen-contexto
+        if context_description:
+            analysis_text += f"\n\n🔍 ANÁLISIS DE RELACIÓN CON EL PROBLEMA:\n"
+            analysis_text += f"Problema reportado: \"{ticket_description}\"\n"
+            analysis_text += f"Título del ticket: \"{ticket_title}\"\n"
+            
+            # Verificar relación entre imagen y problema
+            if relation_percentage >= 10:
+                analysis_text += f"\n✅ RELACIÓN DETECTADA: La imagen muestra elementos relacionados con tu problema. Los elementos visuales coinciden con la descripción del problema ({relation_percentage:.1f}% de coincidencia).\n"
+            elif relation_percentage >= 5:
+                analysis_text += f"\n⚠️ RELACIÓN PARCIAL: La imagen tiene algunos elementos relacionados con tu problema, pero no es una coincidencia completa ({relation_percentage:.1f}% de coincidencia).\n"
+        else:
+                analysis_text += f"\n❌ SIN RELACIÓN: La imagen no muestra elementos claramente relacionados con tu problema ({relation_percentage:.1f}% de coincidencia). Se recomienda subir una imagen más específica del problema.\n"
+        
+        # Análisis de texto detectado
+        if text_detections:
+            main_text = text_detections[0]['description'] if text_detections else ""
+            if main_text and len(main_text.strip()) > 3:
+                analysis_text += f"\n📝 TEXTO DETECTADO: \"{main_text}\" - Esta información puede ser útil para el diagnóstico.\n"
+        
+        return jsonify({
+            "message": "Análisis completado exitosamente",
+            "analysis": analysis_text,
+            "labels": labels,
+            "text_detections": text_detections,
+            "objects": objects,
+            "ticket_id": ticket_id
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "message": "Error al analizar la imagen",
+            "error": str(e)
+        }), 500
 
 
 @api.route('/tickets/<int:ticket_id>/chat-analista-cliente', methods=['GET'])
@@ -2247,12 +2820,10 @@ def enviar_mensaje_analista_cliente():
 
         # Emitir evento WebSocket
         socketio = get_socketio()
-        print(f"🔍 DEBUG: socketio = {socketio}")
         if socketio:
             # Room específico para chat analista-cliente
             chat_room = f'chat_analista_cliente_{ticket_id}'
-            print(f"🔍 DEBUG: Enviando a room {chat_room}")
-
+            
             socketio.emit('nuevo_mensaje_chat_analista_cliente', {
                 'ticket_id': ticket_id,
                 'mensaje': mensaje,
@@ -2266,7 +2837,6 @@ def enviar_mensaje_analista_cliente():
 
             # También notificar al room general del ticket para otros eventos
             general_room = f'room_ticket_{ticket_id}'
-            print(f"🔍 DEBUG: Enviando a room general {general_room}")
             socketio.emit('nuevo_mensaje_chat', {
                 'ticket_id': ticket_id,
                 'tipo': 'chat_analista_cliente',
@@ -2279,8 +2849,9 @@ def enviar_mensaje_analista_cliente():
                 'fecha': datetime.now().isoformat()
             }, room=general_room)
         else:
-            print("❌ ERROR: socketio es None, no se puede enviar evento WebSocket")
-
+            # WebSocket no disponible, continuar sin notificación
+            pass
+        
         return jsonify({
             "message": "Mensaje enviado exitosamente",
             "mensaje_id": comentario.id
@@ -2289,3 +2860,61 @@ def enviar_mensaje_analista_cliente():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al enviar mensaje: {str(e)}"}), 500
+
+
+# ==================== RUTAS DE MAPA DE CALOR ====================
+
+@api.route('/heatmap-data', methods=['GET'])
+@require_auth
+def get_heatmap_data():
+    """Obtener datos de coordenadas de tickets para el mapa de calor"""
+    try:
+        # Obtener todos los tickets con sus clientes que tengan coordenadas válidas
+        tickets = db.session.query(Ticket, Cliente).join(
+            Cliente, Ticket.id_cliente == Cliente.id
+        ).filter(
+            Cliente.latitude.isnot(None),
+            Cliente.longitude.isnot(None)
+        ).all()
+        
+        # Preparar datos para el mapa de calor
+        heatmap_data = []
+        for ticket, cliente in tickets:
+            try:
+                # Convertir coordenadas a float
+                lat = float(cliente.latitude)
+                lng = float(cliente.longitude)
+                
+                # Verificar que las coordenadas sean válidas
+                if -90 <= lat <= 90 and -180 <= lng <= 180:
+                    heatmap_data.append({
+                        'lat': lat,
+                        'lng': lng,
+                        'ticket_id': ticket.id,
+                        'ticket_titulo': ticket.titulo,
+                        'ticket_descripcion': ticket.descripcion or 'Sin descripción',
+                        'ticket_estado': ticket.estado,
+                        'ticket_prioridad': ticket.prioridad,
+                        'ticket_fecha_creacion': ticket.fecha_creacion.isoformat() if ticket.fecha_creacion else None,
+                        'cliente_nombre': cliente.nombre,
+                        'cliente_apellido': cliente.apellido,
+                        'cliente_email': cliente.email,
+                        'cliente_direccion': cliente.direccion or 'Dirección no disponible',
+                        'cliente_telefono': cliente.telefono,
+                        'cliente_id': cliente.id
+                    })
+            except (ValueError, TypeError):
+                # Saltar coordenadas inválidas
+                continue
+        
+        return jsonify({
+            "message": "Datos de mapa de calor de tickets obtenidos exitosamente",
+            "data": heatmap_data,
+            "total_points": len(heatmap_data)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "message": "Error al obtener datos del mapa de calor",
+            "error": str(e)
+        }), 500

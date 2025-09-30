@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import ImageUpload from "../components/ImageUpload";
 
 export const ActualizarTicket = () => {
     const { store, dispatch } = useGlobalReducer();
@@ -55,6 +56,20 @@ export const ActualizarTicket = () => {
     const controlCambio = (e) => {
         const { name, value } = e.target;
         setTicket((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleImageUpload = (imageUrl) => {
+        setTicket(prev => ({
+            ...prev,
+            url_imagen: imageUrl
+        }));
+    };
+
+    const handleImageRemove = () => {
+        setTicket(prev => ({
+            ...prev,
+            url_imagen: ""
+        }));
     };
 
     const manejarEnvio = (e) => {
@@ -127,24 +142,13 @@ export const ActualizarTicket = () => {
                         onChange={controlCambio}
                     />
                 </div>
-
-                {/* Imágenes con Cloudinary */}
                 <div className="mb-3">
-                    <button type="button" className="btn btn-primary mb-2" onClick={openCloudinaryWidget}>
-                        Subir imágenes
-                    </button>
-                    {imagenes.length > 0 && (
-                        <div className="d-flex gap-2 flex-wrap mt-2">
-                            {imagenes.map((url, idx) => (
-                                <div key={idx} className="position-relative">
-                                    <img src={url} alt={`preview-${idx}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc' }} />
-                                    <button type="button" className="btn btn-sm btn-danger position-absolute top-0 end-0" style={{ borderRadius: '50%' }} onClick={() => eliminarImagen(idx)}>&times;</button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <ImageUpload
+                        onImageUpload={handleImageUpload}
+                        onImageRemove={handleImageRemove}
+                        currentImageUrl={ticket.url_imagen}
+                    />
                 </div>
-
                 <button className="btn btn-primary me-2" type="submit">Actualizar</button>
                 <button className="btn btn-secondary" onClick={() => navigate(-1)}>Cancelar</button>
             </form>

@@ -121,6 +121,19 @@ export const VerTicket = () => {
                     <p><strong>Descripción:</strong> {ticket.descripcion}</p>
                     <p><strong>Comentario:</strong> {ticket.comentario || "Sin comentarios"}</p>
                 </div>
+                {ticket.url_imagen && !ticket.url_imagen.includes('placeholder.com') && !ticket.url_imagen.includes('data:image/svg+xml') && (
+                    <div className="col-12">
+                        <p><strong>Imagen:</strong></p>
+                        <div className="text-center">
+                            <img
+                                src={ticket.url_imagen}
+                                alt="Imagen del ticket"
+                                className="img-fluid rounded shadow"
+                                style={{ maxWidth: '500px', maxHeight: '400px', objectFit: 'contain' }}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
 

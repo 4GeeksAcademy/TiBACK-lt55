@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import ImageUpload from "../components/ImageUpload";
 
 export const AgregarCliente = () => {
     const { store, dispatch } = useGlobalReducer();
@@ -13,7 +14,8 @@ export const AgregarCliente = () => {
         email: "",
         contraseña_hash: "",
         direccion: "",
-        telefono: ""
+        telefono: "",
+        url_imagen: ""
     });
 
     const setLoading = (v) => dispatch({ type: "api_loading", payload: v });
@@ -38,6 +40,21 @@ export const AgregarCliente = () => {
         .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
+    // Funciones para manejar la imagen
+    const handleImageUpload = (imageUrl) => {
+        setNuevoCliente(prev => ({
+            ...prev,
+            url_imagen: imageUrl
+        }));
+    };
+
+    const handleImageRemove = () => {
+        setNuevoCliente(prev => ({
+            ...prev,
+            url_imagen: ""
+        }));
+    };
+
     const limpiarFormulario = () => {
         setNuevoCliente({
             nombre: "",
@@ -45,7 +62,8 @@ export const AgregarCliente = () => {
             email: "",
             contraseña_hash: "",
             direccion: "",
-            telefono: "" 
+            telefono: "",
+            url_imagen: ""
         });
     };
 
@@ -150,6 +168,14 @@ export const AgregarCliente = () => {
                                             placeholder="Ingrese la dirección"
                                             value={nuevoCliente.direccion}
                                             onChange={e => setNuevoCliente(s => ({ ...s, direccion: e.target.value }))}
+                                        />
+                                    </div>
+                                    <div className="col-12">
+                                        <label className="form-label">Imagen de Perfil</label>
+                                        <ImageUpload
+                                            onImageUpload={handleImageUpload}
+                                            onImageRemove={handleImageRemove}
+                                            currentImageUrl={nuevoCliente.url_imagen}
                                         />
                                     </div>
                                 </div>

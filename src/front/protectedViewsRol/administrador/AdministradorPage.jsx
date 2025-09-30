@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
+import HeatmapComponent from '../../components/HeatmapComponent';
 
 // Utilidades de token seguras
 const tokenUtils = {
@@ -63,16 +64,12 @@ export function AdministradorPage() {
     useEffect(() => {
         if (store.websocket.notifications.length > 0) {
             const lastNotification = store.websocket.notifications[store.websocket.notifications.length - 1];
-            console.log('🔔 ADMINISTRADOR - Notificación recibida:', lastNotification);
-            
             // Actualización inmediata para eventos específicos (sin esperar)
             if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado') {
-                console.log('⚡ ADMINISTRADOR - Actualización inmediata por notificación:', lastNotification.tipo);
                 // Los datos ya están en el store por el WebSocket - actualización instantánea
             }
             
             // Sincronización con servidor en segundo plano para TODOS los eventos
-            console.log('🔄 ADMINISTRADOR - Sincronizando estadísticas con servidor en segundo plano:', lastNotification.tipo);
             cargarEstadisticas();
         }
     }, [store.websocket.notifications]);
@@ -422,6 +419,13 @@ export function AdministradorPage() {
                             <p className="card-text text-muted">Ver historial de gestiones</p>
                         </div>
                     </Link>
+                </div>
+            </div>
+
+            {/* Mapa de Calor */}
+            <div className="row mb-4">
+                <div className="col-12">
+                    <HeatmapComponent />
                 </div>
             </div>
 
