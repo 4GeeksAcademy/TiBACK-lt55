@@ -75,7 +75,7 @@ export const Navbar = () => {
 							</Link>
 						</>
 					)}
-
+					<Link to="/">a principal</Link>
 				</div>
 			</div>
 		</nav>
