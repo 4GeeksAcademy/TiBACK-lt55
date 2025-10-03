@@ -21,10 +21,10 @@ export function AuthForm() {
         analista: "https://i.pravatar.cc/1000?img=12",
         supervisor: "https://i.pravatar.cc/1000?img=54",
         administrador: "https://i.pravatar.cc/1000?img=10",
-};
+    };
     const [locationData, setLocationData] = useState({
         address: '',
-        lat: null, 
+        lat: null,
         lng: null
     });
     const [error, setError] = useState('');
@@ -79,7 +79,7 @@ export function AuthForm() {
                         telefono: '0000000000'
                     };
                     result = await register(basicClientData);
-                    
+
                     if (result.success) {
                         alert('Cliente registrado exitosamente. Por favor inicia sesión.');
                         setIsLogin(true);
@@ -161,13 +161,13 @@ export function AuthForm() {
     return (
         <div className="container-fluid vh-100 m-0 p-0">
             <div className="row h-100 g-0">
-                
+
                 {/* Lado izquierdo: formulario (30%) */}
                 <div className="col-lg-4 col-md-5 d-flex flex-column bg-white shadow-sm px-4 pb-4">
-                    
+
                     {/* Logo arriba */}
                     <div className="mb-4 ms-3">
-                        <img src={TiBACKLogo} className="btn cursor-pointer" onClick={() => navigate('/')} alt="TiBACK Logo" style={{ maxWidth: "170px", height: "auto" }} />
+                        <img src={TiBACKLogo} className="btn cursor-pointer ps-0" onClick={() => navigate('/')} alt="TiBACK Logo" style={{ maxWidth: "170px", height: "auto" }} />
                     </div>
 
                     {/* Formulario */}
@@ -176,8 +176,8 @@ export function AuthForm() {
                             {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
                         </h4>
                         <p className="text-muted mb-5">
-                            {isLogin 
-                                ? `Accede a tu cuenta de ${formData.role}.` 
+                            {isLogin
+                                ? `Accede a tu cuenta de ${formData.role}.`
                                 : `Crea tu cuenta de ${formData.role}.`}
                         </p>
 
@@ -261,8 +261,8 @@ export function AuthForm() {
                                 />
                             </div>
 
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 className="btn btn-primary w-100 mt-3"
                                 disabled={store.auth.isLoading}
                             >
@@ -283,7 +283,7 @@ export function AuthForm() {
 
 
                 {/* Lado derecho: imagen (70%) */}
-                <div 
+                <div
                     className="col-lg-8 col-md-7 d-flex flex-column justify-content-center align-items-center text-white"
                     style={{
                         backgroundImage: `url("${backgroundImages[formData.role] || backgroundImages.cliente}")`,
