@@ -103,7 +103,7 @@ export const CardCreadores = () => {
                                     </a>
                                 </p>
                                 <p>
-                                    <a href={selectedUser.contacto?.linkedin} target="_blank">
+                                    <a href={selectedUser.contacto?.github} target="_blank">
                                         <i className="fa-brands fa-github fa-2xl"></i>
                                     </a>
                                 </p>
