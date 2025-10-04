@@ -207,10 +207,29 @@ class Ticket(db.Model):
                 "supervisor": asignacion_mas_reciente.supervisor.serialize() if asignacion_mas_reciente.supervisor else None
             }
         
+        # Verificar si tiene solicitud de reapertura pendiente
+        tiene_solicitud_pendiente = False
+        if self.estado.lower() == 'solucionado':
+            # Importar la función helper
+            try:
+                from api.routes import tiene_solicitud_reapertura_pendiente
+                tiene_solicitud_pendiente = tiene_solicitud_reapertura_pendiente(self.id)
+            except ImportError:
+                # Si no se puede importar, verificar directamente
+                solicitud_reapertura = [c for c in self.comentarios if 
+                    c.texto == "Cliente solicitó reapertura del ticket - Pendiente de decisión del supervisor"]
+                if solicitud_reapertura:
+                    # Verificar si hay decisión del supervisor después
+                    decision_supervisor = [c for c in self.comentarios if 
+                        c.fecha_comentario > solicitud_reapertura[0].fecha_comentario and
+                        c.id_supervisor is not None and
+                        "Supervisor aprobó solicitud de reapertura" in c.texto]
+                    tiene_solicitud_pendiente = len(decision_supervisor) == 0
+        
         return {
             "id": self.id,
             "id_cliente": self.id_cliente,
-            "estado": self.estado,
+            "estado": self.estado.replace(' ', '_'),  # Normalizar estado para frontend
             "titulo": self.titulo,
             "descripcion": self.descripcion,
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
@@ -222,7 +241,8 @@ class Ticket(db.Model):
             "url_imagen": self.url_imagen,
             "cliente": self.cliente.serialize() if self.cliente else None,
             "asignacion_actual": asignacion_actual,
-            "comentarios": [c.serialize() for c in self.comentarios] if hasattr(self, 'comentarios') else []
+            "comentarios": [c.serialize() for c in self.comentarios] if hasattr(self, 'comentarios') else [],
+            "tiene_solicitud_reapertura_pendiente": tiene_solicitud_pendiente
         }
 
 class Gestion(db.Model):
