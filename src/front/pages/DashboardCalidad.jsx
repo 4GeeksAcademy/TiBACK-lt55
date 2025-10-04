@@ -6,6 +6,7 @@ export function DashboardCalidad() {
     const [analistas, setAnalistas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [selectedAnalista, setSelectedAnalista] = useState(null);
     const [selectedPeriod, setSelectedPeriod] = useState('week'); // day, week, month
 
     // Cargar datos de analistas y métricas
@@ -193,138 +194,252 @@ export function DashboardCalidad() {
     }
 
     return (
-        <div className="container-fluid py-4" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-            {/* Header Welcome Card */}
+        <div className="container-fluid py-4 px-4">
+            {/* Header con Título y Selector */}
             <div className="row mb-4">
-                <div className="col-lg-4">
-                    <div className="card border-0 shadow-sm" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                <div className="col-12">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h1 className="hyper-page-title">
+                            <i className="fas fa-chart-line me-2"></i>
+                            Dashboard de Calidad
+                        </h1>
+                        <div className="d-flex gap-3">
+                            {/* Selector de Analista */}
+                            <div className="d-flex align-items-center gap-2">
+                                <label className="form-label mb-0 fw-semibold">Analista:</label>
+                                <select
+                                    className="form-select form-select-sm"
+                                    style={{ minWidth: '200px' }}
+                                    value={selectedAnalista || ''}
+                                    onChange={(e) => setSelectedAnalista(e.target.value ? parseInt(e.target.value) : null)}
+                                >
+                                    <option value="">Todos los analistas</option>
+                                    {analistas.map((analista) => (
+                                        <option key={analista.id} value={analista.id}>
+                                            {analista.nombre} {analista.apellido}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <button
+                                className="btn btn-outline-primary btn-sm"
+                                onClick={() => window.location.reload()}
+                            >
+                                <i className="fas fa-sync-alt me-1"></i>
+                                Actualizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Métricas Principales */}
+            <div className="row mb-4 g-3">
+                <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                    <div className="hyper-widget card border-0 shadow-sm h-100">
                         <div className="card-body">
-                            <div className="d-flex align-items-center">
-                                <div className="flex-grow-1">
-                                    <h4 className="mb-1">¡Bienvenido de vuelta!</h4>
-                                    <h5 className="mb-0">Dashboard de Calidad</h5>
-                                    <p className="mb-0 opacity-75">Rendimiento y métricas de analistas</p>
-                                </div>
-                                <div className="ms-3">
-                                    <div style={{ width: '80px', height: '80px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <i className="fas fa-chart-line fa-2x"></i>
+                            <div className="text-center">
+                                <h6 className="card-title text-muted mb-2">Total Analistas</h6>
+                                <div className="d-flex align-items-center justify-content-center mb-2">
+                                    <h3 className="mb-0 text-primary me-2">
+                                        {selectedAnalista ? 1 : analistas.length}
+                                    </h3>
+                                    <div className="bg-primary bg-opacity-10 rounded-circle p-2">
+                                        <i className="fas fa-users text-primary"></i>
                                     </div>
                                 </div>
+                                <small className="text-muted">
+                                    {selectedAnalista ? 'Analista seleccionado' : 'Equipo completo'}
+                                </small>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="col-lg-8">
-                    <div className="row">
-                        {/* Total Analistas */}
-                        <div className="col-md-4 mb-3">
-                            <div className="card border-0 shadow-sm h-100">
-                                <div className="card-body">
-                                    <div className="d-flex align-items-center">
-                                        <div className="flex-grow-1">
-                                            <h6 className="card-title text-muted mb-1">Total Analistas</h6>
-                                            <h3 className="mb-0 text-primary">{analistas.length}</h3>
-                                            <small className="text-success">
-                                                <i className="fas fa-arrow-up me-1"></i>
-                                                +2.5% Desde la semana pasada
-                                            </small>
-                                        </div>
-                                        <div className="ms-3">
-                                            <div className="bg-primary bg-opacity-10 rounded-circle p-3">
-                                                <i className="fas fa-users text-primary fa-lg"></i>
-                                            </div>
-                                        </div>
+
+                <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                    <div className="hyper-widget card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                            <div className="text-center">
+                                <h6 className="card-title text-muted mb-2">Tickets Asignados</h6>
+                                <div className="d-flex align-items-center justify-content-center mb-2">
+                                    <h3 className="mb-0 text-info me-2">
+                                        {selectedAnalista
+                                            ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsAsignados || 0
+                                            : analistas.reduce((sum, a) => sum + a.metricas.ticketsAsignados, 0)
+                                        }
+                                    </h3>
+                                    <div className="bg-info bg-opacity-10 rounded-circle p-2">
+                                        <i className="fas fa-ticket-alt text-info"></i>
                                     </div>
                                 </div>
+                                <small className="text-muted">
+                                    {selectedAnalista ? 'Del analista' : 'Total del equipo'}
+                                </small>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Tickets Cerrados */}
-                        <div className="col-md-4 mb-3">
-                            <div className="card border-0 shadow-sm h-100">
-                                <div className="card-body">
-                                    <div className="d-flex align-items-center">
-                                        <div className="flex-grow-1">
-                                            <h6 className="card-title text-muted mb-1">Tickets Cerrados</h6>
-                                            <h3 className="mb-0 text-success">
-                                                {analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)}
-                                            </h3>
-                                            <small className="text-danger">
-                                                <i className="fas fa-arrow-down me-1"></i>
-                                                -1.2% Desde la semana pasada
-                                            </small>
-                                        </div>
-                                        <div className="ms-3">
-                                            <div className="bg-success bg-opacity-10 rounded-circle p-3">
-                                                <i className="fas fa-check-circle text-success fa-lg"></i>
-                                            </div>
-                                        </div>
+                <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                    <div className="hyper-widget card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                            <div className="text-center">
+                                <h6 className="card-title text-muted mb-2">Tickets Solucionados</h6>
+                                <div className="d-flex align-items-center justify-content-center mb-2">
+                                    <h3 className="mb-0 text-warning me-2">
+                                        {selectedAnalista
+                                            ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsSolucionados || 0
+                                            : analistas.reduce((sum, a) => sum + a.metricas.ticketsSolucionados, 0)
+                                        }
+                                    </h3>
+                                    <div className="bg-warning bg-opacity-10 rounded-circle p-2">
+                                        <i className="fas fa-tools text-warning"></i>
                                     </div>
                                 </div>
+                                <small className="text-muted">
+                                    {selectedAnalista ? 'Del analista' : 'Total del equipo'}
+                                </small>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Calificación Promedio */}
-                        <div className="col-md-4 mb-3">
-                            <div className="card border-0 shadow-sm h-100" style={{ backgroundColor: '#e3f2fd' }}>
-                                <div className="card-body">
-                                    <div className="d-flex align-items-center">
-                                        <div className="flex-grow-1">
-                                            <h6 className="card-title text-muted mb-1">Calificación Promedio</h6>
-                                            <h3 className="mb-0 text-info">
-                                                {analistas.length > 0
-                                                    ? (analistas.reduce((sum, a) => sum + a.metricas.calificacionPromedio, 0) / analistas.length).toFixed(1)
-                                                    : '0.0'
-                                                }
-                                            </h3>
-                                            <small className="text-success">
-                                                <i className="fas fa-arrow-up me-1"></i>
-                                                +0.8% Desde la semana pasada
-                                            </small>
-                                        </div>
-                                        <div className="ms-3">
-                                            <div className="bg-info bg-opacity-10 rounded-circle p-3">
-                                                <i className="fas fa-star text-info fa-lg"></i>
-                                            </div>
-                                        </div>
+                <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                    <div className="hyper-widget card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                            <div className="text-center">
+                                <h6 className="card-title text-muted mb-2">Tickets Cerrados</h6>
+                                <div className="d-flex align-items-center justify-content-center mb-2">
+                                    <h3 className="mb-0 text-success me-2">
+                                        {selectedAnalista
+                                            ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsCerrados || 0
+                                            : analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)
+                                        }
+                                    </h3>
+                                    <div className="bg-success bg-opacity-10 rounded-circle p-2">
+                                        <i className="fas fa-check-circle text-success"></i>
                                     </div>
                                 </div>
+                                <small className="text-muted">
+                                    {selectedAnalista ? 'Del analista' : 'Total del equipo'}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                    <div className="hyper-widget card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                            <div className="text-center">
+                                <h6 className="card-title text-muted mb-2">Calificación Promedio</h6>
+                                <div className="d-flex align-items-center justify-content-center mb-2">
+                                    <h3 className="mb-0 text-warning me-2">
+                                        {selectedAnalista
+                                            ? analistas.find(a => a.id === selectedAnalista)?.metricas.calificacionPromedio || 0
+                                            : analistas.length > 0
+                                                ? (analistas.reduce((sum, a) => sum + a.metricas.calificacionPromedio, 0) / analistas.length).toFixed(1)
+                                                : '0.0'
+                                        }
+                                    </h3>
+                                    <div className="bg-warning bg-opacity-10 rounded-circle p-2">
+                                        <i className="fas fa-star text-warning"></i>
+                                    </div>
+                                </div>
+                                <small className="text-muted">
+                                    {selectedAnalista ? 'Del analista' : 'Promedio del equipo'}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                    <div className="hyper-widget card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                            <div className="text-center">
+                                <h6 className="card-title text-muted mb-2">Eficiencia</h6>
+                                <div className="d-flex align-items-center justify-content-center mb-2">
+                                    <h3 className="mb-0 text-primary me-2">
+                                        {selectedAnalista
+                                            ? analistas.find(a => a.id === selectedAnalista)?.metricas.eficiencia || 0
+                                            : analistas.length > 0
+                                                ? (analistas.reduce((sum, a) => sum + a.metricas.eficiencia, 0) / analistas.length).toFixed(1)
+                                                : '0.0'
+                                        }%
+                                    </h3>
+                                    <div className="bg-primary bg-opacity-10 rounded-circle p-2">
+                                        <i className="fas fa-tachometer-alt text-primary"></i>
+                                    </div>
+                                </div>
+                                <small className="text-muted">
+                                    {selectedAnalista ? 'Del analista' : 'Promedio del equipo'}
+                                </small>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Gráfico de Barras y Feed de Actividades */}
-            <div className="row">
-                {/* Gráfico de Rendimiento */}
-                <div className="col-lg-8">
-                    <div className="card border-0 shadow-sm">
+            {/* Sección de Métricas Detalladas */}
+            <div className="row mb-4 g-3">
+                <div className="col-xl-9 col-lg-8">
+                    <div className="hyper-widget card border-0 shadow-sm">
                         <div className="card-header bg-white border-0">
-                            <h5 className="mb-0">Rendimiento / Eficiencia</h5>
+                            <h5 className="mb-0">
+                                <i className="fas fa-chart-bar me-2"></i>
+                                {selectedAnalista ? 'Métricas del Analista' : 'Rendimiento del Equipo'}
+                            </h5>
                         </div>
                         <div className="card-body">
-                            <div className="row text-center mb-3">
-                                <div className="col-4">
-                                    <div className="border-end">
-                                        <h4 className="text-primary">{analistas.reduce((sum, a) => sum + a.metricas.ticketsAsignados, 0)}</h4>
+                            <div className="row text-center mb-4 g-3">
+                                <div className="col-xl-3 col-lg-6 col-md-6">
+                                    <div className="border-end pe-3">
+                                        <h4 className="text-primary">
+                                            {selectedAnalista
+                                                ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsAsignados || 0
+                                                : analistas.reduce((sum, a) => sum + a.metricas.ticketsAsignados, 0)
+                                            }
+                                        </h4>
                                         <small className="text-muted">Asignados</small>
                                     </div>
                                 </div>
-                                <div className="col-4">
-                                    <div className="border-end">
-                                        <h4 className="text-success">{analistas.reduce((sum, a) => sum + a.metricas.ticketsSolucionados, 0)}</h4>
+                                <div className="col-xl-3 col-lg-6 col-md-6">
+                                    <div className="border-end pe-3">
+                                        <h4 className="text-warning">
+                                            {selectedAnalista
+                                                ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsSolucionados || 0
+                                                : analistas.reduce((sum, a) => sum + a.metricas.ticketsSolucionados, 0)
+                                            }
+                                        </h4>
                                         <small className="text-muted">Solucionados</small>
                                     </div>
                                 </div>
-                                <div className="col-4">
-                                    <h4 className="text-info">{analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)}</h4>
-                                    <small className="text-muted">Cerrados</small>
+                                <div className="col-xl-3 col-lg-6 col-md-6">
+                                    <div className="border-end pe-3">
+                                        <h4 className="text-success">
+                                            {selectedAnalista
+                                                ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsCerrados || 0
+                                                : analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)
+                                            }
+                                        </h4>
+                                        <small className="text-muted">Cerrados</small>
+                                    </div>
+                                </div>
+                                <div className="col-xl-3 col-lg-6 col-md-6">
+                                    <h4 className="text-danger">
+                                        {selectedAnalista
+                                            ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsReabiertos || 0
+                                            : analistas.reduce((sum, a) => sum + a.metricas.ticketsReabiertos, 0)
+                                        }
+                                    </h4>
+                                    <small className="text-muted">Reabiertos</small>
                                 </div>
                             </div>
 
                             {/* Gráfico de barras simple */}
                             <div className="mt-4">
+                                <h6 className="text-muted mb-3">Tendencia Mensual</h6>
                                 <div className="d-flex align-items-end justify-content-between" style={{ height: '200px' }}>
                                     {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((mes, index) => {
                                         const altura = Math.random() * 100 + 20;
@@ -339,7 +454,7 @@ export function DashboardCalidad() {
                                                     }}
                                                 ></div>
                                                 <div
-                                                    className="bg-info rounded-bottom"
+                                                    className="bg-success rounded-bottom"
                                                     style={{
                                                         height: `${altura * 0.6}px`,
                                                         width: '100%',
@@ -356,140 +471,211 @@ export function DashboardCalidad() {
                     </div>
                 </div>
 
-                {/* Feed de Actividades */}
-                <div className="col-lg-4">
-                    <div className="card border-0 shadow-sm">
-                        <div className="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0">Actividad Reciente</h5>
-                            <span className="badge bg-primary rounded-pill">Hoy</span>
-                        </div>
-                        <div className="card-body">
-                            {/* Actividad 1 */}
-                            <div className="d-flex align-items-start mb-3">
-                                <div className="flex-shrink-0">
-                                    <div className="bg-primary bg-opacity-10 rounded-circle p-2">
-                                        <i className="fas fa-user text-primary"></i>
-                                    </div>
-                                </div>
-                                <div className="flex-grow-1 ms-3">
-                                    <p className="mb-1">
-                                        <strong>Ana García</strong> comenzó a seguir a <strong>Carlos López</strong>
-                                    </p>
-                                    <small className="text-muted">Hace 5m • Hoy 7:51 pm</small>
-                                </div>
-                            </div>
-
-                            {/* Actividad 2 */}
-                            <div className="d-flex align-items-start mb-3">
-                                <div className="flex-shrink-0">
-                                    <div className="bg-success bg-opacity-10 rounded-circle p-2">
-                                        <i className="fas fa-ticket-alt text-success"></i>
-                                    </div>
-                                </div>
-                                <div className="flex-grow-1 ms-3">
-                                    <p className="mb-1">
-                                        <strong>María Rodríguez</strong> publicó algo en la línea de tiempo de <strong>Luis Pérez</strong>
-                                    </p>
-                                    <div className="bg-light p-2 rounded mt-2">
-                                        <small className="text-muted">
-                                            "El ticket #1234 ha sido solucionado exitosamente. El cliente está satisfecho con la resolución..."
-                                        </small>
-                                    </div>
-                                    <small className="text-muted">Hace 30m • Hoy 7:21 pm</small>
-                                </div>
-                            </div>
-
-                            {/* Actividad 3 */}
-                            <div className="d-flex align-items-start mb-3">
-                                <div className="flex-shrink-0">
-                                    <div className="bg-info bg-opacity-10 rounded-circle p-2">
-                                        <i className="fas fa-chart-line text-info"></i>
-                                    </div>
-                                </div>
-                                <div className="flex-grow-1 ms-3">
-                                    <p className="mb-1">
-                                        <strong>Pedro Martínez</strong> publicó un nuevo reporte
-                                    </p>
-                                    <small className="text-muted">Hace 1h • Hoy 6:35 pm</small>
-                                </div>
-                            </div>
-
-                            <div className="text-center mt-3">
-                                <button className="btn btn-primary btn-sm">Cargar más</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Top 3 Analistas */}
-            <div className="row mt-4">
-                <div className="col-lg-6">
-                    <div className="card border-0 shadow-sm">
+                {/* Métricas de Eficiencia */}
+                <div className="col-xl-3 col-lg-4">
+                    <div className="hyper-widget card border-0 shadow-sm h-100">
                         <div className="card-header bg-white border-0">
-                            <h6 className="mb-0">
-                                <i className="fas fa-trophy me-2"></i>
-                                Top 3 Analistas
-                            </h6>
+                            <h5 className="mb-0">
+                                <i className="fas fa-tachometer-alt me-2"></i>
+                                Eficiencia
+                            </h5>
                         </div>
                         <div className="card-body">
-                            {analistas
-                                .sort((a, b) => b.metricas.eficiencia - a.metricas.eficiencia)
-                                .slice(0, 3)
-                                .map((analista, index) => (
-                                    <div key={analista.id} className="d-flex justify-content-between align-items-center mb-3">
-                                        <div className="d-flex align-items-center">
-                                            <span className={`badge bg-${index === 0 ? 'warning' : index === 1 ? 'secondary' : 'info'} me-3`}>
-                                                {index + 1}
-                                            </span>
-                                            <div>
-                                                <h6 className="mb-0">{analista.nombre} {analista.apellido}</h6>
-                                                <small className="text-muted">{analista.email}</small>
+                            {selectedAnalista ? (
+                                (() => {
+                                    const analista = analistas.find(a => a.id === selectedAnalista);
+                                    if (!analista) return null;
+                                    return (
+                                        <div className="text-center">
+                                            <div className="mb-3">
+                                                <div className="display-4 text-primary fw-bold">
+                                                    {analista.metricas.eficiencia}%
+                                                </div>
+                                                <div className="text-muted">Eficiencia General</div>
+                                            </div>
+                                            <div className="row text-center g-2">
+                                                <div className="col-6">
+                                                    <div className="fw-bold text-success">{analista.metricas.satisfaccion.toFixed(1)}%</div>
+                                                    <div className="small text-muted">Satisfacción</div>
+                                                </div>
+                                                <div className="col-6">
+                                                    <div className="fw-bold text-info">{analista.metricas.tiempoRespuestaPromedio}h</div>
+                                                    <div className="small text-muted">Tiempo Resp.</div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="text-end">
-                                            <span className="badge bg-success">{analista.metricas.eficiencia.toFixed(1)}%</span>
-                                            <br />
-                                            <small className="text-muted">{analista.metricas.ticketsCerrados} cerrados</small>
+                                    );
+                                })()
+                            ) : (
+                                <div className="text-center">
+                                    <div className="mb-3">
+                                        <div className="display-4 text-primary fw-bold">
+                                            {analistas.length > 0
+                                                ? (analistas.reduce((sum, a) => sum + a.metricas.eficiencia, 0) / analistas.length).toFixed(1)
+                                                : '0.0'
+                                            }%
+                                        </div>
+                                        <div className="text-muted">Eficiencia Promedio</div>
+                                    </div>
+                                    <div className="row text-center g-2">
+                                        <div className="col-6">
+                                            <div className="fw-bold text-success">
+                                                {analistas.length > 0
+                                                    ? (analistas.reduce((sum, a) => sum + a.metricas.satisfaccion, 0) / analistas.length).toFixed(1)
+                                                    : '0.0'
+                                                }%
+                                            </div>
+                                            <div className="small text-muted">Satisfacción</div>
+                                        </div>
+                                        <div className="col-6">
+                                            <div className="fw-bold text-info">
+                                                {analistas.length > 0
+                                                    ? (analistas.reduce((sum, a) => sum + a.metricas.tiempoRespuestaPromedio, 0) / analistas.length).toFixed(1)
+                                                    : '0.0'
+                                                }h
+                                            </div>
+                                            <div className="small text-muted">Tiempo Resp.</div>
                                         </div>
                                     </div>
-                                ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-lg-6">
-                    <div className="card border-0 shadow-sm">
-                        <div className="card-header bg-white border-0">
-                            <h6 className="mb-0">
-                                <i className="fas fa-chart-pie me-2"></i>
-                                Distribución de Tickets
-                            </h6>
-                        </div>
-                        <div className="card-body">
-                            <div className="row text-center">
-                                <div className="col-4">
-                                    <div className="border-end">
-                                        <h4 className="text-primary">{analistas.reduce((sum, a) => sum + a.metricas.ticketsAsignados, 0)}</h4>
-                                        <small className="text-muted">Asignados</small>
-                                    </div>
                                 </div>
-                                <div className="col-4">
-                                    <div className="border-end">
-                                        <h4 className="text-success">{analistas.reduce((sum, a) => sum + a.metricas.ticketsSolucionados, 0)}</h4>
-                                        <small className="text-muted">Solucionados</small>
-                                    </div>
-                                </div>
-                                <div className="col-4">
-                                    <h4 className="text-info">{analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)}</h4>
-                                    <small className="text-muted">Cerrados</small>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
+            {/* Top 3 Analistas - Solo cuando no hay analista seleccionado */}
+            {!selectedAnalista && (
+                <div className="row mb-4 g-3">
+                    <div className="col-xl-7 col-lg-6">
+                        <div className="hyper-widget card border-0 shadow-sm">
+                            <div className="card-header bg-white border-0">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-trophy me-2"></i>
+                                    Top 3 Analistas
+                                </h5>
+                            </div>
+                            <div className="card-body">
+                                {analistas
+                                    .sort((a, b) => b.metricas.eficiencia - a.metricas.eficiencia)
+                                    .slice(0, 3)
+                                    .map((analista, index) => (
+                                        <div key={analista.id} className="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
+                                            <div className="d-flex align-items-center">
+                                                <span className={`badge bg-${index === 0 ? 'warning' : index === 1 ? 'secondary' : 'info'} me-3`}>
+                                                    #{index + 1}
+                                                </span>
+                                                <div>
+                                                    <h6 className="mb-0">{analista.nombre} {analista.apellido}</h6>
+                                                    <small className="text-muted">{analista.email}</small>
+                                                </div>
+                                            </div>
+                                            <div className="text-end">
+                                                <span className="badge bg-success fs-6">{analista.metricas.eficiencia.toFixed(1)}%</span>
+                                                <br />
+                                                <small className="text-muted">{analista.metricas.ticketsCerrados} cerrados</small>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-xl-5 col-lg-6">
+                        <div className="hyper-widget card border-0 shadow-sm">
+                            <div className="card-header bg-white border-0">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-chart-pie me-2"></i>
+                                    Distribución del Equipo
+                                </h5>
+                            </div>
+                            <div className="card-body">
+                                <div className="row text-center g-3">
+                                    <div className="col-4">
+                                        <div className="border-end pe-3">
+                                            <h4 className="text-primary">{analistas.reduce((sum, a) => sum + a.metricas.ticketsAsignados, 0)}</h4>
+                                            <small className="text-muted">Asignados</small>
+                                        </div>
+                                    </div>
+                                    <div className="col-4">
+                                        <div className="border-end pe-3">
+                                            <h4 className="text-success">{analistas.reduce((sum, a) => sum + a.metricas.ticketsSolucionados, 0)}</h4>
+                                            <small className="text-muted">Solucionados</small>
+                                        </div>
+                                    </div>
+                                    <div className="col-4">
+                                        <h4 className="text-info">{analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)}</h4>
+                                        <small className="text-muted">Cerrados</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Detalles del Analista Seleccionado */}
+            {selectedAnalista && (
+                <div className="row mb-4 g-3">
+                    <div className="col-12">
+                        <div className="hyper-widget card border-0 shadow-sm">
+                            <div className="card-header bg-white border-0">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-user-tie me-2"></i>
+                                    Detalles del Analista
+                                </h5>
+                            </div>
+                            <div className="card-body">
+                                {(() => {
+                                    const analista = analistas.find(a => a.id === selectedAnalista);
+                                    if (!analista) return null;
+
+                                    return (
+                                        <div className="row g-3">
+                                            <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                                                <div className="text-center p-3 bg-light rounded">
+                                                    <div className="fw-bold text-primary fs-4">{analista.metricas.ticketsAsignados}</div>
+                                                    <div className="text-muted">Tickets Asignados</div>
+                                                </div>
+                                            </div>
+                                            <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                                                <div className="text-center p-3 bg-light rounded">
+                                                    <div className="fw-bold text-warning fs-4">{analista.metricas.ticketsSolucionados}</div>
+                                                    <div className="text-muted">Tickets Solucionados</div>
+                                                </div>
+                                            </div>
+                                            <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                                                <div className="text-center p-3 bg-light rounded">
+                                                    <div className="fw-bold text-success fs-4">{analista.metricas.ticketsCerrados}</div>
+                                                    <div className="text-muted">Tickets Cerrados</div>
+                                                </div>
+                                            </div>
+                                            <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                                                <div className="text-center p-3 bg-light rounded">
+                                                    <div className="fw-bold text-danger fs-4">{analista.metricas.ticketsReabiertos}</div>
+                                                    <div className="text-muted">Tickets Reabiertos</div>
+                                                </div>
+                                            </div>
+                                            <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                                                <div className="text-center p-3 bg-light rounded">
+                                                    <div className="fw-bold text-info fs-4">{analista.metricas.calificacionPromedio}</div>
+                                                    <div className="text-muted">Calificación Promedio</div>
+                                                </div>
+                                            </div>
+                                            <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
+                                                <div className="text-center p-3 bg-light rounded">
+                                                    <div className="fw-bold text-primary fs-4">{analista.metricas.eficiencia}%</div>
+                                                    <div className="text-muted">Eficiencia</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,16 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
+import { SideBarCentral } from '../components/SideBarCentral';
+
+// Utilidades de token seguras
+const tokenUtils = {
+    decodeToken: (token) => {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (error) {
+            return null;
+        }
+    },
+    getUserId: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.user_id : null;
+    },
+    getRole: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.role : null;
+    }
+};
 
 const RecomendacionesSimilares = () => {
     const { ticketId } = useParams();
     const navigate = useNavigate();
-    const { store } = useGlobalReducer();
+    const { store, dispatch } = useGlobalReducer();
     const [ticketsSimilares, setTicketsSimilares] = useState([]);
     const [ticketActual, setTicketActual] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [comentariosPorTicket, setComentariosPorTicket] = useState({});
+    const [userData, setUserData] = useState(null);
+    const [sidebarHidden, setSidebarHidden] = useState(false);
+    const [activeView, setActiveView] = useState('recomendaciones-similares');
 
     useEffect(() => {
         const cargarRecomendaciones = async () => {
@@ -46,6 +72,77 @@ const RecomendacionesSimilares = () => {
 
         cargarRecomendaciones();
     }, [ticketId, store.auth.token]);
+
+    // Cargar datos del usuario para el sidebar (solo si no están disponibles)
+    useEffect(() => {
+        // Si ya tenemos datos del usuario en el store, usarlos directamente
+        if (store.auth.user && store.auth.isAuthenticated) {
+            setUserData(store.auth.user);
+            return;
+        }
+
+        // Solo cargar si no tenemos datos del usuario
+        const cargarDatosUsuario = async () => {
+            try {
+                const token = store.auth.token;
+                if (!token) return;
+
+                const userId = tokenUtils.getUserId(token);
+                const role = tokenUtils.getRole(token);
+
+                if (!userId || !role) return;
+
+                // Cargar datos del usuario según su rol
+                let userResponse;
+                if (role === 'cliente') {
+                    userResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${userId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } else if (role === 'analista') {
+                    userResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analistas/${userId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } else if (role === 'supervisor') {
+                    userResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/supervisores/${userId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } else if (role === 'administrador') {
+                    userResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/administradores/${userId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+
+                if (userResponse && userResponse.ok) {
+                    const userData = await userResponse.json();
+                    setUserData(userData);
+
+                    // Actualizar el store global con los datos del usuario
+                    dispatch({
+                        type: 'SET_USER',
+                        payload: userData
+                    });
+                }
+            } catch (err) {
+                console.error('Error al cargar datos del usuario:', err);
+            }
+        };
+
+        if (store.auth.isAuthenticated && store.auth.token && !store.auth.user) {
+            cargarDatosUsuario();
+        }
+    }, [store.auth.isAuthenticated, store.auth.token, store.auth.user, dispatch]);
 
     const cargarComentariosTickets = async (tickets) => {
         try {
@@ -134,12 +231,36 @@ const RecomendacionesSimilares = () => {
         return new Date(fecha).toLocaleString();
     };
 
+    // Función para alternar sidebar
+    const toggleSidebar = () => {
+        setSidebarHidden(!sidebarHidden);
+    };
+
+    // Función para cambiar vista
+    const changeView = (view) => {
+        setActiveView(view);
+        if (view === 'dashboard') {
+            navigate('/cliente');
+        } else if (view === 'tickets') {
+            navigate('/cliente');
+        } else if (view === 'create') {
+            navigate('/cliente');
+        }
+    };
+
     if (loading) {
         return (
-            <div className="container mt-4">
-                <div className="d-flex justify-content-center">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Cargando recomendaciones...</span>
+            <div className="hyper-layout d-flex">
+                <SideBarCentral
+                    sidebarHidden={sidebarHidden}
+                    activeView={activeView}
+                    changeView={changeView}
+                />
+                <div className={`hyper-main-content flex-grow-1 ${sidebarHidden ? 'sidebar-hidden' : ''}`}>
+                    <div className="d-flex justify-content-center align-items-center vh-100">
+                        <div className="spinner-border" role="status">
+                            <span className="visually-hidden">Cargando recomendaciones...</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -147,27 +268,51 @@ const RecomendacionesSimilares = () => {
     }
 
     return (
-        <div className="container mt-4">
-            <div className="row">
-                <div className="col-12">
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h2>
-                                <i className="fas fa-lightbulb me-2 text-warning"></i>
-                                Recomendaciones de Tickets Similares
-                            </h2>
-                            <p className="text-muted mb-0">
-                                Tickets resueltos con problemas similares al ticket #{ticketId}
-                            </p>
+        <div className="hyper-layout d-flex">
+            {/* Sidebar izquierdo */}
+            <SideBarCentral
+                sidebarHidden={sidebarHidden}
+                activeView={activeView}
+                changeView={changeView}
+            />
+
+            {/* Contenido principal */}
+            <div className={`hyper-main-content flex-grow-1 ${sidebarHidden ? 'sidebar-hidden' : ''}`}>
+                {/* Header superior */}
+                <header className="hyper-header bg-white border-bottom p-3">
+                    <div className="d-flex align-items-center justify-content-between w-100">
+                        <div className="d-flex align-items-center gap-3">
+                            <button
+                                className="hyper-sidebar-toggle btn btn-link p-2"
+                                onClick={toggleSidebar}
+                                title={sidebarHidden ? "Mostrar menú" : "Ocultar menú"}
+                            >
+                                <i className={`fas ${sidebarHidden ? 'fa-eye' : 'fa-eye-slash'}`}></i>
+                            </button>
+                            <div>
+                                <h1 className="mb-0 fw-semibold">
+                                    <i className="fas fa-lightbulb me-2 text-warning"></i>
+                                    Recomendaciones de Tickets Similares
+                                </h1>
+                                <p className="text-muted mb-0">
+                                    Tickets resueltos con problemas similares al ticket #{ticketId}
+                                </p>
+                            </div>
                         </div>
-                        <button
-                            className="btn btn-outline-secondary"
-                            onClick={() => navigate(`/ticket/${ticketId}/comentarios`)}
-                        >
-                            <i className="fas fa-arrow-left me-1"></i>
-                            Volver a Comentarios
-                        </button>
+                        <div className="d-flex align-items-center gap-3">
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={() => navigate(`/ticket/${ticketId}/comentarios`)}
+                            >
+                                <i className="fas fa-arrow-left me-1"></i>
+                                Volver a Comentarios
+                            </button>
+                        </div>
                     </div>
+                </header>
+
+                {/* Contenido del dashboard */}
+                <div className="p-4">
 
                     {error && (
                         <div className="alert alert-danger" role="alert">

@@ -236,6 +236,11 @@ export const router = createBrowserRouter(
           <RecomendacionesSimilares />
         </ProtectedRoute>
       } />
+      <Route path="/ticket/:ticketId/chat" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <ChatAnalistaCliente />
+        </ProtectedRoute>
+      } />
       <Route path="/ticket/:ticketId/chat-supervisor-analista" element={
         <ProtectedRoute allowedRoles={["supervisor", "analista"]}>
           <ChatSupervisorAnalista />

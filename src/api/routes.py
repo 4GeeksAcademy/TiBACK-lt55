@@ -51,19 +51,106 @@ def get_socketio():
         # Log del error pero no interrumpir la funcionalidad
         return None
 
-# Función helper para emitir eventos WebSocket de manera segura
-def emit_websocket_event(event_name, data, room=None):
-    """Emite un evento WebSocket de manera segura, sin interrumpir la funcionalidad si falla"""
+# Función helper mejorada para emitir eventos WebSocket de manera segura
+def emit_websocket_event(event_name, data, room=None, include_self=False, callback=None):
+    """
+    Emite eventos WebSocket de manera robusta con manejo de errores
+    
+    Args:
+        event_name (str): Nombre del evento
+        data (dict): Datos a enviar
+        room (str, optional): Room específica. Si es None, envía a todos
+        include_self (bool): Si incluir al emisor en el broadcast
+        callback (callable, optional): Callback para manejar confirmación
+    """
     try:
         socketio = get_socketio()
         if socketio:
+            # Agregar timestamp si no existe
+            if 'timestamp' not in data:
+                data['timestamp'] = datetime.now().isoformat()
+            
             if room:
-                socketio.emit(event_name, data, room=room)
+                socketio.emit(event_name, data, room=room, include_self=include_self, callback=callback)
+                print(f"📤 Evento '{event_name}' enviado a room '{room}'")
             else:
-                socketio.emit(event_name, data)
+                socketio.emit(event_name, data, callback=callback)
+                print(f"📤 Evento '{event_name}' enviado globalmente")
+                
+            return True
     except Exception as e:
-        # WebSocket no disponible o error, continuar sin notificación
-        pass
+        print(f"❌ Error enviando WebSocket '{event_name}': {e}")
+        # En caso de error, podrías implementar un sistema de cola aquí
+        return False
+    
+    return False
+
+def emit_websocket_to_role(event_name, data, role, include_self=False):
+    """Emite evento a todos los usuarios de un rol específico"""
+    role_room = f'role_{role}'
+    return emit_websocket_event(event_name, data, room=role_room, include_self=include_self)
+
+def emit_websocket_to_user(event_name, data, user_id):
+    """Emite evento a un usuario específico"""
+    user_room = f'user_{user_id}'
+    return emit_websocket_event(event_name, data, room=user_room)
+
+def emit_websocket_to_ticket(event_name, data, ticket_id, include_self=False):
+    """Emite evento a todos los usuarios conectados a un ticket"""
+    ticket_room = f'room_ticket_{ticket_id}'
+    return emit_websocket_event(event_name, data, room=ticket_room, include_self=include_self)
+
+def tiene_solicitud_reapertura_pendiente(ticket_id):
+    """Verifica si un ticket tiene una solicitud de reapertura pendiente"""
+    try:
+        # Buscar comentarios de solicitud de reapertura del cliente
+        solicitud_reapertura = Comentarios.query.filter_by(
+            id_ticket=ticket_id,
+            texto="Cliente solicitó reapertura del ticket - Pendiente de decisión del supervisor"
+        ).first()
+        
+        if solicitud_reapertura:
+            # Verificar si ya hay una decisión del supervisor después de la solicitud
+            decision_supervisor = Comentarios.query.filter(
+                Comentarios.id_ticket == ticket_id,
+                Comentarios.fecha_comentario > solicitud_reapertura.fecha_comentario,
+                Comentarios.id_supervisor.isnot(None),
+                Comentarios.texto.like("%Supervisor aprobó solicitud de reapertura%")
+            ).first()
+            
+            # Si no hay decisión del supervisor, la solicitud está pendiente
+            return decision_supervisor is None
+        
+        return False
+    except Exception as e:
+        print(f"Error verificando solicitud de reapertura: {e}")
+        return False
+
+def emit_critical_ticket_action(ticket_id, action, user_data):
+    """Emite evento crítico de ticket a todos los roles críticos"""
+    critical_roles = ['cliente', 'analista', 'supervisor']
+    
+    # Emitir a roles críticos
+    for role in critical_roles:
+        emit_websocket_to_role('critical_ticket_update', {
+            'ticket_id': ticket_id,
+            'action': action,
+            'user_id': user_data['id'],
+            'role': user_data['role'],
+            'priority': 'critical'
+        }, role, include_self=False)
+    
+    # Emitir al room del ticket
+    emit_websocket_to_ticket('critical_ticket_update', {
+        'ticket_id': ticket_id,
+        'action': action,
+        'user_id': user_data['id'],
+        'role': user_data['role'],
+        'priority': 'critical'
+    }, ticket_id, include_self=False)
+    
+    print(f'🚨 Evento crítico emitido: {action} en ticket {ticket_id} por {user_data["role"]} (ID: {user_data["id"]})')
+    return True
 
 # Funciones helper para manejo de errores
 def handle_database_error(e, operation="operación"):
@@ -477,21 +564,16 @@ def create_comentario():
         db.session.add(comentario)
         db.session.commit()
         
-        # Emitir evento WebSocket para notificar nuevo comentario al room del ticket
-        socketio = get_socketio()
-        if socketio:
-            try:
-                # Notificar a todos los usuarios conectados al room del ticket
-                ticket_room = f'room_ticket_{comentario.id_ticket}'
-                socketio.emit('nuevo_comentario', {
-                    'comentario': comentario.serialize(),
-                    'tipo': 'comentario_agregado',
-                    'timestamp': datetime.now().isoformat()
-                }, room=ticket_room)
-                
-                    
-            except Exception as e:
-                print(f"Error enviando WebSocket: {e}")
+        # Emitir evento crítico para nuevo comentario
+        emit_critical_ticket_action(comentario.id_ticket, 'comentario_agregado', user)
+        
+        # También emitir evento normal para compatibilidad
+        emit_websocket_to_ticket('nuevo_comentario', {
+            'comentario': comentario.serialize(),
+            'tipo': 'comentario_agregado',
+            'usuario': user['role'],
+            'usuario_id': user['id']
+        }, comentario.id_ticket, include_self=False)
         
         return jsonify(comentario.serialize()), 201
     except IntegrityError:
@@ -766,7 +848,7 @@ def create_ticket():
 
         ticket = Ticket(
             id_cliente=user['id'],
-            estado="creado",
+            estado="en espera",
             titulo=body['titulo'],
             descripcion=body['descripcion'],
             fecha_creacion=datetime.now(),
@@ -777,33 +859,29 @@ def create_ticket():
         db.session.commit()
         
         # Emitir evento WebSocket para notificar nuevo ticket
-        socketio = get_socketio()
-        if socketio:
-            try:
-                # Datos del ticket
-                ticket_data = {
-                    'ticket_id': ticket.id,
-                    'ticket_estado': ticket.estado,
-                    'ticket_titulo': ticket.titulo,
-                    'ticket_prioridad': ticket.prioridad,
-                    'cliente_id': ticket.id_cliente,
-                    'tipo': 'creado',
-                    'timestamp': datetime.now().isoformat()
-                }
-                
-                # Notificar al room del ticket (todos los involucrados se unirán automáticamente)
-                ticket_room = f'room_ticket_{ticket.id}'
-                socketio.emit('nuevo_ticket', ticket_data, room=ticket_room)
-                
-                # Notificar a supervisores y administradores para asignación
-                socketio.emit('nuevo_ticket_disponible', ticket_data, room='supervisores')
-                socketio.emit('nuevo_ticket_disponible', ticket_data, room='administradores')
-                
-                # Notificar a administradores para actualizar CRUD de tickets
-                socketio.emit('nuevo_ticket', ticket_data, room='administradores')
-                
-            except Exception as e:
-                print(f"Error enviando WebSocket de nuevo ticket: {e}")
+        # Datos del ticket para notificaciones
+        ticket_data = {
+            'ticket_id': ticket.id,
+            'ticket_estado': ticket.estado,
+            'ticket_titulo': ticket.titulo,
+            'ticket_prioridad': ticket.prioridad,
+            'cliente_id': ticket.id_cliente,
+            'tipo': 'creado'
+        }
+        
+        # Emitir evento crítico para nuevo ticket
+        user_data = get_user_from_token()
+        emit_critical_ticket_action(ticket.id, 'ticket_creado', user_data)
+        
+        # Notificar al room del ticket
+        emit_websocket_to_ticket('nuevo_ticket', ticket_data, ticket.id, include_self=False)
+        
+        # Notificar a supervisores y administradores para asignación
+        emit_websocket_to_role('nuevo_ticket_disponible', ticket_data, 'supervisor', include_self=False)
+        emit_websocket_to_role('nuevo_ticket_disponible', ticket_data, 'administrador', include_self=False)
+        
+        # Notificar a administradores para actualizar CRUD de tickets
+        emit_websocket_to_role('nuevo_ticket', ticket_data, 'administrador', include_self=False)
         
         return jsonify(ticket.serialize()), 201
 
@@ -927,22 +1005,17 @@ def update_ticket(id):
                 setattr(ticket, field, value)
         db.session.commit()
         
-        # Emitir evento WebSocket para notificar actualización al room del ticket
-        socketio = get_socketio()
-        if socketio:
-            try:
-                # Notificar a todos los usuarios conectados al room del ticket
-                ticket_room = f'room_ticket_{ticket.id}'
-                socketio.emit('ticket_actualizado', {
-                    'ticket': ticket.serialize(),
-                    'tipo': 'actualizado',
-                    'usuario': get_user_from_token()['role'],
-                    'timestamp': datetime.now().isoformat()
-                }, room=ticket_room)
-                
-                    
-            except Exception as e:
-                print(f"Error enviando WebSocket: {e}")
+        # Emitir evento crítico para actualización de ticket
+        user = get_user_from_token()
+        emit_critical_ticket_action(ticket.id, 'ticket_actualizado', user)
+        
+        # También emitir evento normal para compatibilidad
+        emit_websocket_to_ticket('ticket_actualizado', {
+            'ticket': ticket.serialize(),
+            'tipo': 'actualizado',
+            'usuario': user['role'],
+            'usuario_id': user['id']
+        }, ticket.id, include_self=False)
         
         return jsonify(ticket.serialize()), 200
     except IntegrityError:
@@ -1314,7 +1387,6 @@ def get_cliente_tickets():
         # Obtener tickets del cliente, excluyendo los cerrados por supervisor y cerrados por cliente
         tickets = Ticket.query.filter(
             Ticket.id_cliente == user['id'],
-            Ticket.estado != 'cerrado_por_supervisor',
             Ticket.estado != 'cerrado'
         ).all()
         
@@ -1368,8 +1440,7 @@ def get_analista_tickets():
         # Obtener tickets asignados al analista, excluyendo los cerrados
         tickets = Ticket.query.filter(
             Ticket.id.in_(ticket_ids),
-            Ticket.estado != 'cerrado',
-            Ticket.estado != 'cerrado_por_supervisor'
+            Ticket.estado != 'cerrado'
         ).all()
         
         # Filtrar tickets basándose en el estado y asignaciones activas (optimizado)
@@ -1379,14 +1450,9 @@ def get_analista_tickets():
         asignaciones_analista = {a.id_ticket: a for a in Asignacion.query.filter_by(id_analista=user['id']).all()}
         
         # Obtener comentarios relevantes en una sola consulta
-        comentarios_solucion = {c.id_ticket for c in Comentarios.query.filter_by(
-            id_analista=user['id'],
-            texto="Ticket solucionado"
-        ).all()}
-        
         comentarios_escalacion = {c.id_ticket: c.fecha_comentario for c in Comentarios.query.filter(
             Comentarios.id_analista == user['id'],
-            Comentarios.texto == "Ticket escalado al supervisor"
+            Comentarios.texto.like("%escalado%")
         ).all()}
         
         for ticket in tickets:
@@ -1397,16 +1463,16 @@ def get_analista_tickets():
             asignacion = asignaciones_analista[ticket.id]
             
             # Verificar si escaló después de la última asignación
+            # Si el ticket fue escalado, ya no debe aparecer en la bandeja del analista
             if ticket.id in comentarios_escalacion:
                 if comentarios_escalacion[ticket.id] > asignacion.fecha_asignacion:
                     continue
             
-            # Verificar si ya solucionó el ticket
-            if ticket.estado.lower() == 'solucionado' and ticket.id in comentarios_solucion:
-                continue
-            
-            # Verificar estado válido
-            if ticket.estado.lower() not in ['creado', 'en_espera', 'en_proceso']:
+            # Verificar estado válido para el analista
+            # El analista debe ver tickets en "en espera" y "en proceso"
+            # Solo deja de ver el ticket cuando pasa a "solucionado"
+            estado_ticket_normalizado = ticket.estado.lower().replace('_', ' ')
+            if estado_ticket_normalizado not in ['en espera', 'en proceso']:
                 continue
             
             # Incluir el ticket
@@ -1426,8 +1492,7 @@ def get_supervisor_tickets():
     try:
         # Obtener solo tickets activos (excluyendo cerrados)
         tickets = Ticket.query.filter(
-            Ticket.estado != 'cerrado',
-            Ticket.estado != 'cerrado_por_supervisor'
+            Ticket.estado != 'cerrado'
         ).all()
         return jsonify([t.serialize() for t in tickets]), 200
         
@@ -1442,7 +1507,7 @@ def get_supervisor_closed_tickets():
     try:
         # Obtener solo tickets cerrados
         tickets = Ticket.query.filter(
-            Ticket.estado.in_(['cerrado', 'cerrado_por_supervisor'])
+            Ticket.estado == 'cerrado'
         ).all()
         return jsonify([t.serialize() for t in tickets]), 200
         
@@ -1450,15 +1515,116 @@ def get_supervisor_closed_tickets():
         return jsonify({"message": f"Error al obtener tickets cerrados: {str(e)}"}), 500
 
 
+@api.route('/tickets/<int:id>/test-reapertura', methods=['POST'])
+@require_role(['cliente', 'analista', 'supervisor', 'administrador'])
+def test_reapertura(id):
+    """Endpoint temporal para probar la lógica de reapertura directamente"""
+    try:
+        ticket = Ticket.query.get(id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        user = get_user_from_token()
+        
+        # Simular la lógica de validación
+        estado_actual = ticket.estado.lower().replace('_', ' ')
+        nuevo_estado_lower = 'solicitud_reapertura'.lower().replace('_', ' ')
+        
+        print(f"🧪 TEST REAPERTURA - Ticket ID: {id}")
+        print(f"   Estado actual: '{estado_actual}'")
+        print(f"   Estado solicitado: '{nuevo_estado_lower}'")
+        print(f"   Usuario: {user['role']} (ID: {user['id']})")
+        print(f"   Cliente del ticket: {ticket.id_cliente}")
+        
+        # Verificar permisos
+        if user['role'] == 'cliente' and ticket.id_cliente != user['id']:
+            return jsonify({"message": "No tienes permisos para modificar este ticket"}), 403
+        
+        # Verificar transición
+        if user['role'] == 'cliente':
+            if nuevo_estado_lower == 'solicitud reapertura' and estado_actual == 'solucionado':
+                print(f"✅ CONDICIÓN CUMPLIDA - Ejecutando lógica de reapertura")
+                
+                # Crear comentario de solicitud de reapertura
+                comentario_solicitud = Comentarios(
+                    id_ticket=id,
+                    id_cliente=user['id'],
+                    texto="Cliente solicitó reapertura del ticket - Pendiente de decisión del supervisor",
+                    fecha_comentario=datetime.now()
+                )
+                db.session.add(comentario_solicitud)
+                db.session.commit()
+                
+                return jsonify({
+                    "message": "Solicitud de reapertura procesada exitosamente",
+                    "ticket_id": ticket.id,
+                    "estado": ticket.estado,
+                    "comentario_creado": True
+                }), 200
+            else:
+                return jsonify({
+                    "message": "Transición no válida",
+                    "estado_actual": estado_actual,
+                    "nuevo_estado": nuevo_estado_lower,
+                    "condicion_cumplida": nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado'
+                }), 400
+        
+        return jsonify({"message": "Solo clientes pueden solicitar reapertura"}), 403
+        
+    except Exception as e:
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+
+@api.route('/tickets/<int:id>/debug', methods=['GET'])
+@require_role(['cliente', 'analista', 'supervisor', 'administrador'])
+def debug_ticket(id):
+    """Endpoint temporal para debuggear el estado del ticket"""
+    try:
+        ticket = Ticket.query.get(id)
+        if not ticket:
+            return jsonify({"message": "Ticket no encontrado"}), 404
+        
+        user = get_user_from_token()
+        
+        # Simular la lógica de validación
+        estado_actual = ticket.estado.lower().replace('_', ' ')
+        nuevo_estado_lower = 'solicitud_reapertura'.lower().replace('_', ' ')
+        
+        return jsonify({
+            "ticket_id": ticket.id,
+            "estado_original": ticket.estado,
+            "estado_normalizado": estado_actual,
+            "cliente_id": ticket.id_cliente,
+            "usuario_actual": {
+                "id": user['id'],
+                "role": user['role']
+            },
+            "es_cliente_del_ticket": user['role'] == 'cliente' and ticket.id_cliente == user['id'],
+            "validacion_transicion": {
+                "estado_actual": estado_actual,
+                "nuevo_estado": nuevo_estado_lower,
+                "es_cliente": user['role'] == 'cliente',
+                "condicion_cerrado": nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado',
+                "condicion_solicitud_reapertura": nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado',
+                "condicion_reabierto": nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado'
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+
 @api.route('/tickets/<int:id>/estado', methods=['PUT'])
 @require_role(['analista', 'supervisor', 'cliente', 'administrador'])
 def cambiar_estado_ticket(id):
     """Cambiar el estado de un ticket"""
+    print(f"🚀 INICIANDO CAMBIO DE ESTADO - Ticket ID: {id}")
     body = request.get_json(silent=True) or {}
     user = get_user_from_token()
     
+    print(f"👤 Usuario autenticado: {user}")
+    print(f"📝 Body recibido: {body}")
+    
     nuevo_estado = body.get('estado')
     if not nuevo_estado:
+        print(f"❌ ERROR: Estado requerido no encontrado en body: {body}")
         return jsonify({"message": "Estado requerido"}), 400
     
     try:
@@ -1467,19 +1633,49 @@ def cambiar_estado_ticket(id):
             return jsonify({"message": "Ticket no encontrado"}), 404
         
         # Verificar permisos según el rol
+        print(f"🔍 Verificando permisos - Rol: {user['role']}, Cliente ticket: {ticket.id_cliente}, Usuario ID: {user['id']}")
         if user['role'] == 'cliente' and ticket.id_cliente != user['id']:
+            print(f"❌ ERROR: Cliente sin permisos para modificar ticket")
             return jsonify({"message": "No tienes permisos para modificar este ticket"}), 403
         
         # Validar transiciones de estado según el flujo especificado
         estado_actual = ticket.estado.lower()
         nuevo_estado_lower = nuevo_estado.lower()
         
-        # Flujo: Creado → En espera → En proceso → Solucionado → Cerrado → Reabierto
+        # Normalizar estados: convertir guiones bajos a espacios para consistencia
+        estado_actual = estado_actual.replace('_', ' ')
+        nuevo_estado_lower = nuevo_estado_lower.replace('_', ' ')
         
-        # Cliente puede: cerrar tickets solucionados (con evaluación) y solicitar reapertura de solucionados
+        # Debug: Log de la transición intentada
+        print(f"🔄 INTENTO DE CAMBIO DE ESTADO:")
+        print(f"   Ticket ID: {id}")
+        print(f"   Usuario: {user['role']} (ID: {user['id']})")
+        print(f"   Estado actual (original): '{ticket.estado}'")
+        print(f"   Estado actual (normalizado): '{estado_actual}'")
+        print(f"   Estado solicitado (original): '{nuevo_estado}'")
+        print(f"   Estado solicitado (normalizado): '{nuevo_estado_lower}'")
+        print(f"   Cliente del ticket: {ticket.id_cliente}")
+        print(f"   ¿Es cliente del ticket?: {user['role'] == 'cliente' and ticket.id_cliente == user['id']}")
+        print(f"   ¿Estado es 'solucionado'?: {estado_actual == 'solucionado'}")
+        print(f"   ¿Solicita 'solicitud_reapertura'?: {nuevo_estado_lower == 'solicitud_reapertura'}")
+        
+        # Flujo: En espera → En proceso → Solucionado → Cerrado → Reabierto → En espera
+        
+        # Cliente puede: cerrar tickets solucionados (con evaluación) y solicitar reapertura de tickets solucionados
         if user['role'] == 'cliente':
+            print(f"🔍 CLIENTE - Verificando transiciones válidas:")
+            print(f"   Estado actual del ticket: '{estado_actual}'")
+            print(f"   Estado solicitado: '{nuevo_estado_lower}'")
+            print(f"   Transiciones válidas para cliente:")
+            print(f"     - 'cerrado' desde 'solucionado'")
+            print(f"     - 'solicitud_reapertura' desde 'solucionado'")
+            print(f"     - 'reabierto' desde 'cerrado'")
+            print(f"   🎯 EVALUANDO CONDICIONES:")
+            print(f"     - ¿'cerrado' desde 'solucionado'?: {nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado'}")
+            print(f"     - ¿'solicitud_reapertura' desde 'solucionado'?: {nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado'}")
+            print(f"     - ¿'reabierto' desde 'cerrado'?: {nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado'}")
             if nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado':
-                ticket.estado = nuevo_estado
+                ticket.estado = 'cerrado'
                 ticket.fecha_cierre = datetime.now()
                 # Incluir evaluación automática al cerrar
                 calificacion = body.get('calificacion')
@@ -1524,17 +1720,26 @@ def cambiar_estado_ticket(id):
                         print(f"📤 TICKET CERRADO NOTIFICADO: {cierre_data}")
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de cierre: {ws_error}")
-            elif nuevo_estado_lower == 'solicitar_reapertura' and estado_actual == 'solucionado':
-                # No cambiar estado, solo crear comentario de solicitud
+            elif nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado':
+                print(f"✅ CONDICIÓN CUMPLIDA: solicitud_reapertura desde solucionado")
+                print(f"   🎯 ENTRANDO A LÓGICA DE SOLICITUD DE REAPERTURA")
+                # Cliente solicita reapertura de ticket solucionado - queda en "solucionado" hasta decisión del supervisor
+                print(f"✅ CLIENTE SOLICITANDO REAPERTURA: {id}")
+                print(f"   Estado actual: '{estado_actual}' → Estado nuevo: 'solucionado' (con solicitud)")
+                
+                # El ticket permanece en "solucionado" pero se marca la solicitud
+                ticket.estado = 'solucionado'  # Mantiene el estado
+                
+                # Crear comentario de solicitud de reapertura
                 comentario_solicitud = Comentarios(
                     id_ticket=id,
                     id_cliente=user['id'],
-                    texto="Cliente solicita reapertura del ticket",
+                    texto="Cliente solicitó reapertura del ticket - Pendiente de decisión del supervisor",
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_solicitud)
                 
-                # Notificar al room del ticket y a supervisores sobre la solicitud de reapertura
+                # Notificar al supervisor sobre la solicitud de reapertura
                 socketio = get_socketio()
                 if socketio:
                     try:
@@ -1543,12 +1748,12 @@ def cambiar_estado_ticket(id):
                             'ticket_estado': ticket.estado,
                             'ticket_titulo': ticket.titulo,
                             'ticket_prioridad': ticket.prioridad,
+                            'cliente_id': ticket.id_cliente,
                             'tipo': 'solicitud_reapertura',
-                            'cliente_id': user['id'],
                             'timestamp': datetime.now().isoformat()
                         }
                         
-                        # Notificar a supervisores y administradores sobre la solicitud de reapertura
+                        # Notificar a supervisores y administradores sobre la solicitud
                         socketio.emit('solicitud_reapertura', solicitud_data, room='supervisores')
                         socketio.emit('solicitud_reapertura', solicitud_data, room='administradores')
                         
@@ -1558,16 +1763,17 @@ def cambiar_estado_ticket(id):
                         
                         print(f"📤 SOLICITUD DE REAPERTURA NOTIFICADA: {solicitud_data}")
                     except Exception as ws_error:
-                        print(f"Error enviando WebSocket de solicitud reapertura: {ws_error}")
+                        print(f"Error enviando WebSocket de solicitud: {ws_error}")
             elif nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado':
-                ticket.estado = nuevo_estado
+                # Cliente reabre un ticket cerrado - vuelve a "en espera"
+                ticket.estado = 'en espera'
                 ticket.fecha_cierre = None  # Reset fecha de cierre
                 
                 # Crear comentario automático de reapertura
                 comentario_reapertura = Comentarios(
                     id_ticket=id,
                     id_cliente=user['id'],
-                    texto="Ticket reabierto por cliente",
+                    texto="Ticket reabierto por cliente - Listo para nueva asignación",
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_reapertura)
@@ -1598,27 +1804,48 @@ def cambiar_estado_ticket(id):
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de reapertura: {ws_error}")
             else:
+                print(f"❌ TRANSICIÓN NO VÁLIDA PARA CLIENTE:")
+                print(f"   Estado actual: '{estado_actual}'")
+                print(f"   Estado solicitado: '{nuevo_estado_lower}'")
+                print(f"   Transiciones válidas para cliente:")
+                print(f"     - 'cerrado' desde 'solucionado'")
+                print(f"     - 'solicitud_reapertura' desde 'solucionado'")
+                print(f"     - 'reabierto' desde 'cerrado'")
+                print(f"   CONDICIONES VERIFICADAS:")
+                print(f"     - ¿'cerrado' desde 'solucionado'?: {nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado'}")
+                print(f"     - ¿'solicitud_reapertura' desde 'solucionado'?: {nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado'}")
+                print(f"     - ¿'reabierto' desde 'cerrado'?: {nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado'}")
                 return jsonify({"message": "Transición de estado no válida para cliente"}), 400
         
-        # Analista puede: cambiar a en_proceso, solucionado, o escalar (en_espera)
+        # Analista puede: cambiar a en proceso, solucionado, o escalar (en espera)
         elif user['role'] == 'analista':
-            if nuevo_estado_lower == 'en_proceso' and estado_actual in ['creado', 'en_espera']:
-                ticket.estado = nuevo_estado
-            elif nuevo_estado_lower == 'solucionado' and estado_actual == 'en_proceso':
-                ticket.estado = nuevo_estado
+            if nuevo_estado_lower == 'en proceso' and estado_actual == 'en espera':
+                ticket.estado = 'en proceso'
+                
+                # Crear comentario automático de inicio de trabajo
+                comentario_inicio = Comentarios(
+                    id_ticket=ticket.id,
+                    id_analista=user['id'],
+                    texto="Analista inició trabajo en el ticket",
+                    fecha_comentario=datetime.now()
+                )
+                db.session.add(comentario_inicio)
+            elif nuevo_estado_lower == 'solucionado' and estado_actual == 'en proceso':
+                ticket.estado = 'solucionado'
                 
                 # Crear comentario automático de solución
                 comentario_solucion = Comentarios(
                     id_ticket=ticket.id,
                     id_analista=user['id'],
-                    texto="Ticket solucionado",
+                    texto="Ticket solucionado por analista",
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_solucion)
-            elif nuevo_estado_lower == 'en_espera' and estado_actual in ['en_proceso', 'en_espera']:  # Escalar al supervisor
-                # Si está escalando desde 'en_espera', significa que no puede resolverlo sin iniciarlo
-                # Si está escalando desde 'en_proceso', significa que ya lo trabajó pero no puede resolverlo
-                ticket.estado = nuevo_estado
+            elif nuevo_estado_lower == 'en espera' and estado_actual in ['en espera', 'en proceso']:  # Escalar al supervisor
+                # Analista puede escalar desde "en espera" (antes de iniciar) o desde "en proceso" (después de iniciar)
+                print(f"✅ ANALISTA ESCALANDO TICKET: {id}")
+                print(f"   Estado actual: '{estado_actual}' → Estado nuevo: 'en espera'")
+                ticket.estado = 'en espera'
                 
                 # Eliminar todas las asignaciones del analista para este ticket
                 asignaciones_analista = Asignacion.query.filter_by(
@@ -1630,10 +1857,11 @@ def cambiar_estado_ticket(id):
                     db.session.delete(asignacion)
                 
                 # Crear comentario automático de escalación
+                texto_escalacion = "Ticket escalado al supervisor" if estado_actual == 'en espera' else "Ticket escalado al supervisor - Analista no pudo resolver"
                 comentario_escalacion = Comentarios(
                     id_ticket=ticket.id,
                     id_analista=user['id'],
-                    texto="Ticket escalado al supervisor",
+                    texto=texto_escalacion,
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_escalacion)
@@ -1665,28 +1893,115 @@ def cambiar_estado_ticket(id):
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de escalación: {ws_error}")
             else:
+                print(f"❌ TRANSICIÓN NO VÁLIDA PARA ANALISTA:")
+                print(f"   Estado actual: '{estado_actual}'")
+                print(f"   Estado solicitado: '{nuevo_estado_lower}'")
+                print(f"   Transiciones válidas para analista:")
+                print(f"     - 'en proceso' desde 'en espera'")
+                print(f"     - 'solucionado' desde 'en proceso'")
+                print(f"     - 'en espera' desde 'en espera' (escalar antes de iniciar)")
+                print(f"     - 'en espera' desde 'en proceso' (escalar después de iniciar)")
                 return jsonify({"message": "Transición de estado no válida para analista"}), 400
         
-        # Supervisor puede: cambiar a en_espera, cerrar o reabrir tickets solucionados, cerrar tickets reabiertos
+        # Supervisor puede: cerrar tickets, reabrir tickets cerrados, y manejar solicitudes de reapertura
         elif user['role'] == 'supervisor':
-            if nuevo_estado_lower == 'en_espera' and estado_actual in ['creado', 'reabierto']:
-                ticket.estado = nuevo_estado
-            elif nuevo_estado_lower == 'cerrado' and estado_actual in ['solucionado', 'reabierto']:
-                ticket.estado = 'cerrado_por_supervisor'  # Estado especial que oculta el ticket al cliente
+            if nuevo_estado_lower == 'cerrado' and estado_actual in ['solucionado', 'reabierto']:
+                print(f"✅ SUPERVISOR CERRANDO TICKET: {id}")
+                print(f"   Estado actual: '{estado_actual}' → Estado nuevo: 'cerrado'")
+                
+                ticket.estado = 'cerrado'
                 ticket.fecha_cierre = datetime.now()
-            elif nuevo_estado_lower == 'reabierto' and estado_actual == 'solucionado':
-                ticket.estado = nuevo_estado
+                
+                # Crear comentario automático de cierre
+                comentario_cierre = Comentarios(
+                    id_ticket=ticket.id,
+                    id_supervisor=user['id'],
+                    texto=f"Ticket cerrado por supervisor desde estado '{estado_actual}'",
+                    fecha_comentario=datetime.now()
+                )
+                db.session.add(comentario_cierre)
+                
+                # Notificar cierre del ticket
+                socketio = get_socketio()
+                if socketio:
+                    try:
+                        cierre_data = {
+                            'ticket_id': ticket.id,
+                            'ticket_estado': ticket.estado,
+                            'ticket_titulo': ticket.titulo,
+                            'ticket_prioridad': ticket.prioridad,
+                            'tipo': 'cerrado_por_supervisor',
+                            'supervisor_id': user['id'],
+                            'estado_anterior': estado_actual,
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        # Notificar a todos los usuarios del ticket
+                        ticket_room = f'room_ticket_{ticket.id}'
+                        socketio.emit('ticket_cerrado', cierre_data, room=ticket_room)
+                        socketio.emit('ticket_cerrado', cierre_data, room='supervisores')
+                        socketio.emit('ticket_cerrado', cierre_data, room='administradores')
+                        
+                        print(f"📤 TICKET CERRADO POR SUPERVISOR NOTIFICADO: {cierre_data}")
+                    except Exception as ws_error:
+                        print(f"Error enviando WebSocket de cierre: {ws_error}")
+            elif nuevo_estado_lower == 'reabierto' and estado_actual in ['cerrado', 'solucionado']:
+                # Supervisor reabre un ticket cerrado o aprueba solicitud de reapertura
+                print(f"✅ SUPERVISOR REABRIENDO TICKET: {id}")
+                print(f"   Estado actual: '{estado_actual}' → Estado nuevo: 'en espera'")
+                
+                ticket.estado = 'en espera'
                 ticket.fecha_cierre = None  # Reset fecha de cierre
                 
+                # Si es una solicitud de reapertura desde "solucionado", eliminar asignaciones del analista anterior
+                if estado_actual == 'solucionado':
+                    print(f"🗑️ Eliminando asignaciones del analista anterior para permitir nueva asignación")
+                    asignaciones_anteriores = Asignacion.query.filter_by(id_ticket=ticket.id).all()
+                    for asignacion in asignaciones_anteriores:
+                        db.session.delete(asignacion)
+                        print(f"   ✅ Asignación eliminada: Analista {asignacion.id_analista}")
+                
                 # Crear comentario automático de reapertura
+                texto_reapertura = "Ticket reabierto por supervisor - Listo para nueva asignación" if estado_actual == 'cerrado' else "Supervisor aprobó solicitud de reapertura - Asignaciones anteriores eliminadas, listo para nueva asignación"
                 comentario_reapertura = Comentarios(
                     id_ticket=ticket.id,
                     id_supervisor=user['id'],
-                    texto="Ticket reabierto por supervisor",
+                    texto=texto_reapertura,
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_reapertura)
+                
+                # Notificar reapertura del ticket
+                socketio = get_socketio()
+                if socketio:
+                    try:
+                        reapertura_data = {
+                            'ticket_id': ticket.id,
+                            'ticket_estado': ticket.estado,
+                            'ticket_titulo': ticket.titulo,
+                            'ticket_prioridad': ticket.prioridad,
+                            'tipo': 'reabierto_por_supervisor',
+                            'supervisor_id': user['id'],
+                            'estado_anterior': estado_actual,
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        # Notificar a todos los usuarios del ticket
+                        ticket_room = f'room_ticket_{ticket.id}'
+                        socketio.emit('ticket_reabierto', reapertura_data, room=ticket_room)
+                        socketio.emit('ticket_reabierto', reapertura_data, room='supervisores')
+                        socketio.emit('ticket_reabierto', reapertura_data, room='administradores')
+                        
+                        print(f"📤 TICKET REABIERTO POR SUPERVISOR NOTIFICADO: {reapertura_data}")
+                    except Exception as ws_error:
+                        print(f"Error enviando WebSocket de reapertura: {ws_error}")
             else:
+                print(f"❌ TRANSICIÓN NO VÁLIDA PARA SUPERVISOR:")
+                print(f"   Estado actual: '{estado_actual}'")
+                print(f"   Estado solicitado: '{nuevo_estado_lower}'")
+                print(f"   Transiciones válidas para supervisor:")
+                print(f"     - 'cerrado' desde ['solucionado', 'reabierto']")
+                print(f"     - 'reabierto' desde ['cerrado', 'solucionado'] (aprobación de solicitud)")
                 return jsonify({"message": "Transición de estado no válida para supervisor"}), 400
         
         # Administrador puede cambiar cualquier estado
@@ -1750,7 +2065,8 @@ def evaluar_ticket(id):
         if ticket.id_cliente != user['id']:
             return jsonify({"message": "No tienes permisos para evaluar este ticket"}), 403
         
-        if ticket.estado.lower() != 'cerrado':
+        estado_ticket_normalizado = ticket.estado.lower().replace('_', ' ')
+        if estado_ticket_normalizado != 'cerrado':
             return jsonify({"message": "Solo se pueden evaluar tickets cerrados"}), 400
         
         ticket.calificacion = calificacion
@@ -1842,8 +2158,9 @@ def asignar_ticket(id):
             return jsonify({"message": "Analista no encontrado"}), 404
         
         # Verificar que el ticket está en un estado válido para asignación
-        estados_validos = ['creado', 'en_espera', 'reabierto', 'solucionado']
-        if ticket.estado.lower() not in estados_validos:
+        estados_validos = ['en espera', 'reabierto']
+        estado_ticket_normalizado = ticket.estado.lower().replace('_', ' ')
+        if estado_ticket_normalizado not in estados_validos:
             return jsonify({
                 "message": f"El ticket no puede ser asignado en estado '{ticket.estado}'. Estados válidos: {', '.join(estados_validos)}"
             }), 400
@@ -1866,8 +2183,8 @@ def asignar_ticket(id):
             fecha_asignacion=datetime.now()
         )
 
-        # Cambiar estado del ticket a "en_espera" según el flujo especificado
-        ticket.estado = 'en_espera'
+        # Cambiar estado del ticket a "en espera" según el flujo especificado
+        ticket.estado = 'en espera'
 
         db.session.add(asignacion)
 
@@ -1945,67 +2262,168 @@ def asignar_ticket(id):
 @api.route('/tickets/<int:ticket_id>/recomendaciones-similares', methods=['GET'])
 @require_auth
 def obtener_tickets_similares(ticket_id):
-    """Obtener tickets similares basados en título y descripción"""
+    """Obtener tickets similares basados en algoritmo robusto de similitud semántica"""
     try:
-        # Obtener el ticket actual
+        # Validaciones robustas del ticket actual
+        if not ticket_id or ticket_id <= 0:
+            return jsonify({"message": "ID de ticket inválido"}), 400
+            
         ticket_actual = Ticket.query.get(ticket_id)
         if not ticket_actual:
             return jsonify({"message": "Ticket no encontrado"}), 404
         
-        # Obtener todos los tickets cerrados y solucionados
+        # Validar que el ticket tenga contenido válido
+        if not ticket_actual.titulo or not ticket_actual.descripcion:
+            return jsonify({
+                "tickets_similares": [],
+                "total_encontrados": 0,
+                "ticket_actual": ticket_actual.serialize(),
+                "mensaje": "Ticket sin contenido suficiente para análisis"
+            }), 200
+        
+        # Obtener tickets cerrados con validaciones adicionales
         tickets_cerrados = Ticket.query.filter(
-            Ticket.estado.in_(['cerrado', 'cerrado_por_supervisor']),
-            Ticket.id != ticket_id
+            Ticket.estado == 'cerrado',
+            Ticket.id != ticket_id,
+            Ticket.titulo.isnot(None),
+            Ticket.descripcion.isnot(None),
+            Ticket.titulo != '',
+            Ticket.descripcion != ''
         ).all()
         
         if not tickets_cerrados:
             return jsonify({
                 "tickets_similares": [],
                 "total_encontrados": 0,
-                "ticket_actual": ticket_actual.serialize()
+                "ticket_actual": ticket_actual.serialize(),
+                "mensaje": "No hay tickets cerrados disponibles para comparación"
             }), 200
         
-        # Algoritmo simple de similitud basado en palabras clave
-        def calcular_similitud(titulo1, descripcion1, titulo2, descripcion2):
-            # Convertir a minúsculas y dividir en palabras
-            palabras1 = set((titulo1 + " " + descripcion1).lower().split())
-            palabras2 = set((titulo2 + " " + descripcion2).lower().split())
+        # Algoritmo robusto de similitud semántica mejorado
+        def calcular_similitud_robusta(titulo1, descripcion1, titulo2, descripcion2):
+            import re
+            from difflib import SequenceMatcher
             
-            # Calcular intersección de palabras
+            # Limpiar y normalizar texto
+            def limpiar_texto(texto):
+                if not texto:
+                    return ""
+                # Remover caracteres especiales y normalizar espacios
+                texto_limpio = re.sub(r'[^\w\s]', ' ', str(texto).lower())
+                texto_limpio = re.sub(r'\s+', ' ', texto_limpio).strip()
+                return texto_limpio
+            
+            # Limpiar textos
+            texto1 = limpiar_texto(titulo1) + " " + limpiar_texto(descripcion1)
+            texto2 = limpiar_texto(titulo2) + " " + limpiar_texto(descripcion2)
+            
+            if not texto1 or not texto2:
+                return 0
+            
+            # Dividir en palabras y filtrar palabras vacías
+            palabras_vacias = {'el', 'la', 'de', 'que', 'y', 'a', 'en', 'un', 'es', 'se', 'no', 'te', 'lo', 'le', 'da', 'su', 'por', 'son', 'con', 'para', 'al', 'del', 'los', 'las', 'una', 'como', 'pero', 'sus', 'muy', 'sin', 'sobre', 'entre', 'hasta', 'desde', 'durante', 'mediante', 'según', 'ante', 'bajo', 'contra', 'hacia', 'tras', 'durante', 'excepto', 'salvo', 'menos', 'más', 'todo', 'todos', 'toda', 'todas', 'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'aquellos', 'aquellas', 'mi', 'mis', 'tu', 'tus', 'su', 'sus', 'nuestro', 'nuestra', 'nuestros', 'nuestras', 'vuestro', 'vuestra', 'vuestros', 'vuestras'}
+            
+            palabras1 = set([p for p in texto1.split() if len(p) > 2 and p not in palabras_vacias])
+            palabras2 = set([p for p in texto2.split() if len(p) > 2 and p not in palabras_vacias])
+            
+            if not palabras1 or not palabras2:
+                return 0
+            
+            # 1. Similitud de Jaccard (palabras exactas)
             interseccion = palabras1.intersection(palabras2)
             union = palabras1.union(palabras2)
+            jaccard = len(interseccion) / len(union) if union else 0
             
-            # Calcular similitud de Jaccard
-            if len(union) == 0:
-                return 0
-            return len(interseccion) / len(union)
-        
-        # Calcular similitud para cada ticket cerrado
-        tickets_con_similitud = []
-        for ticket in tickets_cerrados:
-            similitud = calcular_similitud(
-                ticket_actual.titulo, ticket_actual.descripcion,
-                ticket.titulo, ticket.descripcion
+            # 2. Similitud de secuencia (para palabras similares)
+            palabras1_list = list(palabras1)
+            palabras2_list = list(palabras2)
+            similitud_secuencia = 0
+            coincidencias = 0
+            
+            for p1 in palabras1_list:
+                mejor_similitud = 0
+                for p2 in palabras2_list:
+                    sim = SequenceMatcher(None, p1, p2).ratio()
+                    if sim > mejor_similitud:
+                        mejor_similitud = sim
+                if mejor_similitud > 0.8:  # Umbral para considerar palabras similares
+                    coincidencias += mejor_similitud
+            
+            similitud_secuencia = coincidencias / len(palabras1_list) if palabras1_list else 0
+            
+            # 3. Similitud de título (peso mayor)
+            titulo1_limpio = limpiar_texto(titulo1)
+            titulo2_limpio = limpiar_texto(titulo2)
+            similitud_titulo = SequenceMatcher(None, titulo1_limpio, titulo2_limpio).ratio()
+            
+            # 4. Similitud de descripción
+            desc1_limpio = limpiar_texto(descripcion1)
+            desc2_limpio = limpiar_texto(descripcion2)
+            similitud_descripcion = SequenceMatcher(None, desc1_limpio, desc2_limpio).ratio()
+            
+            # Combinar métricas con pesos
+            similitud_final = (
+                jaccard * 0.3 +           # 30% palabras exactas
+                similitud_secuencia * 0.2 + # 20% palabras similares
+                similitud_titulo * 0.3 +    # 30% similitud de título
+                similitud_descripcion * 0.2 # 20% similitud de descripción
             )
             
-            if similitud > 0.1:  # Umbral mínimo de similitud
-                ticket_data = ticket.serialize()
-                ticket_data['similitud'] = round(similitud, 3)
-                tickets_con_similitud.append(ticket_data)
+            return min(1.0, similitud_final)  # Asegurar que no exceda 1.0
+        
+        # Calcular similitud para cada ticket cerrado con validaciones
+        tickets_con_similitud = []
+        for ticket in tickets_cerrados:
+            try:
+                # Validar contenido del ticket
+                if not ticket.titulo or not ticket.descripcion:
+                    continue
+                
+                similitud = calcular_similitud_robusta(
+                    ticket_actual.titulo, ticket_actual.descripcion,
+                    ticket.titulo, ticket.descripcion
+                )
+                
+                # Umbral más bajo pero con validaciones adicionales
+                if similitud > 0.05:  # Umbral reducido para capturar más similitudes
+                    ticket_data = ticket.serialize()
+                    ticket_data['similitud'] = round(similitud, 4)
+                    ticket_data['nivel_similitud'] = (
+                        'Alta' if similitud > 0.3 else
+                        'Media' if similitud > 0.15 else
+                        'Baja'
+                    )
+                    tickets_con_similitud.append(ticket_data)
+                    
+            except Exception as e:
+                print(f"Error calculando similitud para ticket {ticket.id}: {str(e)}")
+                continue
         
         # Ordenar por similitud descendente
         tickets_con_similitud.sort(key=lambda x: x['similitud'], reverse=True)
         
-        # Limitar a los 5 más similares
-        tickets_similares = tickets_con_similitud[:5]
+        # Limitar a los 8 más similares (aumentado de 5 a 8)
+        tickets_similares = tickets_con_similitud[:8]
+        
+        # Validar que tenemos resultados
+        if not tickets_similares:
+            return jsonify({
+                "tickets_similares": [],
+                "total_encontrados": 0,
+                "ticket_actual": ticket_actual.serialize(),
+                "mensaje": "No se encontraron tickets con similitud suficiente"
+            }), 200
         
         return jsonify({
             "tickets_similares": tickets_similares,
             "total_encontrados": len(tickets_similares),
-            "ticket_actual": ticket_actual.serialize()
+            "ticket_actual": ticket_actual.serialize(),
+            "algoritmo": "similitud_semantica_robusta_v2",
+            "umbral_minimo": 0.05
         }), 200
         
     except Exception as e:
+        print(f"Error en obtener_tickets_similares: {str(e)}")
         return jsonify({"message": f"Error al obtener tickets similares: {str(e)}"}), 500
 
 
@@ -2387,12 +2805,38 @@ def analyze_image():
         elif additional_details:
             context_description = f"El usuario ha proporcionado los siguientes detalles adicionales: '{additional_details}'."
         
-        # Prompt específico para análisis de calidad con método Feynman mejorado
-        analysis_prompt = """Analiza la imagen cargada por el usuario con máxima atención y empatía. El usuario está reportando un problema y necesita tu ayuda experta. Considera cuidadosamente el contexto completo: la descripción del ticket, el título del problema, y todos los detalles adicionales proporcionados. Tu misión es ser un asistente comprensivo que siempre encuentra una manera de ayudar.
+        # Prompt específico para análisis profundo y enfático con método Feynman mejorado
+        analysis_prompt = """Eres un experto analista de imágenes con IA especializado en diagnóstico técnico y resolución de problemas. Tu misión es realizar un análisis PROFUNDO, ENFÁTICO y ESPECÍFICO de la imagen proporcionada, estableciendo conexiones directas y detalladas con el problema reportado.
 
-Evalúa la imagen con precisión para identificar elementos clave, texto visible, objetos relacionados, y cualquier detalle visual que pueda contribuir al diagnóstico. Aplica lógica avanzada para detectar similitudes semánticas, sinónimos, conceptos relacionados, y conexiones indirectas entre la imagen y el problema reportado.
+INSTRUCCIONES CRÍTICAS:
+1. ANALIZA CADA PÍXEL con atención meticulosa
+2. IDENTIFICA TODOS los elementos visuales, patrones, texturas, colores, formas y detalles
+3. ESTABLECE CONEXIONES DIRECTAS entre la imagen y el problema reportado
+4. PROPORCIONA SOLUCIONES ESPECÍFICAS y accionables
+5. USA UN TONO ENFÁTICO Y PROFESIONAL que demuestre expertise
 
-SIEMPRE proporciona soluciones paso a paso usando el método Feynman, sin importar el nivel de relación detectado. Sé verboso, comprensivo y de apoyo. Explica cada paso como si fueras un mentor paciente enseñando a alguien que realmente quiere aprender. Usa analogías claras, ejemplos concretos, y un tono alentador que motive al usuario a seguir adelante. Recuerda: tu objetivo es ayudar genuinamente, no solo analizar."""
+METODOLOGÍA DE ANÁLISIS:
+- Análisis visual exhaustivo de todos los elementos detectados
+- Correlación semántica avanzada entre imagen y problema
+- Identificación de patrones, anomalías y características relevantes
+- Evaluación de la calidad y claridad de la evidencia visual
+- Generación de hipótesis técnicas fundamentadas
+- Propuesta de soluciones paso a paso con justificación técnica
+
+FORMATO DE RESPUESTA REQUERIDO:
+1. 🔍 ANÁLISIS VISUAL DETALLADO: Descripción exhaustiva de todos los elementos
+2. 🎯 CORRELACIÓN CON EL PROBLEMA: Conexiones específicas identificadas
+3. 💡 DIAGNÓSTICO TÉCNICO: Evaluación profesional del problema
+4. 🛠️ SOLUCIONES PROPUESTAS: Pasos específicos y accionables
+5. 📋 RECOMENDACIONES ADICIONALES: Acciones complementarias
+
+SÉ ESPECÍFICO, TÉCNICO Y ENFÁTICO en tu análisis. Cada palabra debe aportar valor técnico y profesional."""
+
+        # PROMPT PROFESIONAL PARA ANÁLISIS ADICIONAL (SOLO PARA USO INTERNO DE LA API):
+        # "Como experto en análisis de imágenes con IA, necesito un análisis PROFUNDO y ESPECÍFICO de la siguiente imagen en relación con el problema reportado: '{ticket_description}'. 
+        # Por favor, proporciona un análisis técnico detallado que incluya: (1) Identificación exhaustiva de todos los elementos visuales, 
+        # (2) Correlación directa con el problema reportado, (3) Diagnóstico técnico fundamentado, (4) Soluciones específicas y accionables, 
+        # y (5) Recomendaciones técnicas adicionales. El análisis debe ser ENFÁTICO, PROFESIONAL y TÉCNICAMENTE PRECISO."
         
         # Realizar análisis con múltiples características
         features = [
@@ -2604,25 +3048,65 @@ SIEMPRE proporciona soluciones paso a paso usando el método Feynman, sin import
             else:
                 analysis_text += "La imagen puede tener calidad limitada o elementos poco claros.\n"
         
-        # Análisis directo de relación imagen-contexto
+        # Análisis PROFUNDO y ENFÁTICO de relación imagen-contexto
         if context_description:
-            analysis_text += f"\n\n🔍 ANÁLISIS DE RELACIÓN CON EL PROBLEMA:\n"
-            analysis_text += f"Problema reportado: \"{ticket_description}\"\n"
-            analysis_text += f"Título del ticket: \"{ticket_title}\"\n"
+            analysis_text += f"\n\n🔍 ANÁLISIS PROFUNDO DE RELACIÓN CON EL PROBLEMA:\n"
+            analysis_text += f"📋 PROBLEMA REPORTADO: \"{ticket_description}\"\n"
+            analysis_text += f"🏷️ TÍTULO DEL TICKET: \"{ticket_title}\"\n"
+            analysis_text += f"📊 NIVEL DE CORRELACIÓN: {relation_percentage:.1f}%\n"
             
-            # Verificar relación entre imagen y problema
+            # Análisis detallado de la relación
             if relation_percentage >= 10:
-                analysis_text += f"\n✅ RELACIÓN DETECTADA: La imagen muestra elementos relacionados con tu problema. Los elementos visuales coinciden con la descripción del problema ({relation_percentage:.1f}% de coincidencia).\n"
+                analysis_text += f"\n✅ CORRELACIÓN DIRECTA CONFIRMADA: La imagen presenta evidencia visual CLARA y ESPECÍFICA relacionada con el problema reportado. Los elementos detectados ({', '.join([label['description'] for label in labels[:5]])}) muestran una correlación directa con la descripción del problema.\n"
+                analysis_text += f"\n🎯 ELEMENTOS CLAVE IDENTIFICADOS:\n"
+                for i, label in enumerate(labels[:5], 1):
+                    analysis_text += f"   {i}. {label['description']} (Confianza: {label['score']:.2f})\n"
+                analysis_text += f"\n💡 IMPLICACIONES TÉCNICAS: Esta correlación sugiere que la imagen proporciona evidencia visual válida para el diagnóstico y resolución del problema.\n"
             elif relation_percentage >= 5:
-                analysis_text += f"\n⚠️ RELACIÓN PARCIAL: La imagen tiene algunos elementos relacionados con tu problema, pero no es una coincidencia completa ({relation_percentage:.1f}% de coincidencia).\n"
-        else:
-                analysis_text += f"\n❌ SIN RELACIÓN: La imagen no muestra elementos claramente relacionados con tu problema ({relation_percentage:.1f}% de coincidencia). Se recomienda subir una imagen más específica del problema.\n"
+                analysis_text += f"\n⚠️ CORRELACIÓN PARCIAL DETECTADA: La imagen muestra algunos elementos relacionados con el problema, pero requiere análisis más profundo. Los elementos visuales sugieren una conexión indirecta que puede ser relevante para el diagnóstico.\n"
+                analysis_text += f"\n🔍 ELEMENTOS RELEVANTES IDENTIFICADOS:\n"
+                for i, label in enumerate(labels[:3], 1):
+                    analysis_text += f"   {i}. {label['description']} (Confianza: {label['score']:.2f})\n"
+                analysis_text += f"\n📝 RECOMENDACIÓN: Se sugiere proporcionar imágenes adicionales o más específicas para fortalecer la correlación.\n"
+            else:
+                analysis_text += f"\n❌ CORRELACIÓN LIMITADA: La imagen no muestra elementos claramente relacionados con el problema reportado. Los elementos visuales detectados no presentan una correlación directa con la descripción del problema.\n"
+                analysis_text += f"\n🔍 ELEMENTOS DETECTADOS EN LA IMAGEN:\n"
+                for i, label in enumerate(labels[:3], 1):
+                    analysis_text += f"   {i}. {label['description']} (Confianza: {label['score']:.2f})\n"
+                analysis_text += f"\n📋 RECOMENDACIÓN URGENTE: Se recomienda encarecidamente subir una imagen más específica del problema para obtener un análisis más preciso y útil.\n"
         
-        # Análisis de texto detectado
+        # Análisis PROFUNDO de texto detectado
         if text_detections:
+            analysis_text += f"\n\n📝 ANÁLISIS DETALLADO DE TEXTO DETECTADO:\n"
+            for i, text_detection in enumerate(text_detections[:5], 1):
+                text_content = text_detection['description'].strip()
+                if len(text_content) > 3:
+                    analysis_text += f"   {i}. \"{text_content}\"\n"
+            
+            # Análisis de relevancia del texto
             main_text = text_detections[0]['description'] if text_detections else ""
             if main_text and len(main_text.strip()) > 3:
-                analysis_text += f"\n📝 TEXTO DETECTADO: \"{main_text}\" - Esta información puede ser útil para el diagnóstico.\n"
+                analysis_text += f"\n💡 RELEVANCIA DEL TEXTO: El texto detectado \"{main_text}\" puede contener información CRÍTICA para el diagnóstico del problema. Se recomienda analizar cuidadosamente esta información en el contexto del problema reportado.\n"
+                
+                # Verificar si el texto está relacionado con el problema
+                if ticket_description and any(word.lower() in main_text.lower() for word in ticket_description.split() if len(word) > 3):
+                    analysis_text += f"\n🎯 CORRELACIÓN TEXTUAL CONFIRMADA: El texto detectado muestra correlación directa con elementos mencionados en la descripción del problema.\n"
+                else:
+                    analysis_text += f"\n⚠️ ANÁLISIS TEXTUAL: El texto detectado requiere análisis adicional para determinar su relevancia específica con el problema reportado.\n"
+        
+        # Sección final con recomendaciones específicas y prompt profesional
+        analysis_text += f"\n\n🛠️ RECOMENDACIONES ESPECÍFICAS Y ACCIONES INMEDIATAS:\n"
+        analysis_text += f"1. 📸 DOCUMENTACIÓN ADICIONAL: Si la imagen no muestra claramente el problema, se recomienda tomar fotografías adicionales desde diferentes ángulos\n"
+        analysis_text += f"2. 🔍 ANÁLISIS TÉCNICO: Revisar los elementos identificados en el contexto del problema reportado\n"
+        analysis_text += f"3. 📋 SEGUIMIENTO: Monitorear la evolución del problema basándose en los elementos visuales detectados\n"
+        analysis_text += f"4. 🎯 PRIORIZACIÓN: Enfocar la resolución en los elementos con mayor correlación identificados\n"
+        
+        
+        analysis_text += f"\n📊 RESUMEN EJECUTIVO:\n"
+        analysis_text += f"• Elementos detectados: {len(labels)} elementos identificados\n"
+        analysis_text += f"• Nivel de correlación: {relation_percentage:.1f}%\n"
+        analysis_text += f"• Texto detectado: {'Sí' if text_detections else 'No'}\n"
+        analysis_text += f"• Calidad de evidencia: {'Alta' if relation_percentage >= 10 else 'Media' if relation_percentage >= 5 else 'Baja'}\n"
         
         return jsonify({
             "message": "Análisis completado exitosamente",
