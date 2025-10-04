@@ -1,4 +1,4 @@
-import { string } from "prop-types";
+// import { string } from "prop-types"; // No se usa en este archivo
 import { io } from "socket.io-client";
 
 // Función global para manejar chats activos en localStorage
@@ -221,7 +221,7 @@ export const initialStore = () => {
           "Automatización de procesos internos",
         ],
         proyectos: [
-          "Sistema de tickets de soporte",,
+          "Sistema de tickets de soporte",
         ],
         contacto: {
           email: "manuel@empresa.com",
@@ -616,25 +616,6 @@ export const authActions = {
       socket.on("nuevo_ticket", (data) => {
         console.log("⚡ NUEVO TICKET RECIBIDO:", data);
         dispatch({ type: "websocket_notification", payload: data });
-        timeout: 30000, // Timeout de 30 segundos
-        reconnection: true,
-        reconnectionAttempts: 10, // Más intentos de reconexión
-        reconnectionDelay: 2000, // Delay inicial más conservador
-        reconnectionDelayMax: 10000, // Delay máximo aumentado
-        maxReconnectionAttempts: 10, // Más intentos de reconexión
-        randomizationFactor: 0.5, // Factor de aleatorización
-        upgrade: false, // Deshabilitar upgrade automático a WebSocket
-        rememberUpgrade: false, // No recordar upgrade
-        autoConnect: true, // Conectar automáticamente
-        multiplex: false, // No multiplexar conexiones
-        withCredentials: true, // Incluir credenciales
-        // Configuraciones adicionales para mejor rendimiento
-        pingTimeout: 60000, // 60 segundos
-        pingInterval: 25000, // 25 segundos
-        // Headers adicionales
-        extraHeaders: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
       });
 
       socket.on('connect', () => {

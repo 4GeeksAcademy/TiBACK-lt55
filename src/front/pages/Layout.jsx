@@ -20,16 +20,16 @@ const Layout = () => {
   const NavbarToShow =
     isLandingPage || ContactView
       ? <LandNavbar />
-      : home || authActions
-      ? <Navbar />
-      : <LandNavbar />;
-    
+      : home
+        ? <Navbar />
+        : <LandNavbar />;
+
   const FooterToShow =
     isLandingPage || ContactView
       ? <LandFooter />
-      : home || authActions
-      ? <Footer />
-      : <LandFooter />
+      : home
+        ? <Footer />
+        : <LandFooter />
 
   return (
     <>
@@ -40,7 +40,7 @@ const Layout = () => {
       <main>
         <Outlet />
       </main>
-    
+
       {/* Footer dinámico */}
       {FooterToShow}
     </>
