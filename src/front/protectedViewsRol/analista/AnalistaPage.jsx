@@ -767,6 +767,13 @@ function AnalistaPage() {
     //         const token = store.auth.token;
     //         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/analista`, {
     //             headers: {
+    // Función para actualizar tickets (comentada temporalmente)
+    // const actualizarTickets = async () => {
+    //     try {
+    //         setLoading(true);
+    //         const token = store.auth.token;
+    //         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analista/tickets`, {
+    //             headers: {
     //                 'Authorization': `Bearer ${token}`,
     //                 'Content-Type': 'application/json'
     //             }
@@ -919,19 +926,6 @@ function AnalistaPage() {
                                     className="btn btn-link d-flex align-items-center gap-2 text-decoration-none"
                                     onClick={() => setShowUserDropdown(!showUserDropdown)}
                                 >
-                                //     <i className="fas fa-user-edit me-1"></i>
-                                //     {showInfoForm ? 'Ocultar Información' : 'Actualizar Información'}
-                                // </button>
-                                // <Link to="/analistas" className="btn btn-primary">Ir al CRUD</Link>
-                                // <Link to="/analista/ranking" className="btn btn-warning">
-                                //     <i className="fas fa-chart-bar me-1"></i>
-                                //     Rankings
-                                // </Link>
-                                // <button
-                                //     className="btn btn-outline-danger"
-                                //     onClick={logout}
-                                // >
-                                //     Cerrar Sesión
                                     <div className="hyper-user-avatar bg-primary d-flex align-items-center justify-content-center rounded-circle avatar-small">
                                         <i className="fas fa-user-cog text-white icon-small"></i>
                                     </div>
@@ -1773,29 +1767,29 @@ function AnalistaPage() {
                         </>
                     )}
 
-            // {/* Lista de tickets asignados */}
-            // <div className="row">
-            //     <div className="col-12">
-            //         <div className="card">
-            //             <div className="card-header d-flex align-items-center justify-content-between">
-            //                 <div>
-            //                     <h5 className="mb-0">Mis Tickets Asignados</h5>
-            //                     {feedback && (
-            //                         <div className="alert alert-info py-1 px-3 mb-0 mt-2" style={{ display: 'inline-block', fontSize: '0.95em' }} role="alert">
-            //                             {feedback}
-            //                         </div>
-            //                     )}
-            //                 </div>
-            //                 <button className="btn btn-primary" onClick={actualizarTickets}>
-            //                     <i className="fas fa-refresh"></i> Actualizar Lista
-            //                 </button>
-            //             </div>
-            //             <div className="card-body">
-            //                 {loading ? (
-            //                     <div className="text-center py-4">
-            //                         <div className="spinner-border text-primary" role="status">
-            //                             <span className="visually-hidden">Cargando tickets...</span>
-                    {/* Formulario de informaciÃ³n del analista */}
+                    {/* Lista de tickets asignados - Comentada temporalmente */}
+                    {/* <div className="row">
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-header d-flex align-items-center justify-content-between">
+                            <div>
+                                <h5 className="mb-0">Mis Tickets Asignados</h5>
+                                {feedback && (
+                                    <div className="alert alert-info py-1 px-3 mb-0 mt-2" style={{ display: 'inline-block', fontSize: '0.95em' }} role="alert">
+                                        {feedback}
+                                //                         </div>
+                                //                     )}
+                                //                 </div>
+                                //                 <button className="btn btn-primary" onClick={actualizarTickets}>
+                                //                     <i className="fas fa-refresh"></i> Actualizar Lista
+                                //                 </button>
+                                //             </div>
+                                //             <div className="card-body">
+                                //                 {loading ? (
+                                //                     <div className="text-center py-4">
+                                //                         <div className="spinner-border text-primary" role="status">
+                                //                             <span className="visually-hidden">Cargando tickets...</span>
+                                {/* Formulario de informaciÃ³n del analista */ }
                     {showInfoForm && (
                         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                             <div className="modal-dialog">
@@ -1957,3 +1951,5 @@ const useAnalistaSyncEffects = () => {
     }, []);
 };
 // FIN CAMBIO ANALISTA 1
+
+export default AnalistaPage;

@@ -57,23 +57,24 @@ export function ClientePage() {
     //         if (!cloudinaryWidgetRef.current) {
     //             cloudinaryWidgetRef.current = window.cloudinary.createUploadWidget({
     //                 cloudName: 'dda53mpsn', // cloud name real
-    //                 uploadPreset: 'Ticket-TiBACK', // upload preset real
-    //                 multiple: true,
-    //                 maxFiles: 5,
-    //                 sources: ['local', 'url', 'camera', 'image_search'],
-    //                 resourceType: 'image',
-    //                 cropping: false,
-    //                 folder: 'tickets',
-    //             }, (error, result) => {
-    //                 if (!error && result && result.event === "success") {
-    //                     setNewTicketImages(prev => [...prev, result.info.secure_url]);
-    //                 }
-    //             });
-    //         }
-    //         cloudinaryWidgetRef.current.open();
-    //     } else {
-    //         alert('El widget de Cloudinary aún no está listo. Espera unos segundos y vuelve a intentar.');
+    // Configuración de Cloudinary comentada temporalmente
+    // uploadPreset: 'Ticket-TiBACK', // upload preset real
+    // multiple: true,
+    // maxFiles: 5,
+    // sources: ['local', 'url', 'camera', 'image_search'],
+    // resourceType: 'image',
+    // cropping: false,
+    // folder: 'tickets',
+    // }, (error, result) => {
+    //     if (!error && result && result.event === "success") {
+    //         setNewTicketImages(prev => [...prev, result.info.secure_url]);
     //     }
+    // });
+    // }
+    // cloudinaryWidgetRef.current.open();
+    // } else {
+    //     alert('El widget de Cloudinary aún no está listo. Espera unos segundos y vuelve a intentar.');
+    // }
     // };
 
     // // Eliminar imagen subida (solo de la lista local, no de Cloudinary)
@@ -225,7 +226,7 @@ export function ClientePage() {
                 }
             });
 
-            // Unirse a rooms crÃ­ticos de todos los tickets del cliente
+            // Unirse a rooms críticos de todos los tickets del cliente
             const ticketIds = tickets.map(ticket => ticket.id);
             if (ticketIds.length > 0) {
                 joinCriticalRooms(store.websocket.socket, ticketIds, store.auth.user);
@@ -328,15 +329,15 @@ export function ClientePage() {
                         return newSet;
                     });
                 }
-                return; // No continuar con el resto de la lÃ³gica
+                return; // No continuar con el resto de la lógica
             }
 
-            // ActualizaciÃ³n ULTRA RÃPIDA para todos los eventos crÃ­ticos
+            // Actualización ULTRA RÁPIDA para todos los eventos críticos
             if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado' || lastNotification.tipo === 'creado') {
-                // Los datos ya estÃ¡n en el store por el WebSocket - actualizaciÃ³n instantÃ¡nea
+                // Los datos ya están en el store por el WebSocket - actualización instantánea
             }
 
-            // SincronizaciÃ³n ULTRA RÃPIDA con servidor para TODOS los eventos
+            // Sincronización ULTRA RÁPIDA con servidor para TODOS los eventos
             actualizarTickets();
         }
     }, [store.websocket.notifications]);
@@ -473,12 +474,12 @@ export function ClientePage() {
                             algoritmo: data.algoritmo || 'legacy'
                         };
                     } else {
-                        // Log del error especÃ­fico pero no fallar
+                        // Log del error específico pero no fallar
                         console.warn(`âš ï¸ Error ${response.status} verificando recomendaciones para ticket ${ticket.id}`);
                         return { ticketId: ticket.id, tieneRecomendaciones: false, razon: `error_${response.status}` };
                     }
                 } catch (fetchError) {
-                    // Manejar errores individuales sin fallar toda la operaciÃ³n
+                    // Manejar errores individuales sin fallar toda la operación
                     if (fetchError.name === 'AbortError') {
                         console.warn(`â° Timeout verificando recomendaciones para ticket ${ticket.id}`);
                         return { ticketId: ticket.id, tieneRecomendaciones: false, razon: 'timeout' };
@@ -587,41 +588,43 @@ export function ClientePage() {
                         joinTicketRoom(store.websocket.socket, nuevoTicket.id);
                     }
                 }
-            if (store.websocket.socket && ticketId) {
-                joinTicketRoom(store.websocket.socket, ticketId);
-                // TambiÃ©n unirse a rooms crÃ­ticos
-                joinCriticalRooms(store.websocket.socket, [ticketId], store.auth.user);
-            }
-
-            // Navegar automÃ¡ticamente a "Mis Tickets" y posicionar el nuevo ticket
-            changeView('tickets');
-
-            // Esperar un momento para que se renderice la vista y luego hacer scroll al nuevo ticket
-            setTimeout(() => {
-                const newTicketElement = document.querySelector(`[data-ticket-id="${ticketId}"]`);
-                if (newTicketElement) {
-                    newTicketElement.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-
-                    // Agregar un efecto visual para destacar el nuevo ticket
-                    newTicketElement.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-                    newTicketElement.style.border = '2px solid #28a745';
-                    newTicketElement.style.borderRadius = '8px';
-
-                    // Remover el efecto despuÃ©s de 3 segundos
-                    setTimeout(() => {
-                        newTicketElement.style.backgroundColor = '';
-                        newTicketElement.style.border = '';
-                        newTicketElement.style.borderRadius = '';
-                    }, 3000);
+                if (store.websocket.socket && ticketId) {
+                    joinTicketRoom(store.websocket.socket, ticketId);
+                    // TambiÃ©n unirse a rooms crÃ­ticos
+                    joinCriticalRooms(store.websocket.socket, [ticketId], store.auth.user);
                 }
-            }, 500);
+
+                // Navegar automÃ¡ticamente a "Mis Tickets" y posicionar el nuevo ticket
+                changeView('tickets');
+
+                // Esperar un momento para que se renderice la vista y luego hacer scroll al nuevo ticket
+                setTimeout(() => {
+                    const newTicketElement = document.querySelector(`[data-ticket-id="${ticketId}"]`);
+                    if (newTicketElement) {
+                        newTicketElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+
+                        // Agregar un efecto visual para destacar el nuevo ticket
+                        newTicketElement.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                        newTicketElement.style.border = '2px solid #28a745';
+                        newTicketElement.style.borderRadius = '8px';
+
+                        // Remover el efecto despuÃ©s de 3 segundos
+                        setTimeout(() => {
+                            newTicketElement.style.backgroundColor = '';
+                            newTicketElement.style.border = '';
+                            newTicketElement.style.borderRadius = '';
+                        }, 3000);
+                    }
+                }, 500);
+            }
         } catch (err) {
             setError(err.message);
+        } finally {
+            setUploading(false);
         }
-        setUploading(false);
     };
 
     const getEstadoColor = (estado) => {
@@ -832,9 +835,9 @@ export function ClientePage() {
             const token = store.auth.token;
             const userId = tokenUtils.getUserId(token);
 
-            // Validar contraseÃ±as si se estÃ¡n cambiando
+            // Validar contraseñas si se están cambiando
             if (infoData.password && infoData.password !== infoData.confirmPassword) {
-                setError('Las contraseÃ±as no coinciden');
+                setError('Las contraseñas no coinciden');
                 return;
             }
 
@@ -864,7 +867,7 @@ export function ClientePage() {
             });
 
             if (!response.ok) {
-                throw new Error('Error al actualizar informaciÃ³n');
+                throw new Error('Error al actualizar información');
             }
 
             const updatedUser = await response.json();
@@ -2442,126 +2445,6 @@ export function ClientePage() {
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Formulario para crear nuevo ticket */}
-            {showTicketForm && (
-                <div className="row mb-4">
-                    <div className="col-12">
-                        <div className="card">
-                            <div className="card-header">
-                                <h5 className="mb-0">
-                                    <i className="fas fa-plus me-2"></i>
-                                    Crear Nuevo Ticket
-                                </h5>
-                            </div>
-                            <div className="card-body">
-                                <form onSubmit={crearTicket}>
-                                    <div className="row g-3">
-                                        <div className="col-md-8">
-                                            <label htmlFor="titulo" className="form-label">Título del Ticket *</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                id="titulo"
-                                                name="titulo"
-                                                required
-                                                placeholder="Describe brevemente el problema"
-                                            />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label htmlFor="prioridad" className="form-label">Prioridad *</label>
-                                            <select className="form-select" id="prioridad" name="prioridad" required>
-                                                <option value="">Seleccionar...</option>
-                                                <option value="baja">Baja</option>
-                                                <option value="media">Media</option>
-                                                <option value="alta">Alta</option>
-                                            </select>
-                                        </div>
-                                        <div className="col-12">
-                                            <label htmlFor="descripcion" className="form-label">Descripción Detallada *</label>
-                                            <textarea
-                                                className="form-control"
-                                                id="descripcion"
-                                                name="descripcion"
-                                                rows="4"
-                                                required
-                                                placeholder="Describe detalladamente el problema que necesitas resolver"
-                                            ></textarea>
-                                        </div>
-                                        <div className="col-12">
-                                            <ImageUpload
-                                                onImageUpload={handleImageUpload}
-                                                onImageRemove={handleImageRemove}
-                                                currentImageUrl={ticketImageUrl}
-                                            />
-                                        </div>
-                                        <div className="col-12">
-                                            <button type="submit" className="btn btn-primary">
-                                                Crear Ticket
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Lista de tickets */}
-            <div className="row">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-header d-flex align-items-center justify-content-between">
-                            <div>
-                                <h5 className="mb-0">Mis Tickets</h5>
-                                {feedback && (
-                                    <div className="alert alert-info py-1 px-3 mb-0 mt-2" style={{ display: 'inline-block', fontSize: '0.95em' }} role="alert">
-                                        {feedback}
-                                    </div>
-                                )}
-                            </div>
-                            <button className="btn btn-primary" onClick={actualizarTickets}>
-                                <i className="fas fa-refresh"></i> Actualizar Lista
-                            </button>
-                        </div>
-                        <div className="card-body">
-                            {loading ? (
-                                <div className="text-center py-4">
-                                    <div className="spinner-border text-primary" role="status">
-                                        <span className="visually-hidden">Cargando tickets...</span>
-                                    <div className="col-12">
-                                        <button
-                                            className="btn btn-success"
-                                            onClick={updateInfo}
-                                            disabled={!infoData.nombre || !infoData.apellido || !infoData.email || !infoData.telefono || !infoData.direccion || updatingInfo}
-                                        >
-                                            {updatingInfo ? (
-                                                <>
-                                                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                                    Actualizando...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <i className="fas fa-save me-1"></i>
-                                                    Guardar Información
-                                                </>
-                                            )}
-                                        </button>
-                                        <button
-                                            className="btn btn-secondary ms-2"
-                                            onClick={() => changeView('dashboard')}
-                                        >
-                                            <i className="fas fa-arrow-left me-1"></i>
-                                            Volver al Dashboard
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </>
                     )}
 
@@ -2574,252 +2457,167 @@ export function ClientePage() {
                                 <div className="hyper-widget-header">
                                     <h3 className="hyper-widget-title">Conversaciones Activas</h3>
                                 </div>
-                            ) : (
-                                <div className="table-responsive">
-                                    <table className="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Título</th>
-                                                <th>Imágenes</th>
-                                                <th>Estado</th>
-                                                <th>Prioridad</th>
-                                                <th>Asignado a</th>
-                                                <th>Fecha Creación</th>
-                                                <th>Calificación</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {tickets.map((ticket) => (
-                                                <tr key={ticket.id}>
-                                                    <td>
-                                                        <div className="d-flex align-items-center">
-                                                            <span className="me-2">#{ticket.id}</span>
-                                                            {ticket.url_imagen ? (
-                                                                <img
-                                                                    src={ticket.url_imagen}
-                                                                    alt="Imagen del ticket"
-                                                                    className="img-thumbnail"
-                                                                    style={{ width: '30px', height: '30px', objectFit: 'cover' }}
-                                                                />
-                                                            ) : (
-                                                                <span className="text-muted">
-                                                                    <i className="fas fa-image" style={{ fontSize: '12px' }}></i>
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div>
-                                                            <strong>{ticket.titulo}</strong>
-                                                            <br />
-                                                            <small className="text-muted">
-                                                                {ticket.descripcion.length > 50
-                                                                    ? `${ticket.descripcion.substring(0, 50)}...`
-                                                                    : ticket.descripcion
-                                                                }
-                                                            </small>
-                                                        </div>
-                                                    </td>
-                                                    {/* Miniaturas de imágenes */}
-                                                    <td>
-                                                        {ticket.img_urls && ticket.img_urls.length > 0 ? (
-                                                            <div className="d-flex flex-wrap gap-1">
-                                                                {ticket.img_urls.slice(0, 3).map((url, idx) => (
+                                <div className="hyper-widget-body">
+                                    <div className="table-responsive">
+                                        <table className="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Título</th>
+                                                    <th>Imágenes</th>
+                                                    <th>Estado</th>
+                                                    <th>Prioridad</th>
+                                                    <th>Asignado a</th>
+                                                    <th>Fecha Creación</th>
+                                                    <th>Calificación</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {tickets.map((ticket) => (
+                                                    <tr key={ticket.id}>
+                                                        <td>
+                                                            <div className="d-flex align-items-center">
+                                                                <span className="me-2">#{ticket.id}</span>
+                                                                {ticket.url_imagen ? (
                                                                     <img
-                                                                        key={idx}
-                                                                        src={url}
-                                                                        alt={`ticket-${ticket.id}-img-${idx}`}
+                                                                        src={ticket.url_imagen}
+                                                                        alt="Imagen del ticket"
                                                                         className="img-thumbnail"
-                                                                        style={{ width: '50px', height: '50px', objectFit: 'cover', cursor: 'pointer' }}
-                                                                        onClick={() => { setSelectedTicketImages(ticket.img_urls); setSelectedImageIndex(idx); }}
+                                                                        style={{ width: '30px', height: '30px', objectFit: 'cover' }}
                                                                     />
-                                                                ))}
-                                                                {ticket.img_urls.length > 3 && <span className="badge bg-secondary">+{ticket.img_urls.length - 3}</span>}
+                                                                ) : (
+                                                                    <span className="text-muted">
+                                                                        <i className="fas fa-image" style={{ fontSize: '12px' }}></i>
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                        ) : <span className="text-muted">Sin imágenes</span>}
-                                                    </td>
-                                                    <td>
-                                                        <div className="d-flex align-items-center gap-2">
-                                                            <span className={getEstadoColor(ticket.estado)}>
-                                                                {ticket.estado}
-                                                            </span>
-                                                            {tieneAnalistaAsignado(ticket) && (
-                                                                <span
-                                                                    className="badge bg-success"
-                                                                    title={`Asignado a ${getAnalistaAsignado(ticket)}`}
-                                                                >
-                                                                    <i className="fas fa-user-tie me-1"></i>
-                                                                    Analista
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <span className={getPrioridadColor(ticket.prioridad)}>
-                                                            {ticket.prioridad}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        {tieneAnalistaAsignado(ticket) ? (
-                                                            <div className="d-flex align-items-center gap-2">
-                                                                <span className="badge bg-success">
-                                                                    <i className="fas fa-user-tie me-1"></i>
-                                                                    {getAnalistaAsignado(ticket)}
-                                                                </span>
+                                                        </td>
+                                                        <td>
+                                                            <div>
+                                                                <strong>{ticket.titulo}</strong>
+                                                                <br />
                                                                 <small className="text-muted">
-                                                                    {getFechaAsignacion(ticket)}
+                                                                    {ticket.descripcion.length > 50
+                                                                        ? `${ticket.descripcion.substring(0, 50)}...`
+                                                                        : ticket.descripcion
+                                                                    }
                                                                 </small>
                                                             </div>
-                                                        ) : (
-                                                            <span className="text-muted">
-                                                                <i className="fas fa-clock me-1"></i>
-                                                                Sin asignar
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td>
-                                                        {new Date(ticket.fecha_creacion).toLocaleDateString()}
-                                                    </td>
-                                                    <td>
-                                                        <div className="d-flex align-items-center">
-                                                            {ticket.calificacion ? (
-                                                                [...Array(5)].map((_, i) => (
-                                                                    <i
-                                                                        key={i}
-                                                                        className={`fas fa-star ${i < ticket.calificacion ? 'text-warning' : 'text-muted'}`}
-                                                                    ></i>
-                                                                ))
-                                                            ) : (
-                                                                <span className="text-muted">Sin calificar</span>
-                                                            )}
-                                                            <button
-                                                                className="btn btn-info btn-sm ms-2"
-                                                                onClick={() => navigate(`/cliente/ver-ticket/${ticket.id}`)}
-                                                            >
-                                                                <i className="fas fa-eye"></i> Ver
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="btn-group" role="group">
-                                                            {ticket.estado.toLowerCase() === 'solucionado' && !solicitudesReapertura.has(ticket.id) && (
-                                                                <>
-                                                                    <button
-                                                                        className="btn btn-success btn-sm"
-                                                                        onClick={() => cerrarTicket(ticket.id)}
-                                                                        title="Cerrar ticket y calificar"
-                                                                    >
-                                                                        <i className="fas fa-check"></i> Cerrar
-                                                                    </button>
-                                                                    <button
-                                                                        className="btn btn-info btn-sm"
-                                                                        onClick={() => solicitarReapertura(ticket.id)}
-                                                                        title="Solicitar reapertura al supervisor"
-                                                                    >
-                                                                        <i className="fas fa-redo"></i> Reabrir
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                            {ticket.estado.toLowerCase() === 'solucionado' && solicitudesReapertura.has(ticket.id) && (
-                                                                <div className="alert alert-warning py-2 px-3 mb-0" role="alert">
-                                                                    <i className="fas fa-clock me-1"></i>
-                                                                    <strong>Solicitud enviada</strong>
-
-                                <div className="hyper-widget-body">
-                                    {(() => {
-                                        // Obtener chats activos del localStorage
-                                        const getActiveChats = () => {
-                                            try {
-                                                const chatsData = localStorage.getItem('activeChats');
-                                                if (chatsData) {
-                                                    const chats = JSON.parse(chatsData);
-                                                    const userId = userData?.id;
-                                                    return chats.filter(chat =>
-                                                        chat.userId === userId &&
-                                                        (chat.commentsCount > 0 || chat.messagesCount > 0)
-                                                    );
-                                                }
-                                            } catch (error) {
-                                                console.error('Error al obtener chats activos:', error);
-                                            }
-                                            return [];
-                                        };
-
-                                        const activeChats = getActiveChats();
-
-                                        if (activeChats.length === 0) {
-                                            return (
-                                                <div className="text-center py-4">
-                                                    <i className="fas fa-comments fa-3x text-muted mb-3"></i>
-                                                    <p className="text-muted">No tienes conversaciones activas</p>
-                                                    <p className="text-muted small">Los chats aparecerán aquí cuando tengas comentarios o mensajes en tus tickets</p>
-                                                    <button
-                                                        className="btn btn-primary mt-3"
-                                                        onClick={() => changeView('tickets')}
-                                                    >
-                                                        <i className="fas fa-ticket-alt me-1"></i>
-                                                        Ver Mis Tickets
-                                                    </button>
-                                                </div>
-                                            );
-                                        }
-
-                                        return (
-                                            <div className="row g-3">
-                                                {activeChats.map((chat) => (
-                                                    <div key={chat.ticketId} className="col-md-6 col-lg-4">
-                                                        <div className="card h-100 border-0 shadow-sm">
-                                                            <div className="card-body">
-                                                                <div className="d-flex align-items-center mb-3">
-                                                                    <div className="hyper-metric-icon bg-primary me-3">
-                                                                        <i className="fas fa-ticket-alt"></i>
-                                                                    </div>
-                                                                    <div>
-                                                                        <h6 className="card-title mb-0">Ticket #{chat.ticketId}</h6>
-                                                                        <small className="text-muted">
-                                                                            {new Date(chat.lastActivity).toLocaleDateString()}
-                                                                        </small>
-                                                                    </div>
+                                                        </td>
+                                                        {/* Miniaturas de imágenes */}
+                                                        <td>
+                                                            {ticket.img_urls && ticket.img_urls.length > 0 ? (
+                                                                <div className="d-flex flex-wrap gap-1">
+                                                                    {ticket.img_urls.slice(0, 3).map((url, idx) => (
+                                                                        <img
+                                                                            key={idx}
+                                                                            src={url}
+                                                                            alt={`ticket-${ticket.id}-img-${idx}`}
+                                                                            className="img-thumbnail"
+                                                                            style={{ width: '50px', height: '50px', objectFit: 'cover', cursor: 'pointer' }}
+                                                                            onClick={() => { setSelectedTicketImages(ticket.img_urls); setSelectedImageIndex(idx); }}
+                                                                        />
+                                                                    ))}
+                                                                    {ticket.img_urls.length > 3 && <span className="badge bg-secondary">+{ticket.img_urls.length - 3}</span>}
                                                                 </div>
-
-                                                                <div className="mb-3">
-                                                                    <div className="d-flex justify-content-between align-items-center mb-2">
-                                                                        <span className="badge bg-info">
-                                                                            <i className="fas fa-comment me-1"></i>
-                                                                            {chat.commentsCount} comentarios
-                                                                        </span>
-                                                                        <span className="badge bg-success">
-                                                                            <i className="fas fa-comments me-1"></i>
-                                                                            {chat.messagesCount} mensajes
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="d-grid gap-2">
-                                                                    <button
-                                                                        className="btn btn-outline-primary btn-sm"
-                                                                        onClick={() => window.open(`/ticket/${chat.ticketId}/chat`, '_self')}
+                                                            ) : <span className="text-muted">Sin imágenes</span>}
+                                                        </td>
+                                                        <td>
+                                                            <div className="d-flex align-items-center gap-2">
+                                                                <span className={getEstadoColor(ticket.estado)}>
+                                                                    {ticket.estado}
+                                                                </span>
+                                                                {tieneAnalistaAsignado(ticket) && (
+                                                                    <span
+                                                                        className="badge bg-success"
+                                                                        title={`Asignado a ${getAnalistaAsignado(ticket)}`}
                                                                     >
-                                                                        <i className="fas fa-comments me-1"></i>
-                                                                        Abrir Chat
-                                                                    </button>
-                                                                    <button
-                                                                        className="btn btn-outline-secondary btn-sm"
-                                                                        onClick={() => window.open(`/ticket/${chat.ticketId}/comentarios`, '_self')}
-                                                                    >
-                                                                        <i className="fas fa-comment me-1"></i>
-                                                                        Ver Comentarios
-                                                                    </button>
-                                                                </div>
+                                                                        <i className="fas fa-user-tie me-1"></i>
+                                                                        Analista
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                        </div>
-                                                    </div>
+                                                        </td>
+                                                        <td>
+                                                            <span className={getPrioridadColor(ticket.prioridad)}>
+                                                                {ticket.prioridad}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            {tieneAnalistaAsignado(ticket) ? (
+                                                                <div className="d-flex align-items-center gap-2">
+                                                                    <span className="badge bg-success">
+                                                                        <i className="fas fa-user-tie me-1"></i>
+                                                                        {getAnalistaAsignado(ticket)}
+                                                                    </span>
+                                                                    <small className="text-muted">
+                                                                        {getFechaAsignacion(ticket)}
+                                                                    </small>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-muted">
+                                                                    <i className="fas fa-clock me-1"></i>
+                                                                    Sin asignar
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                                                        </td>
+                                                        <td>
+                                                            <div className="d-flex align-items-center">
+                                                                {ticket.calificacion ? (
+                                                                    [...Array(5)].map((_, i) => (
+                                                                        <i
+                                                                            key={i}
+                                                                            className={`fas fa-star ${i < ticket.calificacion ? 'text-warning' : 'text-muted'}`}
+                                                                        ></i>
+                                                                    ))
+                                                                ) : (
+                                                                    <span className="text-muted">Sin calificar</span>
+                                                                )}
+                                                                <button
+                                                                    className="btn btn-info btn-sm ms-2"
+                                                                    onClick={() => navigate(`/cliente/ver-ticket/${ticket.id}`)}
+                                                                >
+                                                                    <i className="fas fa-eye"></i> Ver
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className="btn-group" role="group">
+                                                                {ticket.estado.toLowerCase() === 'solucionado' && !solicitudesReapertura.has(ticket.id) && (
+                                                                    <>
+                                                                        <button
+                                                                            className="btn btn-success btn-sm"
+                                                                            onClick={() => cerrarTicket(ticket.id)}
+                                                                            title="Cerrar ticket y calificar"
+                                                                        >
+                                                                            <i className="fas fa-check"></i> Cerrar
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-info btn-sm"
+                                                                            onClick={() => solicitarReapertura(ticket.id)}
+                                                                            title="Solicitar reapertura al supervisor"
+                                                                        >
+                                                                            <i className="fas fa-redo"></i> Reabrir
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                {ticket.estado.toLowerCase() === 'solucionado' && solicitudesReapertura.has(ticket.id) && (
+                                                                    <div className="alert alert-warning py-2 px-3 mb-0" role="alert">
+                                                                        <i className="fas fa-clock me-1"></i>
+                                                                        <strong>Solicitud enviada</strong>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
                                                 ))}
-                                            </div>
-                                        );
-                                    })()}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </>
@@ -2827,56 +2625,58 @@ export function ClientePage() {
 
 
                     {/* VerTicketHD View */}
-                    {(() => {
-                        console.log('VerTicketHD render check:', {
-                            activeView,
-                            startsWithTicket: activeView.startsWith('ticket-'),
-                            selectedTicketId,
-                            shouldRender: activeView.startsWith('ticket-') && selectedTicketId
-                        });
-                        return activeView.startsWith('ticket-') && selectedTicketId;
-                    })() && (
+                    {
+                        (() => {
+                            console.log('VerTicketHD render check:', {
+                                activeView,
+                                startsWithTicket: activeView.startsWith('ticket-'),
+                                selectedTicketId,
+                                shouldRender: activeView.startsWith('ticket-') && selectedTicketId
+                            });
+                            return activeView.startsWith('ticket-') && selectedTicketId;
+                        })() && (
                             <VerTicketHDCliente
                                 ticketId={selectedTicketId}
                                 tickets={tickets}
                                 ticketsConRecomendaciones={ticketsConRecomendaciones}
                                 onBack={() => changeView('tickets')}
                             />
-                        )}
+                        )
+                    }
 
+                    {/* Modal de imágenes tipo carrusel */}
+                    {
+                        selectedTicketImages && (
+                            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'transparent' }} tabIndex="-1" onClick={() => setSelectedTicketImages(null)}>
+                                <div className="modal-dialog modal-dialog-centered modal-md" onClick={e => e.stopPropagation()}>
+                                    <div className="modal-content">
+                                        <div className="modal-header">
+                                            <h5 className="modal-title">Vista previa</h5>
+                                            <button type="button" className="btn-close" onClick={() => setSelectedTicketImages(null)}></button>
+                                        </div>
+                                        <div className="modal-body text-center">
+                                            <div className="position-relative">
+                                                <img src={selectedTicketImages[selectedImageIndex]} alt={`img-${selectedImageIndex}`} className="img-fluid rounded" style={{ maxHeight: '400px', objectFit: 'contain' }} />
+                                                {selectedTicketImages.length > 1 && (
+                                                    <>
+                                                        <button className="btn btn-secondary position-absolute top-50 start-0 translate-middle-y" style={{ zIndex: 2 }} onClick={() => setSelectedImageIndex((prev) => (prev - 1 + selectedTicketImages.length) % selectedTicketImages.length)}>‹</button>
+                                                        <button className="btn btn-secondary position-absolute top-50 end-0 translate-middle-y" style={{ zIndex: 2 }} onClick={() => setSelectedImageIndex((prev) => (prev + 1) % selectedTicketImages.length)}>›</button>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className="mt-2">
+                                                {selectedTicketImages.map((_, idx) => (
+                                                    <span key={idx} className={`mx-1 rounded-circle ${idx === selectedImageIndex ? 'bg-primary' : 'bg-secondary'}`} style={{ display: 'inline-block', width: '10px', height: '10px', cursor: 'pointer' }} onClick={() => setSelectedImageIndex(idx)}></span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="modal-backdrop fade show" style={{ zIndex: 0 }} onClick={() => setSelectedTicketImages(null)}></div>
+                            </div>
+                        )}
                 </div>
             </div>
-
-            {/* Modal de imágenes tipo carrusel */}
-            {selectedTicketImages && (
-                <div className="modal fade show" style={{ display: 'block', backgroundColor: 'transparent' }} tabIndex="-1" onClick={() => setSelectedTicketImages(null)}>
-                    <div className="modal-dialog modal-dialog-centered modal-md" onClick={e => e.stopPropagation()}>
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">Vista previa</h5>
-                                <button type="button" className="btn-close" onClick={() => setSelectedTicketImages(null)}></button>
-                            </div>
-                            <div className="modal-body text-center">
-                                <div className="position-relative">
-                                    <img src={selectedTicketImages[selectedImageIndex]} alt={`img-${selectedImageIndex}`} className="img-fluid rounded" style={{ maxHeight: '400px', objectFit: 'contain' }} />
-                                    {selectedTicketImages.length > 1 && (
-                                        <>
-                                            <button className="btn btn-secondary position-absolute top-50 start-0 translate-middle-y" style={{ zIndex: 2 }} onClick={() => setSelectedImageIndex((prev) => (prev - 1 + selectedTicketImages.length) % selectedTicketImages.length)}>‹</button>
-                                            <button className="btn btn-secondary position-absolute top-50 end-0 translate-middle-y" style={{ zIndex: 2 }} onClick={() => setSelectedImageIndex((prev) => (prev + 1) % selectedTicketImages.length)}>›</button>
-                                        </>
-                                    )}
-                                </div>
-                                <div className="mt-2">
-                                    {selectedTicketImages.map((_, idx) => (
-                                        <span key={idx} className={`mx-1 rounded-circle ${idx === selectedImageIndex ? 'bg-primary' : 'bg-secondary'}`} style={{ display: 'inline-block', width: '10px', height: '10px', cursor: 'pointer' }} onClick={() => setSelectedImageIndex(idx)}></span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="modal-backdrop fade show" style={{ zIndex: 0 }} onClick={() => setSelectedTicketImages(null)}></div>
-                </div>
-            )}
         </div>
     );
 }
