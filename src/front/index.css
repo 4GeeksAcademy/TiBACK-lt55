@@ -6,4 +6,2897 @@
 .btn-primary:hover {
   background-color: #606af9 !important;
   border-color: #606af9 !important;
+/* Estilos específicos para la plantilla Hyper - Optimizado con Bootstrap */
+
+/* Variables CSS para colores del tema Hyper */
+:root {
+  /* Paleta de colores Hyper */
+  --ct-blue: #2c8ef8;
+  --ct-indigo: #727cf5;
+  --ct-purple: #6b5eae;
+  --ct-pink: #ff679b;
+  --ct-red: #fa5c7c;
+  --ct-orange: #fd7e14;
+  --ct-yellow: #ffc35a;
+  --ct-green: #0acf97;
+  --ct-teal: #02a8b5;
+  --ct-cyan: #39afd1;
+  --ct-black: #000;
+  --ct-white: #fff;
+  --ct-gray: #8a969c;
+  --ct-gray-dark: #343a40;
+  --ct-gray-100: #f6f7fb;
+  --ct-gray-200: #eef2f7;
+  --ct-gray-300: #e5e8eb;
+  --ct-gray-400: #ced4da;
+  --ct-gray-500: #a1a9b1;
+  --ct-gray-600: #8a969c;
+  --ct-gray-700: #6c757d;
+  --ct-gray-800: #343a40;
+  --ct-gray-900: #313a46;
+  --ct-primary: #727cf5;
+  --ct-secondary: #6c757d;
+  --ct-success: #0acf97;
+  --ct-info: #39afd1;
+  --ct-warning: #ffc35a;
+  --ct-danger: #fa5c7c;
+  --ct-light: #eef2f7;
+  --ct-dark: #313a46;
+
+  /* Variables del sidebar usando la paleta Hyper */
+  --sidebar-bg: var(--ct-gray-900);
+  --sidebar-text: var(--ct-gray-400);
+  --sidebar-active: var(--ct-primary);
+  
+  /* Colores de botones usando la paleta Hyper */
+  --btn-sidebar-primary: var(--ct-primary);
+  --btn-sidebar-secondary: var(--ct-secondary);
+  --btn-sidebar-accent: var(--ct-gray-600);
+  --btn-sidebar-success: var(--ct-success);
+  --btn-sidebar-warning: var(--ct-warning);
+  --btn-sidebar-teal: var(--ct-teal);
+}
+
+/* Clases para AdministradorPage - Reemplazando estilos inline */
+html body .badge-ct-success {
+  background-color: var(--ct-success);
+}
+
+html body .btn-ct-primary {
+  background-color: var(--ct-primary);
+  border-color: var(--ct-primary);
+  color: white;
+}
+
+html body .btn-ct-secondary {
+  background-color: var(--ct-secondary);
+  border-color: var(--ct-secondary);
+  color: white;
+}
+
+html body .btn-ct-danger-outline {
+  border-color: var(--ct-danger);
+  color: var(--ct-danger);
+  background-color: transparent;
+}
+
+html body .btn-ct-success-outline {
+  border-color: var(--ct-success);
+  color: var(--ct-success);
+  background-color: transparent;
+}
+
+html body .spinner-ct-primary {
+  color: var(--ct-primary);
+}
+
+html body .card-ct-primary {
+  background-color: var(--ct-primary);
+  color: white;
+}
+
+html body .card-ct-secondary {
+  background-color: var(--ct-secondary);
+  color: white;
+}
+
+html body .card-ct-warning {
+  background-color: var(--ct-warning);
+  color: white;
+}
+
+html body .card-ct-success {
+  background-color: var(--ct-success);
+  color: white;
+}
+
+html body .card-ct-info {
+  background-color: var(--ct-info);
+  color: white;
+}
+
+html body .card-ct-dark {
+  background-color: var(--ct-dark);
+  color: white;
+}
+
+html body .card-ct-danger {
+  background-color: var(--ct-danger);
+  color: white;
+}
+
+html body .icon-ct-primary {
+  color: var(--ct-primary);
+}
+
+html body .icon-ct-success {
+  color: var(--ct-success);
+}
+
+html body .icon-ct-warning {
+  color: var(--ct-warning);
+}
+
+html body .icon-ct-info {
+  color: var(--ct-info);
+}
+
+html body .icon-ct-dark {
+  color: var(--ct-dark);
+}
+
+/* Clases para vistas de tickets - Reemplazando estilos inline */
+html body .loading-container {
+  min-height: 60vh;
+}
+
+html body .spinner-large {
+  width: 3rem;
+  height: 3rem;
+}
+
+html body .image-responsive {
+  max-height: 400px;
+}
+
+html body .avatar-large {
+  width: 60px;
+  height: 60px;
+}
+
+html body .avatar-small {
+  width: 32px;
+  height: 32px;
+}
+
+html body .full-height {
+  height: 100vh;
+}
+
+html body .z-index-10 {
+  z-index: 10;
+}
+
+html body .z-index-1000 {
+  z-index: 1000;
+}
+
+html body .dropdown-menu-custom {
+  top: 100%;
+  z-index: 1000;
+}
+
+html body .dropdown-menu-min-width {
+  min-width: 200px;
+  z-index: 1000;
+}
+
+html body .icon-small {
+  font-size: 0.8rem;
+}
+
+/* Clases para puntos de color - Reemplazando estilos inline */
+html body .dot-ct-blue {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-blue);
+}
+
+html body .dot-ct-purple {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-purple);
+}
+
+html body .dot-ct-success {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-success);
+}
+
+html body .dot-ct-warning {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-warning);
+}
+
+html body .dot-ct-info {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-info);
+}
+
+html body .dot-ct-danger {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-danger);
+}
+
+html body .dot-ct-secondary {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-secondary);
+}
+
+html body .dot-ct-gray-dark {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-gray-dark);
+}
+
+html body .dot-ct-teal {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-teal);
+}
+
+html body .dot-ct-orange {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-orange);
+}
+
+/* Clases para puntos de color dinámicos */
+html body .dot-estado-solucionado {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-success);
+}
+
+html body .dot-estado-en-proceso {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-warning);
+}
+
+html body .dot-estado-en-espera {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-info);
+}
+
+html body .dot-estado-escalado {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-danger);
+}
+
+html body .dot-estado-activo {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-warning);
+}
+
+html body .dot-prioridad-critica {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-gray-dark);
+}
+
+html body .dot-prioridad-alta {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-danger);
+}
+
+html body .dot-prioridad-media {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-warning);
+}
+
+html body .dot-prioridad-baja {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ct-success);
+}
+
+/* Clases adicionales para SupervisorPage */
+html body .dropdown-menu-positioned {
+  right: 0;
+  top: 100%;
+  min-width: 250px;
+}
+
+html body .thumbnail-small {
+  width: 30px;
+  height: 30px;
+  object-fit: cover;
+}
+
+html body .icon-tiny {
+  font-size: 12px;
+}
+
+html body .cursor-pointer {
+  cursor: pointer;
+}
+
+/* Clases adicionales para verTicketHDsupervisor */
+html body .modal-backdrop-custom {
+  background-color: rgba(0,0,0,0.5);
+}
+
+/* Reducción global del tamaño de letra en 20% + aumento del 10% */
+html {
+  font-size: 0.88rem; /* Aumentado 10% de 0.8rem (total -12% del tamaño base) */
+}
+
+body {
+  font-size: 0.88rem; /* Aumentado 10% de 0.8rem */
+}
+
+/* Botones de acciones con colores de la paleta del SideBarCentral */
+html body .btn-sidebar-primary {
+  background-color: var(--btn-sidebar-primary);
+  border-color: var(--btn-sidebar-primary);
+  color: white;
+  box-shadow: 0 2px 4px rgba(91, 115, 232, 0.2);
+  transition: all 0.3s ease;
+}
+
+html body .btn-sidebar-primary:hover,
+html body .btn-sidebar-primary:focus,
+html body .btn-sidebar-primary:active {
+  background-color: var(--ct-indigo);
+  border-color: var(--ct-indigo);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(114, 124, 245, 0.3);
+}
+
+html body .btn-sidebar-secondary {
+  background-color: var(--btn-sidebar-secondary);
+  border-color: var(--btn-sidebar-secondary);
+  color: white;
+  box-shadow: 0 2px 4px rgba(42, 48, 66, 0.2);
+  transition: all 0.3s ease;
+}
+
+html body .btn-sidebar-secondary:hover,
+html body .btn-sidebar-secondary:focus,
+html body .btn-sidebar-secondary:active {
+  background-color: var(--ct-gray-900);
+  border-color: var(--ct-gray-900);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(42, 48, 66, 0.3);
+}
+
+html body .btn-sidebar-accent {
+  background-color: var(--btn-sidebar-accent);
+  border-color: var(--btn-sidebar-accent);
+  color: white;
+  box-shadow: 0 2px 4px rgba(166, 176, 207, 0.2);
+  transition: all 0.3s ease;
+}
+
+html body .btn-sidebar-accent:hover,
+html body .btn-sidebar-accent:focus,
+html body .btn-sidebar-accent:active {
+  background-color: var(--ct-gray-500);
+  border-color: var(--ct-gray-500);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(166, 176, 207, 0.3);
+}
+
+html body .btn-sidebar-success {
+  background-color: var(--btn-sidebar-success);
+  border-color: var(--btn-sidebar-success);
+  color: white;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+  transition: all 0.3s ease;
+}
+
+html body .btn-sidebar-success:hover,
+html body .btn-sidebar-success:focus,
+html body .btn-sidebar-success:active {
+  background-color: var(--ct-success);
+  border-color: var(--ct-success);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+html body .btn-sidebar-warning {
+  background-color: var(--btn-sidebar-warning);
+  border-color: var(--btn-sidebar-warning);
+  color: var(--ct-dark);
+  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2);
+  transition: all 0.3s ease;
+}
+
+html body .btn-sidebar-warning:hover,
+html body .btn-sidebar-warning:focus,
+html body .btn-sidebar-warning:active {
+  background-color: var(--ct-warning);
+  border-color: var(--ct-warning);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+}
+
+html body .btn-sidebar-teal {
+  background-color: var(--btn-sidebar-teal);
+  border-color: var(--btn-sidebar-teal);
+  color: white;
+  box-shadow: 0 2px 4px rgba(10, 207, 151, 0.2);
+  transition: all 0.3s ease;
+}
+
+html body .btn-sidebar-teal:hover,
+html body .btn-sidebar-teal:focus,
+html body .btn-sidebar-teal:active {
+  background-color: var(--ct-teal);
+  border-color: var(--ct-teal);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(10, 207, 151, 0.3);
+}
+
+/* Layout principal - Solo lo que Bootstrap no puede hacer */
+.hyper-layout {
+  min-height: 100vh;
+  background-color: var(--ct-gray-100);
+}
+
+/* Sidebar izquierdo - Estilos específicos del diseño */
+.hyper-sidebar {
+  width: 187px; /* Reducido 10% adicional de 208px (total 28% de reducción) */
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 1000;
+  transition: width 0.3s ease, transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+  font-size: 0.88rem; /* Aumentado 10% de 0.8rem */
+}
+
+.hyper-sidebar.collapsed {
+  width: 70px;
+}
+
+.hyper-sidebar.hidden {
+  transform: translateX(-100%);
+  visibility: hidden;
+  opacity: 0;
+}
+
+.hyper-sidebar-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hyper-logo {
+  color: white;
+  text-decoration: none;
+}
+
+.hyper-logo i {
+  color: var(--sidebar-active);
+}
+
+/* Navegación del sidebar */
+.hyper-nav-title {
+  font-size: 0.66rem; /* Aumentado 10% de 0.6rem */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ct-gray-500);
+}
+
+.hyper-nav-item {
+  color: var(--sidebar-text);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.hyper-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  text-decoration: none;
+}
+
+.hyper-nav-item.active {
+  background-color: var(--sidebar-active);
+  color: white;
+}
+
+.hyper-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: white;
+}
+
+.hyper-nav-item i {
+  width: 20px;
+  text-align: center;
+}
+
+/* Contenido principal */
+.hyper-main-content {
+  margin-left: 187px; /* Reducido 10% adicional de 208px (total 28% de reducción) */
+  transition: margin-left 0.3s ease;
+}
+
+.hyper-main-content.sidebar-collapsed {
+  margin-left: 70px;
+}
+
+.hyper-main-content.sidebar-hidden {
+  margin-left: 0;
+}
+
+/* Header superior */
+.hyper-header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hyper-sidebar-toggle {
+  background: none;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.hyper-search input {
+  border-radius: 25px;
+  padding-left: 2.5rem;
+  width: 300px;
+  transition: all 0.3s ease;
+}
+
+.hyper-search input:focus {
+  border-color: var(--sidebar-active);
+  box-shadow: 0 0 0 0.2rem rgba(91, 115, 232, 0.25);
+}
+
+.hyper-search i {
+  position: absolute;
+  left: 0.75rem;
+}
+
+.hyper-header-btn {
+  background: none;
+  border: none;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.hyper-notification-badge {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  font-size: 0.6rem;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Perfil de usuario */
+.hyper-user-profile {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.hyper-user-avatar {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+html body .avatar-header-normal {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+}
+
+/* Excepción específica para avatares del header - deben mantener su tamaño */
+html body .avatar-header-normal.rounded-circle {
+  width: 60px !important;
+  height: 60px !important;
+  min-width: 60px !important;
+  min-height: 60px !important;
+  max-width: 60px !important;
+  max-height: 60px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  flex-basis: 60px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1 !important;
+  transform: none !important;
+  scale: 1 !important;
+}
+
+/* Tarjetas de métricas - Solo gradientes específicos */
+.hyper-metric-icon.customers {
+  background: linear-gradient(135deg, var(--ct-primary) 0%, var(--ct-purple) 100%);
+}
+
+.hyper-metric-icon.orders {
+  background: linear-gradient(135deg, var(--ct-pink) 0%, var(--ct-danger) 100%);
+}
+
+.hyper-metric-icon.revenue {
+  background: linear-gradient(135deg, var(--ct-blue) 0%, var(--ct-cyan) 100%);
+}
+
+.hyper-metric-icon.growth {
+  background: linear-gradient(135deg, var(--ct-green) 0%, var(--ct-teal) 100%);
+}
+
+.hyper-metric-value {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+/* Widgets */
+.hyper-widget {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.hyper-widget:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.hyper-widget-btn {
+  background: none;
+  transition: all 0.3s ease;
+}
+
+/* Gráficos placeholder */
+.hyper-chart-placeholder {
+  height: 300px;
+  background: linear-gradient(135deg, var(--ct-gray-100) 0%, var(--ct-gray-300) 100%);
+}
+
+/* Actividad reciente */
+.hyper-activity-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.hyper-activity-icon.sold {
+  background-color: var(--bs-success);
+}
+
+.hyper-activity-icon.product {
+  background-color: var(--bs-info);
+}
+
+.hyper-activity-icon.message {
+  background-color: var(--bs-warning);
+}
+
+.hyper-activity-icon.upload {
+  background-color: var(--sidebar-active);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hyper-sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .hyper-sidebar.show {
+    transform: translateX(0);
+  }
+  
+  .hyper-main-content {
+    margin-left: 0;
+  }
+  
+  .hyper-search input {
+    width: 200px;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hyper-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Scrollbar personalizado */
+.hyper-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.hyper-sidebar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hyper-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.hyper-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Animación para la flecha del dropdown */
+.rotate-180 {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+/* Footer con sidebar - Ajustar ancho máximo */
+.footer-with-sidebar {
+  margin-left: 260px;
+  transition: margin-left 0.3s ease;
+}
+
+.footer-with-sidebar.sidebar-collapsed {
+  margin-left: 70px;
+}
+
+.footer-with-sidebar.sidebar-hidden {
+  margin-left: 0;
+}
+
+/* Asegurar que el footer respete el espacio del sidebar */
+.footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* Responsive para footer con sidebar */
+@media (max-width: 768px) {
+  .footer-with-sidebar {
+    margin-left: 0;
+  }
+  
+  .footer-with-sidebar.sidebar-collapsed {
+    margin-left: 0;
+  }
+}
+
+/* Estilos para VerTicketHD */
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--ct-blue), var(--ct-success));
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -2rem;
+  top: 0.25rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 3px var(--ct-gray-200);
+}
+
+.timeline-content {
+  background: var(--ct-gray-100);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border-left: 3px solid #007bff;
+}
+
+.timeline-item:last-child .timeline-content {
+  border-left-color: #28a745;
+}
+
+/* Animaciones para VerTicketHD */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.card:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+/* Tema Oscuro - COMPLETO */
+html html body.dark-theme.dark-theme {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Fondo principal y layout */
+html body.dark-theme.dark-theme .hyper-layout {
+  background-color: #1a1a1a;
+}
+
+html body.dark-theme.dark-theme .hyper-main-content {
+  background-color: #1a1a1a;
+}
+
+/* Sidebar oscuro */
+html body.dark-theme.dark-theme .hyper-sidebar {
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .hyper-sidebar-header {
+  border-bottom: 1px solid #404040;
+}
+
+html body.dark-theme.dark-theme .hyper-nav-item {
+  color: #cccccc;
+}
+
+html body.dark-theme.dark-theme .hyper-nav-item:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .hyper-nav-item.active {
+  background-color: var(--ct-primary);
+  color: #ffffff;
+}
+
+/* Header oscuro */
+html body.dark-theme.dark-theme .hyper-header {
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #404040;
+}
+
+/* Todas las tarjetas oscuras */
+html body.dark-theme.dark-theme .card {
+  background-color: #2d2d2d;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .card-header {
+  background-color: #404040;
+  border-bottom-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .card-body {
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+/* Todas las tablas oscuras */
+html body.dark-theme.dark-theme .table {
+  color: #ffffff;
+  background-color: #2d2d2d;
+}
+
+html body.dark-theme.dark-theme .table thead th {
+  background-color: #404040;
+  color: #ffffff;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .table tbody td {
+  background-color: #2d2d2d;
+  color: #ffffff;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .table tbody tr {
+  background-color: #2d2d2d;
+}
+
+html body.dark-theme.dark-theme .table tbody tr:nth-child(even) {
+  background-color: #353535;
+}
+
+html body.dark-theme.dark-theme .table-hover tbody tr:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+/* Formularios oscuros */
+html body.dark-theme.dark-theme .form-control {
+  background-color: #404040;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .form-control:focus {
+  background-color: #404040;
+  border-color: var(--ct-primary);
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .form-control::placeholder {
+  color: #999999;
+}
+
+/* Botones oscuros */
+html body.dark-theme.dark-theme .btn-outline-primary {
+  color: var(--ct-primary);
+  border-color: var(--ct-primary);
+}
+
+html body.dark-theme.dark-theme .btn-outline-primary:hover {
+  background-color: var(--ct-primary);
+  border-color: var(--ct-primary);
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .btn-outline-secondary {
+  color: #cccccc;
+  border-color: #666666;
+}
+
+html body.dark-theme.dark-theme .btn-outline-secondary:hover {
+  background-color: #666666;
+  border-color: #666666;
+  color: #ffffff;
+}
+
+/* Textos oscuros */
+html body.dark-theme.dark-theme .text-muted {
+  color: #999999;
+}
+
+html body.dark-theme.dark-theme .text-dark {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .text-white {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .text-black {
+  color: #ffffff;
+}
+
+/* Bordes oscuros */
+html body.dark-theme.dark-theme .border {
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .border-bottom {
+  border-bottom-color: #404040;
+}
+
+html body.dark-theme.dark-theme .border-top {
+  border-top-color: #404040;
+}
+
+/* Fondos oscuros */
+html body.dark-theme.dark-theme .bg-light {
+  background-color: #404040;
+}
+
+html body.dark-theme.dark-theme .bg-white {
+  background-color: #2d2d2d;
+}
+
+html body.dark-theme.dark-theme .bg-secondary {
+  background-color: #404040;
+}
+
+/* Dropdowns oscuros */
+html body.dark-theme.dark-theme .dropdown-menu {
+  background-color: #2d2d2d;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .dropdown-item {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .dropdown-item:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .dropdown-divider {
+  border-color: #404040;
+}
+
+/* Modales oscuros */
+html body.dark-theme.dark-theme .modal-content {
+  background-color: #2d2d2d;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .modal-header {
+  background-color: #404040;
+  border-bottom-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .modal-footer {
+  background-color: #404040;
+  border-top-color: #404040;
+}
+
+/* Badges oscuros */
+html body.dark-theme.dark-theme .badge {
+  color: #ffffff;
+}
+
+/* Alertas oscuras */
+html body.dark-theme.dark-theme .alert {
+  background-color: #2d2d2d;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+/* Navbar oscura */
+html body.dark-theme.dark-theme .navbar {
+  background-color: #2d2d2d;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .navbar-brand {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .navbar-nav .nav-link {
+  color: #cccccc;
+}
+
+html body.dark-theme.dark-theme .navbar-nav .nav-link:hover {
+  color: #ffffff;
+}
+
+/* Listas oscuras */
+html body.dark-theme.dark-theme .list-group-item {
+  background-color: #2d2d2d;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .list-group-item:hover {
+  background-color: #404040;
+}
+
+/* Pestañas oscuras */
+html body.dark-theme.dark-theme .nav-tabs .nav-link {
+  color: #cccccc;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .nav-tabs .nav-link:hover {
+  color: #ffffff;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .nav-tabs .nav-link.active {
+  background-color: #2d2d2d;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+/* Acordeones oscuros */
+html body.dark-theme.dark-theme .accordion-item {
+  background-color: #2d2d2d;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .accordion-header button {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .accordion-body {
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+/* Progress bars oscuros */
+html body.dark-theme.dark-theme .progress {
+  background-color: #404040;
+}
+
+/* Spinners oscuros */
+html body.dark-theme.dark-theme .spinner-border {
+  color: var(--ct-primary);
+}
+
+/* Input groups oscuros */
+html body.dark-theme.dark-theme .input-group-text {
+  background-color: #404040;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+/* Selects oscuros */
+html body.dark-theme.dark-theme .form-select {
+  background-color: #404040;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+/* Textareas oscuros */
+html body.dark-theme.dark-theme .form-control[type="textarea"] {
+  background-color: #404040;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+/* Labels oscuros */
+html body.dark-theme.dark-theme .form-label {
+  color: #ffffff;
+}
+
+/* Help text oscuro */
+html body.dark-theme.dark-theme .form-text {
+  color: #999999;
+}
+
+/* Invalid feedback oscuro */
+html body.dark-theme.dark-theme .invalid-feedback {
+  color: #ff6b6b;
+}
+
+/* Valid feedback oscuro */
+html body.dark-theme.dark-theme .valid-feedback {
+  color: #51cf66;
+}
+
+/* Checkboxes y radios oscuros */
+html body.dark-theme.dark-theme .form-check-input {
+  background-color: #404040;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .form-check-input:checked {
+  background-color: var(--ct-primary);
+  border-color: var(--ct-primary);
+}
+
+html body.dark-theme.dark-theme .form-check-label {
+  color: #ffffff;
+}
+
+/* Switches oscuros */
+html body.dark-theme.dark-theme .form-switch .form-check-input {
+  background-color: #404040;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .form-switch .form-check-input:checked {
+  background-color: var(--ct-primary);
+  border-color: var(--ct-primary);
+}
+
+/* Ranges oscuros */
+html body.dark-theme.dark-theme .form-range {
+  background-color: #404040;
+}
+
+/* File inputs oscuros */
+html body.dark-theme.dark-theme .form-control[type="file"] {
+  background-color: #404040;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+/* Todos los elementos de texto */
+html body.dark-theme.dark-theme h1,
+html body.dark-theme.dark-theme h2,
+html body.dark-theme.dark-theme h3,
+html body.dark-theme.dark-theme h4,
+html body.dark-theme.dark-theme h5,
+html body.dark-theme.dark-theme h6 {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme p {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme span {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme div {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme a {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme a:hover {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme strong {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme em {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme small {
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme mark {
+  background-color: var(--ct-warning);
+  color: #000000;
+}
+
+/* Iconos */
+html body.dark-theme.dark-theme .fas,
+html body.dark-theme.dark-theme .far,
+html body.dark-theme.dark-theme .fab,
+html body.dark-theme.dark-theme .fal {
+  color: #ffffff;
+}
+
+/* Mantener colores específicos para iconos de estado */
+html body.dark-theme.dark-theme .text-primary {
+  color: var(--ct-primary);
+}
+
+html body.dark-theme.dark-theme .text-success {
+  color: var(--ct-success);
+}
+
+html body.dark-theme.dark-theme .text-warning {
+  color: var(--ct-warning);
+}
+
+html body.dark-theme.dark-theme .text-danger {
+  color: var(--ct-danger);
+}
+
+html body.dark-theme.dark-theme .text-info {
+  color: var(--ct-info);
+}
+
+/* Sombras oscuras */
+html body.dark-theme.dark-theme .shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
+}
+
+html body.dark-theme.dark-theme .shadow {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+}
+
+html body.dark-theme.dark-theme .shadow-lg {
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.5);
+}
+
+/* Scrollbars oscuros */
+html body.dark-theme.dark-theme ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html body.dark-theme.dark-theme ::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+html body.dark-theme.dark-theme ::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 4px;
+}
+
+html body.dark-theme.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+/* Elementos específicos del proyecto */
+html body.dark-theme.dark-theme .hyper-user-profile {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .hyper-user-profile:hover {
+  background-color: #555555;
+}
+
+html body.dark-theme.dark-theme .hyper-search input {
+  background-color: #404040;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .hyper-search input:focus {
+  background-color: #404040;
+  border-color: var(--ct-primary);
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .hyper-search input::placeholder {
+  color: #999999;
+}
+
+/* Timeline oscuro */
+html body.dark-theme.dark-theme .timeline-content {
+  background-color: #2d2d2d;
+  color: #ffffff;
+  border-left-color: var(--ct-primary);
+}
+
+html body.dark-theme.dark-theme .timeline::before {
+  background: linear-gradient(to bottom, var(--ct-primary), var(--ct-success));
+}
+
+/* Chats activos oscuros */
+html body.dark-theme.dark-theme .search-result-item {
+  background-color: #2d2d2d;
+  color: #ffffff;
+  border-bottom-color: #404040;
+}
+
+html body.dark-theme.dark-theme .search-result-item:hover {
+  background-color: #404040;
+}
+
+/* Elementos de navegación oscuros */
+html body.dark-theme.dark-theme .hyper-nav-title {
+  color: #999999;
+}
+
+/* Asegurar que todos los elementos hereden el color blanco */
+html body.dark-theme.dark-theme * {
+  color: #ffffff;
+}
+
+/* Excepciones para mantener colores específicos */
+html body.dark-theme.dark-theme .text-primary,
+html body.dark-theme.dark-theme .text-success,
+html body.dark-theme.dark-theme .text-warning,
+html body.dark-theme.dark-theme .text-danger,
+html body.dark-theme.dark-theme .text-info,
+html body.dark-theme.dark-theme .text-muted {
+  color: inherit;
+}
+
+/* Mantener colores de botones específicos */
+html body.dark-theme.dark-theme .btn-primary {
+  background-color: var(--ct-primary);
+  border-color: var(--ct-primary);
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .btn-success {
+  background-color: var(--ct-success);
+  border-color: var(--ct-success);
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .btn-warning {
+  background-color: var(--ct-warning);
+  border-color: var(--ct-warning);
+  color: #000000;
+}
+
+html body.dark-theme.dark-theme .btn-danger {
+  background-color: var(--ct-danger);
+  border-color: var(--ct-danger);
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .btn-info {
+  background-color: var(--ct-info);
+  border-color: var(--ct-info);
+  color: #ffffff;
+}
+
+/* Hovers oscuros para modo oscuro */
+html body.dark-theme.dark-theme .btn:hover {
+  background-color: #555555;
+  border-color: #555555;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .btn-link:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .dropdown-item:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .nav-link:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .list-group-item:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .table-hover tbody tr:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .table-hover tbody tr:hover td {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+/* Asegurar que table-light no interfiera con el hover en modo oscuro */
+html body.dark-theme.dark-theme .table-light thead th {
+  background-color: #404040;
+  color: #ffffff;
+  border-color: #404040;
+}
+
+html body.dark-theme.dark-theme .table-light tbody tr:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .table-light tbody tr:hover td {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+/* Asegurar que las clases de color del semáforo no interfieran con el hover */
+html body.dark-theme.dark-theme .table-danger:hover,
+html body.dark-theme.dark-theme .table-warning:hover,
+html body.dark-theme.dark-theme .table-success:hover {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+html body.dark-theme.dark-theme .table-danger:hover td,
+html body.dark-theme.dark-theme .table-warning:hover td,
+html body.dark-theme.dark-theme .table-success:hover td {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+/* También para modo claro, asegurar hover consistente */
+.table-danger:hover,
+.table-warning:hover,
+.table-success:hover {
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+.table-danger:hover td,
+.table-warning:hover td,
+.table-success:hover td {
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+/* Estilos específicos para la tabla de gestión de tickets del supervisor */
+.table.table-hover tbody tr.table-danger:hover,
+.table.table-hover tbody tr.table-warning:hover,
+.table.table-hover tbody tr.table-success:hover {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+.table.table-hover tbody tr.table-danger:hover td,
+.table.table-hover tbody tr.table-warning:hover td,
+.table.table-hover tbody tr.table-success:hover td {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+/* Para modo oscuro también */
+html body.dark-theme.dark-theme .table.table-hover tbody tr.table-danger:hover,
+html body.dark-theme.dark-theme .table.table-hover tbody tr.table-warning:hover,
+html body.dark-theme.dark-theme .table.table-hover tbody tr.table-success:hover {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+html body.dark-theme.dark-theme .table.table-hover tbody tr.table-danger:hover td,
+html body.dark-theme.dark-theme .table.table-hover tbody tr.table-warning:hover td,
+html body.dark-theme.dark-theme .table.table-hover tbody tr.table-success:hover td {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+/* Estilos ultra específicos para forzar letras negras en modo oscuro */
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-danger:hover,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-warning:hover,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-success:hover {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-danger:hover td,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-warning:hover td,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-success:hover td,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-danger:hover th,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-warning:hover th,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-success:hover th {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+/* Forzar letras negras en todos los elementos dentro de las celdas */
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-danger:hover *,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-warning:hover *,
+html html body.dark-theme.dark-theme .table.table-hover tbody tr.table-success:hover * {
+  color: #000000;
+}
+
+html body.dark-theme.dark-theme .hyper-nav-item:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .hyper-user-profile:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .search-result-item:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .accordion-header button:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .nav-tabs .nav-link:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+html body.dark-theme.dark-theme .navbar-nav .nav-link:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+/* Gradiente primario para el botón de ver todos los tickets */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--sidebar-active) 0%, var(--ct-indigo) 100%);
+}
+
+/* Estilos específicos para elementos dentro de tablas en tema oscuro */
+html body.dark-theme.dark-theme .table .badge {
+  color: var(--ct-white);
+}
+
+html body.dark-theme.dark-theme .table .text-primary {
+  color: #5b73e8;
+}
+
+html body.dark-theme.dark-theme .table .text-muted {
+  color: var(--ct-gray-500);
+}
+
+html body.dark-theme.dark-theme .table .text-success {
+  color: var(--ct-success);
+}
+
+html body.dark-theme.dark-theme .table .text-warning {
+  color: var(--ct-warning);
+}
+
+html body.dark-theme.dark-theme .table .text-danger {
+  color: var(--ct-danger);
+}
+
+html body.dark-theme.dark-theme .table .text-info {
+  color: var(--ct-info);
+}
+
+html body.dark-theme.dark-theme .table .fw-bold {
+  color: var(--ct-white);
+}
+
+html body.dark-theme.dark-theme .table .fw-semibold {
+  color: var(--ct-gray-300);
+}
+
+html body.dark-theme.dark-theme .table small {
+  color: var(--ct-gray-500);
+}
+
+html body.dark-theme.dark-theme .table .fa-star {
+  color: var(--ct-warning);
+}
+
+html body.dark-theme.dark-theme .table .fa-star.text-muted {
+  color: var(--ct-gray-500);
+}
+
+/* Estilos para puntos de color y texto en modo oscuro */
+html body.dark-theme.dark-theme .text-dark {
+  color: var(--ct-white);
+}
+
+html body.dark-theme.dark-theme .text-white {
+  color: var(--ct-white);
+}
+
+/* Puntos de color para estados, prioridades y asignaciones */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.status-dot.solucionado {
+  background-color: var(--ct-success);
+}
+
+.status-dot.en-proceso {
+  background-color: var(--ct-warning);
+}
+
+.status-dot.en-espera {
+  background-color: var(--ct-info);
+}
+
+.status-dot.activo {
+  background-color: var(--ct-blue);
+}
+
+.priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.priority-dot.alta {
+  background-color: var(--ct-danger);
+}
+
+.priority-dot.media {
+  background-color: var(--ct-warning);
+}
+
+.priority-dot.baja {
+  background-color: var(--ct-success);
+}
+
+.assignment-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.assignment-dot.asignado {
+  background-color: var(--ct-success);
+}
+
+.assignment-dot.sin-asignar {
+  background-color: var(--ct-secondary);
+}
+
+/* Puntos de color para ID, Título, Fecha y Calificación */
+.id-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  background-color: var(--ct-blue);
+}
+
+.title-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  background-color: var(--ct-purple);
+}
+
+.date-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  background-color: var(--ct-info);
+}
+
+.rating-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.rating-dot.calificado {
+  background-color: var(--ct-warning);
+}
+
+.rating-dot.sin-calificar {
+  background-color: var(--ct-secondary);
+}
+
+/* Reglas para mantener el tamaño de los puntos de color con especificidad máxima */
+html body .status-dot,
+html body .priority-dot,
+html body .assignment-dot,
+html body .id-dot,
+html body .title-dot,
+html body .date-dot,
+html body .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  box-sizing: border-box;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Asegurar que los puntos no se reduzcan en contenedores flex */
+html body .d-flex .status-dot,
+html body .d-flex .priority-dot,
+html body .d-flex .assignment-dot,
+html body .d-flex .id-dot,
+html body .d-flex .title-dot,
+html body .d-flex .date-dot,
+html body .d-flex .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Prevenir aplastamiento en contenedores con overflow */
+html body .overflow-hidden .status-dot,
+html body .overflow-hidden .priority-dot,
+html body .overflow-hidden .assignment-dot,
+html body .overflow-hidden .id-dot,
+html body .overflow-hidden .title-dot,
+html body .overflow-hidden .date-dot,
+html body .overflow-hidden .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+}
+
+/* Prevenir aplastamiento en contenedores con text-overflow */
+html body .text-truncate .status-dot,
+html body .text-truncate .priority-dot,
+html body .text-truncate .assignment-dot,
+html body .text-truncate .id-dot,
+html body .text-truncate .title-dot,
+html body .text-truncate .date-dot,
+html body .text-truncate .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+}
+
+/* Prevenir que los puntos se reduzcan en tablas */
+html body .table .status-dot,
+html body .table .priority-dot,
+html body .table .assignment-dot,
+html body .table .id-dot,
+html body .table .title-dot,
+html body .table .date-dot,
+html body .table .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Prevenir aplastamiento en celdas de tabla específicamente */
+html body .table td .status-dot,
+html body .table td .priority-dot,
+html body .table td .assignment-dot,
+html body .table td .id-dot,
+html body .table td .title-dot,
+html body .table td .date-dot,
+html body .table td .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Prevenir aplastamiento en contenedores con ancho fijo */
+html body .col-1 .status-dot, html body .col-2 .status-dot, html body .col-3 .status-dot, html body .col-4 .status-dot, html body .col-5 .status-dot, html body .col-6 .status-dot,
+html body .col-1 .priority-dot, html body .col-2 .priority-dot, html body .col-3 .priority-dot, html body .col-4 .priority-dot, html body .col-5 .priority-dot, html body .col-6 .priority-dot,
+html body .col-1 .assignment-dot, html body .col-2 .assignment-dot, html body .col-3 .assignment-dot, html body .col-4 .assignment-dot, html body .col-5 .assignment-dot, html body .col-6 .assignment-dot,
+html body .col-1 .id-dot, html body .col-2 .id-dot, html body .col-3 .id-dot, html body .col-4 .id-dot, html body .col-5 .id-dot, html body .col-6 .id-dot,
+html body .col-1 .title-dot, html body .col-2 .title-dot, html body .col-3 .title-dot, html body .col-4 .title-dot, html body .col-5 .title-dot, html body .col-6 .title-dot,
+html body .col-1 .date-dot, html body .col-2 .date-dot, html body .col-3 .date-dot, html body .col-4 .date-dot, html body .col-5 .date-dot, html body .col-6 .date-dot,
+html body .col-1 .rating-dot, html body .col-2 .rating-dot, html body .col-3 .rating-dot, html body .col-4 .rating-dot, html body .col-5 .rating-dot, html body .col-6 .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Asegurar tamaño en modo oscuro */
+html html body.dark-theme.dark-theme .status-dot,
+html html body.dark-theme.dark-theme .priority-dot,
+html html body.dark-theme.dark-theme .assignment-dot,
+html html body.dark-theme.dark-theme .id-dot,
+html html body.dark-theme.dark-theme .title-dot,
+html html body.dark-theme.dark-theme .date-dot,
+html html body.dark-theme.dark-theme .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Regla universal para prevenir aplastamiento horizontal en cualquier contexto */
+html body * .status-dot,
+html body * .priority-dot,
+html body * .assignment-dot,
+html body * .id-dot,
+html body * .title-dot,
+html body * .date-dot,
+html body * .rating-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+
+/* Reglas específicas para puntos con clase rounded-circle (Asignado a y Fecha) */
+html body .rounded-circle {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Protección específica para puntos en contenedores flex con rounded-circle */
+html body .d-flex .rounded-circle {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Protección específica para puntos en tablas con rounded-circle */
+html body .table .rounded-circle,
+html body .table td .rounded-circle {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Protección específica para puntos con rounded-circle en modo oscuro */
+html html body.dark-theme.dark-theme .rounded-circle {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Regla universal para TODOS los puntos con rounded-circle */
+html body * .rounded-circle {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+  transform: none;
+  scale: 1;
+}
+
+/* Protección específica para puntos en contenedores con ancho restringido */
+html body .px-3 .rounded-circle,
+html body .px-4 .rounded-circle,
+html body .text-center .rounded-circle {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+  transform: none;
+  scale: 1;
+}
+
+/* ========================================
+   MODO OSCURO COMPLETO CON !IMPORTANT, solo se permite su uso (!important) aqui
+   ======================================== */
+
+/* Aplicar modo oscuro cuando el body tenga la clase dark-theme */
+body.dark-theme {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+/* Fondo principal y layout */
+body.dark-theme .hyper-layout {
+  background-color: #1a1a1a !important;
+}
+
+body.dark-theme .hyper-main-content {
+  background-color: #1a1a1a !important;
+}
+
+/* Sidebar oscuro */
+body.dark-theme .hyper-sidebar {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .hyper-sidebar-header {
+  border-bottom: 1px solid #404040 !important;
+}
+
+body.dark-theme .hyper-nav-item {
+  color: #cccccc !important;
+}
+
+body.dark-theme .hyper-nav-item:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .hyper-nav-item.active {
+  background-color: var(--ct-primary) !important;
+  color: #ffffff !important;
+}
+
+/* Header oscuro */
+body.dark-theme .hyper-header {
+  background-color: #2d2d2d !important;
+  border-bottom: 1px solid #404040 !important;
+}
+
+/* TODAS las tarjetas oscuras */
+body.dark-theme .card {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .card-header {
+  background-color: #404040 !important;
+  border-bottom-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .card-body {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .card-footer {
+  background-color: #404040 !important;
+  border-top-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* TODAS las tablas oscuras */
+body.dark-theme .table {
+  color: #ffffff !important;
+  background-color: #2d2d2d !important;
+}
+
+body.dark-theme .table thead th {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .table tbody td {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .table tbody tr {
+  background-color: #2d2d2d !important;
+}
+
+body.dark-theme .table tbody tr:nth-child(even) {
+  background-color: #353535 !important;
+}
+
+body.dark-theme .table-hover tbody tr:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* Formularios oscuros */
+body.dark-theme .form-control {
+  background-color: #404040 !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .form-control:focus {
+  background-color: #404040 !important;
+  border-color: var(--ct-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 0.2rem rgba(114, 124, 245, 0.25) !important;
+}
+
+body.dark-theme .form-control::placeholder {
+  color: #999999 !important;
+}
+
+body.dark-theme .form-select {
+  background-color: #404040 !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .form-label {
+  color: #ffffff !important;
+}
+
+body.dark-theme .form-text {
+  color: #999999 !important;
+}
+
+body.dark-theme .invalid-feedback {
+  color: #ff6b6b !important;
+}
+
+body.dark-theme .valid-feedback {
+  color: #51cf66 !important;
+}
+
+/* Input groups oscuros */
+body.dark-theme .input-group-text {
+  background-color: #404040 !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* Checkboxes y radios oscuros */
+body.dark-theme .form-check-input {
+  background-color: #404040 !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .form-check-input:checked {
+  background-color: var(--ct-primary) !important;
+  border-color: var(--ct-primary) !important;
+}
+
+body.dark-theme .form-check-label {
+  color: #ffffff !important;
+}
+
+/* Switches oscuros */
+body.dark-theme .form-switch .form-check-input {
+  background-color: #404040 !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .form-switch .form-check-input:checked {
+  background-color: var(--ct-primary) !important;
+  border-color: var(--ct-primary) !important;
+}
+
+/* Botones oscuros */
+body.dark-theme .btn-outline-primary {
+  color: var(--ct-primary) !important;
+  border-color: var(--ct-primary) !important;
+}
+
+body.dark-theme .btn-outline-primary:hover {
+  background-color: var(--ct-primary) !important;
+  border-color: var(--ct-primary) !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .btn-outline-secondary {
+  color: #cccccc !important;
+  border-color: #666666 !important;
+}
+
+body.dark-theme .btn-outline-secondary:hover {
+  background-color: #666666 !important;
+  border-color: #666666 !important;
+  color: #ffffff !important;
+}
+
+/* Mantener colores de botones específicos */
+body.dark-theme .btn-primary {
+  background-color: var(--ct-primary) !important;
+  border-color: var(--ct-primary) !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .btn-success {
+  background-color: var(--ct-success) !important;
+  border-color: var(--ct-success) !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .btn-warning {
+  background-color: var(--ct-warning) !important;
+  border-color: var(--ct-warning) !important;
+  color: #000000 !important;
+}
+
+body.dark-theme .btn-danger {
+  background-color: var(--ct-danger) !important;
+  border-color: var(--ct-danger) !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .btn-info {
+  background-color: var(--ct-info) !important;
+  border-color: var(--ct-info) !important;
+  color: #ffffff !important;
+}
+
+/* Textos oscuros */
+body.dark-theme .text-muted {
+  color: #999999 !important;
+}
+
+body.dark-theme .text-dark {
+  color: #ffffff !important;
+}
+
+body.dark-theme .text-white {
+  color: #ffffff !important;
+}
+
+body.dark-theme .text-black {
+  color: #ffffff !important;
+}
+
+/* Bordes oscuros */
+body.dark-theme .border {
+  border-color: #404040 !important;
+}
+
+body.dark-theme .border-bottom {
+  border-bottom-color: #404040 !important;
+}
+
+body.dark-theme .border-top {
+  border-top-color: #404040 !important;
+}
+
+/* Fondos oscuros */
+body.dark-theme .bg-light {
+  background-color: #404040 !important;
+}
+
+body.dark-theme .bg-white {
+  background-color: #2d2d2d !important;
+}
+
+body.dark-theme .bg-secondary {
+  background-color: #404040 !important;
+}
+
+/* Dropdowns oscuros */
+body.dark-theme .dropdown-menu {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .dropdown-item {
+  color: #ffffff !important;
+}
+
+body.dark-theme .dropdown-item:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .dropdown-divider {
+  border-color: #404040 !important;
+}
+
+/* Modales oscuros */
+body.dark-theme .modal-content {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .modal-header {
+  background-color: #404040 !important;
+  border-bottom-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .modal-footer {
+  background-color: #404040 !important;
+  border-top-color: #404040 !important;
+}
+
+/* Badges oscuros */
+body.dark-theme .badge {
+  color: #ffffff !important;
+}
+
+/* Alertas oscuras */
+body.dark-theme .alert {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* Navbar oscura */
+body.dark-theme .navbar {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .navbar-brand {
+  color: #ffffff !important;
+}
+
+body.dark-theme .navbar-nav .nav-link {
+  color: #cccccc !important;
+}
+
+body.dark-theme .navbar-nav .nav-link:hover {
+  color: #ffffff !important;
+}
+
+/* Listas oscuras */
+body.dark-theme .list-group-item {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .list-group-item:hover {
+  background-color: #404040 !important;
+}
+
+/* Pestañas oscuras */
+body.dark-theme .nav-tabs .nav-link {
+  color: #cccccc !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .nav-tabs .nav-link:hover {
+  color: #ffffff !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .nav-tabs .nav-link.active {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* Acordeones oscuros */
+body.dark-theme .accordion-item {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .accordion-header button {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .accordion-body {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+}
+
+/* Progress bars oscuros */
+body.dark-theme .progress {
+  background-color: #404040 !important;
+}
+
+/* Spinners oscuros */
+body.dark-theme .spinner-border {
+  color: var(--ct-primary) !important;
+}
+
+/* TODOS los elementos de texto */
+body.dark-theme h1,
+body.dark-theme h2,
+body.dark-theme h3,
+body.dark-theme h4,
+body.dark-theme h5,
+body.dark-theme h6 {
+  color: #ffffff !important;
+}
+
+body.dark-theme p {
+  color: #ffffff !important;
+}
+
+body.dark-theme span {
+  color: #ffffff !important;
+}
+
+body.dark-theme div {
+  color: #ffffff !important;
+}
+
+body.dark-theme a {
+  color: #ffffff !important;
+}
+
+body.dark-theme a:hover {
+  color: #ffffff !important;
+}
+
+body.dark-theme strong {
+  color: #ffffff !important;
+}
+
+body.dark-theme em {
+  color: #ffffff !important;
+}
+
+body.dark-theme small {
+  color: #ffffff !important;
+}
+
+body.dark-theme mark {
+  background-color: var(--ct-warning) !important;
+  color: #000000 !important;
+}
+
+/* Iconos */
+body.dark-theme .fas,
+body.dark-theme .far,
+body.dark-theme .fab,
+body.dark-theme .fal {
+  color: #ffffff !important;
+}
+
+/* Mantener colores específicos para iconos de estado */
+body.dark-theme .text-primary {
+  color: var(--ct-primary) !important;
+}
+
+body.dark-theme .text-success {
+  color: var(--ct-success) !important;
+}
+
+body.dark-theme .text-warning {
+  color: var(--ct-warning) !important;
+}
+
+body.dark-theme .text-danger {
+  color: var(--ct-danger) !important;
+}
+
+body.dark-theme .text-info {
+  color: var(--ct-info) !important;
+}
+
+/* Sombras oscuras */
+body.dark-theme .shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-theme .shadow {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-theme .shadow-lg {
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Scrollbars oscuros */
+body.dark-theme ::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+body.dark-theme ::-webkit-scrollbar-track {
+  background: #2d2d2d !important;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb {
+  background: #404040 !important;
+  border-radius: 4px !important;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: #555555 !important;
+}
+
+/* Elementos específicos del proyecto */
+body.dark-theme .hyper-user-profile {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .hyper-user-profile:hover {
+  background-color: #555555 !important;
+}
+
+body.dark-theme .hyper-search input {
+  background-color: #404040 !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .hyper-search input:focus {
+  background-color: #404040 !important;
+  border-color: var(--ct-primary) !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .hyper-search input::placeholder {
+  color: #999999 !important;
+}
+
+/* Timeline oscuro */
+body.dark-theme .timeline-content {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+  border-left-color: var(--ct-primary) !important;
+}
+
+body.dark-theme .timeline::before {
+  background: linear-gradient(to bottom, var(--ct-primary), var(--ct-success)) !important;
+}
+
+/* Chats activos oscuros */
+body.dark-theme .search-result-item {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+  border-bottom-color: #404040 !important;
+}
+
+body.dark-theme .search-result-item:hover {
+  background-color: #404040 !important;
+}
+
+/* Elementos de navegación oscuros */
+body.dark-theme .hyper-nav-title {
+  color: #999999 !important;
+}
+
+/* Asegurar que todos los elementos hereden el color blanco */
+body.dark-theme * {
+  color: #ffffff !important;
+}
+
+/* Excepciones para mantener colores específicos */
+body.dark-theme .text-primary,
+body.dark-theme .text-success,
+body.dark-theme .text-warning,
+body.dark-theme .text-danger,
+body.dark-theme .text-info,
+body.dark-theme .text-muted {
+  color: inherit !important;
+}
+
+/* Hovers oscuros para modo oscuro */
+body.dark-theme .btn:hover {
+  background-color: #555555 !important;
+  border-color: #555555 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .btn-link:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .dropdown-item:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .nav-link:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .list-group-item:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .table-hover tbody tr:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .table-hover tbody tr:hover td {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* Asegurar que table-light no interfiera con el hover en modo oscuro */
+body.dark-theme .table-light thead th {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+  border-color: #404040 !important;
+}
+
+body.dark-theme .table-light tbody tr:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .table-light tbody tr:hover td {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* Asegurar que las clases de color del semáforo no interfieran con el hover */
+body.dark-theme .table-danger:hover,
+body.dark-theme .table-warning:hover,
+body.dark-theme .table-success:hover {
+  background-color: #f8f9fa !important;
+  color: #000000 !important;
+}
+
+body.dark-theme .table-danger:hover td,
+body.dark-theme .table-warning:hover td,
+body.dark-theme .table-success:hover td {
+  background-color: #f8f9fa !important;
+  color: #000000 !important;
+}
+
+/* Estilos específicos para la tabla de gestión de tickets del supervisor */
+body.dark-theme .table.table-hover tbody tr.table-danger:hover,
+body.dark-theme .table.table-hover tbody tr.table-warning:hover,
+body.dark-theme .table.table-hover tbody tr.table-success:hover {
+  background-color: #f8f9fa !important;
+  color: #000000 !important;
+}
+
+body.dark-theme .table.table-hover tbody tr.table-danger:hover td,
+body.dark-theme .table.table-hover tbody tr.table-warning:hover td,
+body.dark-theme .table.table-hover tbody tr.table-success:hover td {
+  background-color: #f8f9fa !important;
+  color: #000000 !important;
+}
+
+/* Forzar letras negras en todos los elementos dentro de las celdas */
+body.dark-theme .table.table-hover tbody tr.table-danger:hover *,
+body.dark-theme .table.table-hover tbody tr.table-warning:hover *,
+body.dark-theme .table.table-hover tbody tr.table-success:hover * {
+  color: #000000 !important;
+}
+
+/* Elementos específicos del proyecto en modo oscuro */
+body.dark-theme .hyper-nav-item:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .hyper-user-profile:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .search-result-item:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .accordion-header button:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .nav-tabs .nav-link:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .navbar-nav .nav-link:hover {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* Estilos específicos para elementos dentro de tablas en tema oscuro */
+body.dark-theme .table .badge {
+  color: var(--ct-white) !important;
+}
+
+body.dark-theme .table .text-primary {
+  color: #5b73e8 !important;
+}
+
+body.dark-theme .table .text-muted {
+  color: var(--ct-gray-500) !important;
+}
+
+body.dark-theme .table .text-success {
+  color: var(--ct-success) !important;
+}
+
+body.dark-theme .table .text-warning {
+  color: var(--ct-warning) !important;
+}
+
+body.dark-theme .table .text-danger {
+  color: var(--ct-danger) !important;
+}
+
+body.dark-theme .table .text-info {
+  color: var(--ct-info) !important;
+}
+
+body.dark-theme .table .fw-bold {
+  color: var(--ct-white) !important;
+}
+
+body.dark-theme .table .fw-semibold {
+  color: var(--ct-gray-300) !important;
+}
+
+body.dark-theme .table small {
+  color: var(--ct-gray-500) !important;
+}
+
+body.dark-theme .table .fa-star {
+  color: var(--ct-warning) !important;
+}
+
+body.dark-theme .table .fa-star.text-muted {
+  color: var(--ct-gray-500) !important;
+}
+
+/* Estilos para puntos de color y texto en modo oscuro */
+body.dark-theme .text-dark {
+  color: var(--ct-white) !important;
+}
+
+body.dark-theme .text-white {
+  color: var(--ct-white) !important;
+}
+
+/* Footer oscuro */
+body.dark-theme .footer {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+}
+
+/* Cualquier elemento que pueda tener fondo blanco */
+body.dark-theme .bg-light,
+body.dark-theme .bg-white,
+body.dark-theme .bg-secondary,
+body.dark-theme .bg-body,
+body.dark-theme .bg-body-secondary {
+  background-color: #2d2d2d !important;
+}
+
+/* Cualquier elemento que pueda tener fondo claro */
+body.dark-theme .bg-light-subtle,
+body.dark-theme .bg-body-tertiary {
+  background-color: #404040 !important;
+}
+
+/* Asegurar que todos los contenedores principales tengan fondo oscuro */
+body.dark-theme .container,
+body.dark-theme .container-fluid,
+body.dark-theme .row,
+body.dark-theme .col,
+body.dark-theme .col-1,
+body.dark-theme .col-2,
+body.dark-theme .col-3,
+body.dark-theme .col-4,
+body.dark-theme .col-5,
+body.dark-theme .col-6,
+body.dark-theme .col-7,
+body.dark-theme .col-8,
+body.dark-theme .col-9,
+body.dark-theme .col-10,
+body.dark-theme .col-11,
+body.dark-theme .col-12 {
+  background-color: transparent !important;
+}
+
+/* Asegurar que el body y html tengan fondo oscuro */
+body.dark-theme,
+body.dark-theme html {
+  background-color: #1a1a1a !important;
+}
+
+/* Excepción específica para avatares del header en modo oscuro - deben mantener su tamaño */
+body.dark-theme .avatar-header-normal.rounded-circle {
+  width: 60px !important;
+  height: 60px !important;
+  min-width: 60px !important;
+  min-height: 60px !important;
+  max-width: 60px !important;
+  max-height: 60px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  flex-basis: 60px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1 !important;
+  transform: none !important;
+  scale: 1 !important;
 }

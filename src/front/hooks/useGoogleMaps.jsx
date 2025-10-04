@@ -38,7 +38,7 @@ export const useGoogleMaps = () => {
         // Crear promesa de carga
         googleMapsLoadingPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places,geometry&loading=async`;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places,geometry,visualization&loading=async`;
             script.async = true;
             script.defer = true;
 
@@ -57,7 +57,10 @@ export const useGoogleMaps = () => {
                                 message.includes('As of February 21st, 2024, google.maps.Marker is deprecated') ||
                                 message.includes('google.maps.places.Autocomplete is not available to new customers') ||
                                 message.includes('Please use google.maps.places.PlaceAutocompleteElement instead') ||
-                                message.includes('As of March 1st, 2025, google.maps.places.Autocomplete')
+                                message.includes('As of March 1st, 2025, google.maps.places.Autocomplete') ||
+                                message.includes('Heatmap Layer functionality') ||
+                                message.includes('deprecated in May 2025') ||
+                                message.includes('Maps JavaScript API')
                             ) {
                                 return; // No mostrar estos warnings
                             }

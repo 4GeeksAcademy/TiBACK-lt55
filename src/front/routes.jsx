@@ -5,7 +5,9 @@ import {
   createRoutesFromElements,
   Route,
 } from "react-router-dom";
-import { Layout } from "./pages/Layout";
+import Layout from "./pages/Layout";
+import { Landing } from "./pages/Landing"
+import { ContactView } from "./pages/ContactView"
 import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
 import { Demo } from "./pages/Demo";
@@ -74,9 +76,10 @@ export const router = createBrowserRouter(
 
     <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
 
-
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/Home" element={<Home />} />
       <Route path="/demo" element={<Demo />} />
+      <Route path="/contact" element={<ContactView />} />
 
       {/* rutas de autenticacion */}
       <Route path="/auth" element={<AuthForm />} />
@@ -244,6 +247,11 @@ export const router = createBrowserRouter(
       <Route path="/ticket/:ticketId/recomendaciones-similares" element={
         <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
           <RecomendacionesSimilares />
+        </ProtectedRoute>
+      } />
+      <Route path="/ticket/:ticketId/chat" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <ChatAnalistaCliente />
         </ProtectedRoute>
       } />
       <Route path="/ticket/:ticketId/chat-supervisor-analista" element={

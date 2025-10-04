@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
+import { SideBarCentral } from './SideBarCentral';
 
 export function RecomendacionVista() {
     const navigate = useNavigate();
     const { ticketId } = useParams();
     const { store } = useGlobalReducer();
-    
+
     const [recomendacion, setRecomendacion] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [guardando, setGuardando] = useState(false);
+    const [sidebarHidden, setSidebarHidden] = useState(false);
+    const [activeView, setActiveView] = useState('recomendacion');
 
     // Cargar recomendación al montar el componente
     useEffect(() => {
@@ -21,7 +24,7 @@ export function RecomendacionVista() {
         try {
             setLoading(true);
             setError('');
-            
+
             const token = store.auth.token;
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/recomendacion-ia`, {
                 method: 'POST',
@@ -47,10 +50,10 @@ export function RecomendacionVista() {
 
     const handleGuardar = async () => {
         if (!recomendacion) return;
-        
+
         try {
             setGuardando(true);
-            
+
             // Crear el texto de la recomendación para guardar como comentario
             const textoRecomendacion = `
 🤖 RECOMENDACIÓN DE IA GENERADA
@@ -107,26 +110,67 @@ ${recomendacion.recomendaciones_adicionales || 'N/A'}
         }
     };
 
+    // Función para alternar sidebar
+    const toggleSidebar = () => {
+        setSidebarHidden(!sidebarHidden);
+    };
+
+    // Función para cambiar vista
+    const changeView = (view) => {
+        setActiveView(view);
+        if (view === 'dashboard') {
+            navigate('/cliente');
+        } else if (view === 'tickets') {
+            navigate('/cliente');
+        } else if (view === 'create') {
+            navigate('/cliente');
+        }
+    };
+
 
     return (
-        <div className="container mt-4">
-            <div className="row">
-                <div className="col-12">
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div className="d-flex align-items-center">
-                            <h2>
-                                <i className="fas fa-robot me-2"></i>
-                                Recomendación de IA - Ticket #{ticketId}
-                            </h2>
+        <div className="hyper-layout d-flex">
+            {/* Sidebar izquierdo */}
+            <SideBarCentral
+                sidebarHidden={sidebarHidden}
+                activeView={activeView}
+                changeView={changeView}
+            />
+
+            {/* Contenido principal */}
+            <div className={`hyper-main-content flex-grow-1 ${sidebarHidden ? 'sidebar-hidden' : ''}`}>
+                {/* Header superior */}
+                <header className="hyper-header bg-white border-bottom p-3">
+                    <div className="d-flex align-items-center justify-content-between w-100">
+                        <div className="d-flex align-items-center gap-3">
+                            <button
+                                className="hyper-sidebar-toggle btn btn-link p-2"
+                                onClick={toggleSidebar}
+                                title={sidebarHidden ? "Mostrar menú" : "Ocultar menú"}
+                            >
+                                <i className={`fas ${sidebarHidden ? 'fa-eye' : 'fa-eye-slash'}`}></i>
+                            </button>
+                            <div>
+                                <h1 className="mb-0 fw-semibold">
+                                    <i className="fas fa-robot me-2"></i>
+                                    Recomendación de IA - Ticket #{ticketId}
+                                </h1>
+                            </div>
                         </div>
-                        <button 
-                            className="btn btn-secondary"
-                            onClick={() => navigate(-1)}
-                        >
-                            <i className="fas fa-arrow-left me-2"></i>
-                            Volver
-                        </button>
+                        <div className="d-flex align-items-center gap-3">
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={() => navigate(-1)}
+                            >
+                                <i className="fas fa-arrow-left me-2"></i>
+                                Volver
+                            </button>
+                        </div>
                     </div>
+                </header>
+
+                {/* Contenido del dashboard */}
+                <div className="p-4">
 
                     {loading && (
                         <div className="card">

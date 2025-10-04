@@ -13,7 +13,7 @@ export function StoreProvider({ children }) {
     const [store, dispatch] = useReducer(storeReducer, initialStore())
     // Provide the store and dispatch method to all child components.
     // return <StoreContext.Provider value={{ store, dispatch }}>
-     // Restore session on mount
+    // Restore session on mount
     useEffect(() => {
         authActions.restoreSession(dispatch);
     }, []);
@@ -45,7 +45,19 @@ export function StoreProvider({ children }) {
         joinChatSupervisorAnalista: (socket, ticketId) => authActions.joinChatSupervisorAnalista(socket, ticketId),
         leaveChatSupervisorAnalista: (socket, ticketId) => authActions.leaveChatSupervisorAnalista(socket, ticketId),
         joinChatAnalistaCliente: (socket, ticketId) => authActions.joinChatAnalistaCliente(socket, ticketId),
-        leaveChatAnalistaCliente: (socket, ticketId) => authActions.leaveChatAnalistaCliente(socket, ticketId)
+        leaveChatAnalistaCliente: (socket, ticketId) => authActions.leaveChatAnalistaCliente(socket, ticketId),
+        // Nuevas funciones de sincronización
+        requestSync: (socket, syncType) => authActions.requestSync(socket, syncType),
+        joinRoleRoom: (socket, role, userId) => authActions.joinRoleRoom(socket, role, userId),
+        leaveRoleRoom: (socket, role, userId) => authActions.leaveRoleRoom(socket, role, userId),
+        // Funciones críticas de sincronización
+        emitCriticalTicketAction: (socket, ticketId, action) => authActions.emitCriticalTicketAction(socket, ticketId, action),
+        joinCriticalRooms: (socket, ticketIds) => authActions.joinCriticalRooms(socket, ticketIds),
+        joinAllCriticalRooms: (socket, userData) => authActions.joinAllCriticalRooms(socket, userData),
+        // Funciones de sincronización en tiempo real integradas
+        startRealtimeSync: (config) => authActions.startRealtimeSync(dispatch, config, store),
+        getRealtimeStatus: () => authActions.getRealtimeStatus(store),
+        pollingService: authActions.pollingService
     }}>
         {children}
     </StoreContext.Provider>
