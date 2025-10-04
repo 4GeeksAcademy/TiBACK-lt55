@@ -17,17 +17,17 @@ export const VerTicket = () => {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return fetch(url, {
             ...options,
             headers
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .catch(err => ({ ok: false, data: { message: err.message } }));
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .catch(err => ({ ok: false, data: { message: err.message } }));
     };
 
     const cargarTicket = () => {
@@ -52,7 +52,7 @@ export const VerTicket = () => {
         if (id && store.websocket.socket && store.websocket.connected) {
             // Unirse al room del ticket
             joinTicketRoom(store.websocket.socket, parseInt(id));
-            
+
             // Cleanup: salir del room cuando el componente se desmonte
             return () => {
                 leaveTicketRoom(store.websocket.socket, parseInt(id));
@@ -119,13 +119,13 @@ export const VerTicket = () => {
                     <p><strong>Descripción:</strong> {ticket.descripcion}</p>
                     <p><strong>Comentario:</strong> {ticket.comentario || "Sin comentarios"}</p>
                 </div>
-                {ticket.url_imagen && (
+                {ticket.url_imagen && !ticket.url_imagen.includes('placeholder.com') && !ticket.url_imagen.includes('data:image/svg+xml') && (
                     <div className="col-12">
                         <p><strong>Imagen:</strong></p>
                         <div className="text-center">
-                            <img 
-                                src={ticket.url_imagen} 
-                                alt="Imagen del ticket" 
+                            <img
+                                src={ticket.url_imagen}
+                                alt="Imagen del ticket"
                                 className="img-fluid rounded shadow"
                                 style={{ maxWidth: '500px', maxHeight: '400px', objectFit: 'contain' }}
                             />

@@ -5,6 +5,8 @@ import { RouterProvider } from "react-router-dom";  // Import RouterProvider to 
 import { router } from "./routes";  // Import the router configuration
 import { StoreProvider } from './hooks/useGlobalReducer';  // Import the StoreProvider for global state management
 import { BackendURL } from './components/BackendURL';
+
+// Supresión de warnings removida para limpiar consola
 // Listo
 
 const Main = () => {
@@ -16,16 +18,17 @@ const Main = () => {
     );
     return (
         <React.StrictMode>
-                {/* Provide global state to all components */}
-                <StoreProvider>
-                    {/* Set up routing for the application */}
-                    <RouterProvider router={router}
+            {/* Provide global state to all components */}
+            <StoreProvider>
+                {/* Set up routing for the application */}
+                <RouterProvider
+                    router={router}
                     future={{
                         v7_startTransition: true,
+                        v7_relativeSplatPath: true
                     }}
-                    > 
-                    </RouterProvider>
-                </StoreProvider>
+                />
+            </StoreProvider>
         </React.StrictMode>
     );
 }

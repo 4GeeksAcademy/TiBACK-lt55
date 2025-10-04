@@ -34,8 +34,11 @@ import { VerComentarios } from "./pages/VerComentarios";
 import ComentariosTicket from "./pages/ComentariosTicket";
 import RecomendacionVista from "./components/RecomendacionVista";
 import RecomendacionesGuardadas from "./pages/RecomendacionesGuardadas";
+import RecomendacionesSimilares from "./pages/RecomendacionesSimilares";
 import ChatSupervisorAnalista from "./pages/ChatSupervisorAnalista";
 import ChatAnalistaCliente from "./pages/ChatAnalistaCliente";
+import IdentificarImagen from "./pages/IdentificarImagen";
+import { DashboardCalidad } from "./pages/DashboardCalidad";
 
 import { Asignacion } from "./pages/Asignacion";
 import { AgregarAsignacion } from "./pages/AgregarAsignacion";
@@ -231,6 +234,16 @@ export const router = createBrowserRouter(
           <RecomendacionesGuardadas />
         </ProtectedRoute>
       } />
+      <Route path="/ticket/:ticketId/recomendaciones-similares" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <RecomendacionesSimilares />
+        </ProtectedRoute>
+      } />
+      <Route path="/ticket/:ticketId/chat" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <ChatAnalistaCliente />
+        </ProtectedRoute>
+      } />
       <Route path="/ticket/:ticketId/chat-supervisor-analista" element={
         <ProtectedRoute allowedRoles={["supervisor", "analista"]}>
           <ChatSupervisorAnalista />
@@ -239,6 +252,16 @@ export const router = createBrowserRouter(
       <Route path="/ticket/:ticketId/chat-analista-cliente" element={
         <ProtectedRoute allowedRoles={["analista", "cliente"]}>
           <ChatAnalistaCliente />
+        </ProtectedRoute>
+      } />
+      <Route path="/ticket/:ticketId/identificar-imagen" element={
+        <ProtectedRoute allowedRoles={["analista", "supervisor", "administrador", "cliente"]}>
+          <IdentificarImagen />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard-calidad" element={
+        <ProtectedRoute allowedRoles={["supervisor", "administrador"]}>
+          <DashboardCalidad />
         </ProtectedRoute>
       } />
 
@@ -308,11 +331,5 @@ export const router = createBrowserRouter(
         </ProtectedRoute>
       } />
     </Route>
-  ),
-  {
-    future: {
-      v7_startTransition: true,
-      v7_relativeSplatPath: true
-    }
-  }
+  )
 );
