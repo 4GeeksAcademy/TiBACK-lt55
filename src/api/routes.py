@@ -572,21 +572,21 @@ def create_comentario():
         db.session.add(comentario)
         db.session.commit()
 
-        # # Emitir evento WebSocket para notificar nuevo comentario al room del ticket
-        # socketio = get_socketio()
-        # if socketio:
-        #     try:
-        #         # Notificar a todos los usuarios conectados al room del ticket
-        #         ticket_room = f'room_ticket_{comentario.id_ticket}'
-        #         socketio.emit('nuevo_comentario', {
-        #             'comentario': comentario.serialize(),
-        #             'tipo': 'comentario_agregado',
-        #             'timestamp': datetime.now().isoformat()
-        #         }, room=ticket_room)
+        # Emitir evento WebSocket para notificar nuevo comentario al room del ticket
+        socketio = get_socketio()
+        if socketio:
+            try:
+                # Notificar a todos los usuarios conectados al room del ticket
+                ticket_room = f'room_ticket_{comentario.id_ticket}'
+                socketio.emit('nuevo_comentario', {
+                    'comentario': comentario.serialize(),
+                    'tipo': 'comentario_agregado',
+                    'timestamp': datetime.now().isoformat()
+                }, room=ticket_room)
                 
                     
-        #     except Exception as e:
-        #         print(f"Error enviando WebSocket: {e}")
+            except Exception as e:
+                print(f"Error enviando WebSocket: {e}")
 
         
         # Emitir evento crítico para nuevo comentario
@@ -897,35 +897,35 @@ def create_ticket():
         db.session.commit()
 
         # Emitir evento WebSocket para notificar nuevo ticket
-        # socketio = get_socketio()
-        # if socketio:
-        #     try:
-        #         # Datos del ticket
-        #         ticket_data = {
-        #             'ticket_id': ticket.id,
-        #             'ticket_estado': ticket.estado,
-        #             'ticket_titulo': ticket.titulo,
-        #             'ticket_prioridad': ticket.prioridad,
-        #             'cliente_id': ticket.id_cliente,
-        #             'tipo': 'creado',
-        #             'timestamp': datetime.now().isoformat()
-        #         }
+        socketio = get_socketio()
+        if socketio:
+            try:
+                # Datos del ticket
+                ticket_data = {
+                    'ticket_id': ticket.id,
+                    'ticket_estado': ticket.estado,
+                    'ticket_titulo': ticket.titulo,
+                    'ticket_prioridad': ticket.prioridad,
+                    'cliente_id': ticket.id_cliente,
+                    'tipo': 'creado',
+                    'timestamp': datetime.now().isoformat()
+                }
 
-        #         # Notificar al room del ticket (todos los involucrados se unirán automáticamente)
-        #         ticket_room = f'room_ticket_{ticket.id}'
-        #         socketio.emit('nuevo_ticket', ticket_data, room=ticket_room)
+                # Notificar al room del ticket (todos los involucrados se unirán automáticamente)
+                ticket_room = f'room_ticket_{ticket.id}'
+                socketio.emit('nuevo_ticket', ticket_data, room=ticket_room)
 
-        #         # Notificar a supervisores y administradores para asignación
-        #         socketio.emit('nuevo_ticket_disponible',
-        #                       ticket_data, room='supervisores')
-        #         socketio.emit('nuevo_ticket_disponible',
-        #                       ticket_data, room='administradores')
+                # Notificar a supervisores y administradores para asignación
+                socketio.emit('nuevo_ticket_disponible',
+                              ticket_data, room='supervisores')
+                socketio.emit('nuevo_ticket_disponible',
+                              ticket_data, room='administradores')
 
-        #         # Notificar a administradores para actualizar CRUD de tickets
-        #         socketio.emit('nuevo_ticket', ticket_data, room='administradores')
+                # Notificar a administradores para actualizar CRUD de tickets
+                socketio.emit('nuevo_ticket', ticket_data, room='administradores')
                 
-        #     except Exception as e:
-        #         print(f"Error enviando WebSocket de nuevo ticket: {e}")
+            except Exception as e:
+                print(f"Error enviando WebSocket de nuevo ticket: {e}")
 
         # Datos del ticket para notificaciones
         ticket_data = {
@@ -1084,22 +1084,22 @@ def update_ticket(id):
                 setattr(ticket, field, value)
         db.session.commit()
 
-        # # Emitir evento WebSocket para notificar actualización al room del ticket
-        # socketio = get_socketio()
-        # if socketio:
-        #     try:
-        #         # Notificar a todos los usuarios conectados al room del ticket
-        #         ticket_room = f'room_ticket_{ticket.id}'
-        #         socketio.emit('ticket_actualizado', {
-        #             'ticket': ticket.serialize(),
-        #             'tipo': 'actualizado',
-        #             'usuario': get_user_from_token()['role'],
-        #             'timestamp': datetime.now().isoformat()
-        #         }, room=ticket_room)
+        # Emitir evento WebSocket para notificar actualización al room del ticket
+        socketio = get_socketio()
+        if socketio:
+            try:
+                # Notificar a todos los usuarios conectados al room del ticket
+                ticket_room = f'room_ticket_{ticket.id}'
+                socketio.emit('ticket_actualizado', {
+                    'ticket': ticket.serialize(),
+                    'tipo': 'actualizado',
+                    'usuario': get_user_from_token()['role'],
+                    'timestamp': datetime.now().isoformat()
+                }, room=ticket_room)
                 
                     
-        #     except Exception as e:
-        #         print(f"Error enviando WebSocket: {e}")
+            except Exception as e:
+                print(f"Error enviando WebSocket: {e}")
 
         
         # Emitir evento crítico para actualización de ticket
