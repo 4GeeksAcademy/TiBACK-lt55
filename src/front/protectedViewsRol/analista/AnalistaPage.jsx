@@ -113,8 +113,6 @@ function AnalistaPage() {
         closeSearchResults();
     };
 
-<<<<<<< HEAD
-=======
     // Función helper para actualizar tickets sin recargar la página
     const actualizarTickets = async () => {
         try {
@@ -183,7 +181,6 @@ function AnalistaPage() {
         };
     };
 
->>>>>>> develop
     // Cargar datos del usuario
     useEffect(() => {
         const cargarDatosUsuario = async () => {
@@ -762,62 +759,60 @@ function AnalistaPage() {
         }
     };
 
-<<<<<<< HEAD
-    // Feedback visual para actualización de tickets
-    const [feedback, setFeedback] = useState("");
-    const actualizarTickets = async () => {
-        try {
-            setLoading(true);
-            const token = store.auth.token;
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/analista`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (!response.ok) throw new Error('Error al cargar tickets');
-            const data = await response.json();
-            setTickets(data);
-            setFeedback("Lista actualizada correctamente");
-            setTimeout(() => setFeedback(""), 2000);
-        } catch (err) {
-            setError(err.message);
-            setFeedback("Error al actualizar la lista");
-            setTimeout(() => setFeedback(""), 2000);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // // Feedback visual para actualización de tickets
+    // const [feedback, setFeedback] = useState("");
+    // const actualizarTickets = async () => {
+    //     try {
+    //         setLoading(true);
+    //         const token = store.auth.token;
+    //         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/analista`, {
+    //             headers: {
+    //                 'Authorization': `Bearer ${token}`,
+    //                 'Content-Type': 'application/json'
+    //             }
+    //         });
+    //         if (!response.ok) throw new Error('Error al cargar tickets');
+    //         const data = await response.json();
+    //         setTickets(data);
+    //         setFeedback("Lista actualizada correctamente");
+    //         setTimeout(() => setFeedback(""), 2000);
+    //     } catch (err) {
+    //         setError(err.message);
+    //         setFeedback("Error al actualizar la lista");
+    //         setTimeout(() => setFeedback(""), 2000);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
 
-    return (
-        <div className="container py-4">
-            <div className="d-flex justify-content-end mb-3">
-            </div>
-            {/* Header con información del analista */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h2 className="mb-1">
-                                    Bienvenido, {userData?.nombre === 'Pendiente' ? 'Analista' : userData?.nombre} {userData?.apellido === 'Pendiente' ? '' : userData?.apellido}
-                                </h2>
-                                <p className="text-muted mb-0">Panel de Analista - Gestión de Tickets</p>
-                                <div className="mt-2">
-                                    <span className="badge bg-success">
-                                        <i className="fas fa-wifi me-1"></i>
-                                        Conectado
-                                    </span>
-                                </div>
-                                {userData?.especialidad && userData.especialidad !== 'Pendiente' && (
-                                    <div className="mt-2">
-                                        <small className="text-info d-flex align-items-center">
-                                            <i className="fas fa-cog me-1"></i>
-                                            <span className="fw-bold">Especialidad:</span>
-                                            <span className="ms-1">{userData.especialidad}</span>
-                                        </small>
-                                    </div>
-=======
+    // return (
+    //     <div className="container py-4">
+    //         <div className="d-flex justify-content-end mb-3">
+    //         </div>
+    //         {/* Header con información del analista */}
+    //         <div className="row mb-4">
+    //             <div className="col-12">
+    //                 <div className="card">
+    //                     <div className="card-body d-flex justify-content-between align-items-center">
+    //                         <div>
+    //                             <h2 className="mb-1">
+    //                                 Bienvenido, {userData?.nombre === 'Pendiente' ? 'Analista' : userData?.nombre} {userData?.apellido === 'Pendiente' ? '' : userData?.apellido}
+    //                             </h2>
+    //                             <p className="text-muted mb-0">Panel de Analista - Gestión de Tickets</p>
+    //                             <div className="mt-2">
+    //                                 <span className="badge bg-success">
+    //                                     <i className="fas fa-wifi me-1"></i>
+    //                                     Conectado
+    //                                 </span>
+    //                             </div>
+    //                             {userData?.especialidad && userData.especialidad !== 'Pendiente' && (
+    //                                 <div className="mt-2">
+    //                                     <small className="text-info d-flex align-items-center">
+    //                                         <i className="fas fa-cog me-1"></i>
+    //                                         <span className="fw-bold">Especialidad:</span>
+    //                                         <span className="ms-1">{userData.especialidad}</span>
+    //                                     </small>
+    //                                 </div>
     const stats = getStats();
     const filteredTickets = getFilteredTickets();
 
@@ -881,7 +876,6 @@ function AnalistaPage() {
                                     >
                                         <i className="fas fa-times text-muted"></i>
                                     </button>
->>>>>>> develop
                                 )}
 
                                 {/* Resultados de búsqueda */}
@@ -925,21 +919,19 @@ function AnalistaPage() {
                                     className="btn btn-link d-flex align-items-center gap-2 text-decoration-none"
                                     onClick={() => setShowUserDropdown(!showUserDropdown)}
                                 >
-<<<<<<< HEAD
-                                    <i className="fas fa-user-edit me-1"></i>
-                                    {showInfoForm ? 'Ocultar Información' : 'Actualizar Información'}
-                                </button>
-                                <Link to="/analistas" className="btn btn-primary">Ir al CRUD</Link>
-                                <Link to="/analista/ranking" className="btn btn-warning">
-                                    <i className="fas fa-chart-bar me-1"></i>
-                                    Rankings
-                                </Link>
-                                <button
-                                    className="btn btn-outline-danger"
-                                    onClick={logout}
-                                >
-                                    Cerrar Sesión
-=======
+                                //     <i className="fas fa-user-edit me-1"></i>
+                                //     {showInfoForm ? 'Ocultar Información' : 'Actualizar Información'}
+                                // </button>
+                                // <Link to="/analistas" className="btn btn-primary">Ir al CRUD</Link>
+                                // <Link to="/analista/ranking" className="btn btn-warning">
+                                //     <i className="fas fa-chart-bar me-1"></i>
+                                //     Rankings
+                                // </Link>
+                                // <button
+                                //     className="btn btn-outline-danger"
+                                //     onClick={logout}
+                                // >
+                                //     Cerrar Sesión
                                     <div className="hyper-user-avatar bg-primary d-flex align-items-center justify-content-center rounded-circle avatar-small">
                                         <i className="fas fa-user-cog text-white icon-small"></i>
                                     </div>
@@ -947,7 +939,6 @@ function AnalistaPage() {
                                         {userData?.nombre === 'Pendiente' ? 'Analista' : userData?.nombre}
                                     </span>
                                     <i className="fas fa-chevron-down"></i>
->>>>>>> develop
                                 </button>
 
                                 {showUserDropdown && (
@@ -1782,30 +1773,28 @@ function AnalistaPage() {
                         </>
                     )}
 
-<<<<<<< HEAD
-            {/* Lista de tickets asignados */}
-            <div className="row">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-header d-flex align-items-center justify-content-between">
-                            <div>
-                                <h5 className="mb-0">Mis Tickets Asignados</h5>
-                                {feedback && (
-                                    <div className="alert alert-info py-1 px-3 mb-0 mt-2" style={{ display: 'inline-block', fontSize: '0.95em' }} role="alert">
-                                        {feedback}
-                                    </div>
-                                )}
-                            </div>
-                            <button className="btn btn-primary" onClick={actualizarTickets}>
-                                <i className="fas fa-refresh"></i> Actualizar Lista
-                            </button>
-                        </div>
-                        <div className="card-body">
-                            {loading ? (
-                                <div className="text-center py-4">
-                                    <div className="spinner-border text-primary" role="status">
-                                        <span className="visually-hidden">Cargando tickets...</span>
-=======
+            // {/* Lista de tickets asignados */}
+            // <div className="row">
+            //     <div className="col-12">
+            //         <div className="card">
+            //             <div className="card-header d-flex align-items-center justify-content-between">
+            //                 <div>
+            //                     <h5 className="mb-0">Mis Tickets Asignados</h5>
+            //                     {feedback && (
+            //                         <div className="alert alert-info py-1 px-3 mb-0 mt-2" style={{ display: 'inline-block', fontSize: '0.95em' }} role="alert">
+            //                             {feedback}
+            //                         </div>
+            //                     )}
+            //                 </div>
+            //                 <button className="btn btn-primary" onClick={actualizarTickets}>
+            //                     <i className="fas fa-refresh"></i> Actualizar Lista
+            //                 </button>
+            //             </div>
+            //             <div className="card-body">
+            //                 {loading ? (
+            //                     <div className="text-center py-4">
+            //                         <div className="spinner-border text-primary" role="status">
+            //                             <span className="visually-hidden">Cargando tickets...</span>
                     {/* Formulario de informaciÃ³n del analista */}
                     {showInfoForm && (
                         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -1818,7 +1807,6 @@ function AnalistaPage() {
                                             className="btn-close"
                                             onClick={() => setShowInfoForm(false)}
                                         ></button>
->>>>>>> develop
                                     </div>
                                     <form onSubmit={updateInfo}>
                                         <div className="modal-body">

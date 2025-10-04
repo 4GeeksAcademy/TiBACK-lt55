@@ -6,7 +6,6 @@ import { Navbar } from "../components/Navbar";
 import { LandNavbar } from "../components/LandingComponent/LandNavbar"
 import { Footer } from "../components/Footer";
 import { LandFooter } from "../components/LandingComponent/LandFooter"
-import { authActions } from "../store";
 
 const Layout = () => {
   const location = useLocation(); // Hook para saber en qué ruta estamos

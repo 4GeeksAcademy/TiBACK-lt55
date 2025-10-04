@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-=======
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
->>>>>>> develop
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 import GoogleMapsLocation from '../../components/GoogleMapsLocation';
 import ImageUpload from '../../components/ImageUpload';
@@ -34,61 +29,58 @@ const tokenUtils = {
 };
 
 export function ClientePage() {
-<<<<<<< HEAD
-    // Para modal de imágenes
-    const [selectedTicketImages, setSelectedTicketImages] = useState(null);
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    // Estados para imágenes nuevas (ahora solo URLs)
-    const [newTicketImages, setNewTicketImages] = useState([]); // URLs de Cloudinary
-    const [uploading, setUploading] = useState(false);
-    const cloudinaryWidgetRef = useRef(null);
+    // // Para modal de imágenes
+    // const [selectedTicketImages, setSelectedTicketImages] = useState(null);
+    // const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    // // Estados para imágenes nuevas (ahora solo URLs)
+    // const [newTicketImages, setNewTicketImages] = useState([]); // URLs de Cloudinary
+    // const [uploading, setUploading] = useState(false);
+    // const cloudinaryWidgetRef = useRef(null);
 
-    // Feedback visual para actualización de tickets
-    const [feedback, setFeedback] = useState("");
+    // // Feedback visual para actualización de tickets
+    // const [feedback, setFeedback] = useState("");
 
-    // Cargar el script del widget de Cloudinary solo una vez
-    useEffect(() => {
-        if (!window.cloudinary) {
-            const script = document.createElement('script');
-            script.src = CLOUDINARY_WIDGET_URL;
-            script.async = true;
-            script.onload = () => { };
-            document.body.appendChild(script);
-        }
-    }, []);
+    // // Cargar el script del widget de Cloudinary solo una vez
+    // useEffect(() => {
+    //     if (!window.cloudinary) {
+    //         const script = document.createElement('script');
+    //         script.src = CLOUDINARY_WIDGET_URL;
+    //         script.async = true;
+    //         script.onload = () => { };
+    //         document.body.appendChild(script);
+    //     }
+    // }, []);
 
-    // Inicializar el widget
-    const abrirWidgetCloudinary = () => {
-        if (window.cloudinary) {
-            if (!cloudinaryWidgetRef.current) {
-                cloudinaryWidgetRef.current = window.cloudinary.createUploadWidget({
-                    cloudName: 'dda53mpsn', // cloud name real
-                    uploadPreset: 'Ticket-TiBACK', // upload preset real
-                    multiple: true,
-                    maxFiles: 5,
-                    sources: ['local', 'url', 'camera', 'image_search'],
-                    resourceType: 'image',
-                    cropping: false,
-                    folder: 'tickets',
-                }, (error, result) => {
-                    if (!error && result && result.event === "success") {
-                        setNewTicketImages(prev => [...prev, result.info.secure_url]);
-                    }
-                });
-            }
-            cloudinaryWidgetRef.current.open();
-        } else {
-            alert('El widget de Cloudinary aún no está listo. Espera unos segundos y vuelve a intentar.');
-        }
-    };
+    // // Inicializar el widget
+    // const abrirWidgetCloudinary = () => {
+    //     if (window.cloudinary) {
+    //         if (!cloudinaryWidgetRef.current) {
+    //             cloudinaryWidgetRef.current = window.cloudinary.createUploadWidget({
+    //                 cloudName: 'dda53mpsn', // cloud name real
+    //                 uploadPreset: 'Ticket-TiBACK', // upload preset real
+    //                 multiple: true,
+    //                 maxFiles: 5,
+    //                 sources: ['local', 'url', 'camera', 'image_search'],
+    //                 resourceType: 'image',
+    //                 cropping: false,
+    //                 folder: 'tickets',
+    //             }, (error, result) => {
+    //                 if (!error && result && result.event === "success") {
+    //                     setNewTicketImages(prev => [...prev, result.info.secure_url]);
+    //                 }
+    //             });
+    //         }
+    //         cloudinaryWidgetRef.current.open();
+    //     } else {
+    //         alert('El widget de Cloudinary aún no está listo. Espera unos segundos y vuelve a intentar.');
+    //     }
+    // };
 
-    // Eliminar imagen subida (solo de la lista local, no de Cloudinary)
-    const eliminarImagenNueva = (idx) => {
-        setNewTicketImages(urls => urls.filter((_, i) => i !== idx));
-    };
-=======
+    // // Eliminar imagen subida (solo de la lista local, no de Cloudinary)
+    // const eliminarImagenNueva = (idx) => {
+    //     setNewTicketImages(urls => urls.filter((_, i) => i !== idx));
+    // };
     console.log('🚀 ClientePage - Componente iniciado');
->>>>>>> develop
     const navigate = useNavigate();
     const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
@@ -164,12 +156,8 @@ export function ClientePage() {
             if (ticketsResponse.ok) {
                 const ticketsData = await ticketsResponse.json();
                 setTickets(ticketsData);
-<<<<<<< HEAD
-                // Limpiar solicitudes de reapertura para tickets que ya no están en estado 'solucionado'
-=======
 
                 // Limpiar solicitudes de reapertura para tickets que ya no estÃ¡n en estado 'solucionado'
->>>>>>> develop
                 setSolicitudesReapertura(prev => {
                     const newSet = new Set();
                     ticketsData.forEach(ticket => {
@@ -585,7 +573,6 @@ export function ClientePage() {
             await actualizarTickets();
 
             // Unirse al room del nuevo ticket
-<<<<<<< HEAD
             if (store.websocket.socket) {
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
                     headers: {
@@ -600,12 +587,10 @@ export function ClientePage() {
                         joinTicketRoom(store.websocket.socket, nuevoTicket.id);
                     }
                 }
-=======
             if (store.websocket.socket && ticketId) {
                 joinTicketRoom(store.websocket.socket, ticketId);
                 // TambiÃ©n unirse a rooms crÃ­ticos
                 joinCriticalRooms(store.websocket.socket, [ticketId], store.auth.user);
->>>>>>> develop
             }
 
             // Navegar automÃ¡ticamente a "Mis Tickets" y posicionar el nuevo ticket
@@ -1223,18 +1208,6 @@ export function ClientePage() {
 
 
     return (
-<<<<<<< HEAD
-        <div className="container py-4">
-            <div className="d-flex justify-content-end mb-3">
-            </div>
-            {/* Header con información del usuario */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <div className="d-flex align-items-center mb-1">
-=======
         <div className="hyper-layout d-flex">
             {/* Sidebar central dinámico */}
             <SideBarCentral
@@ -1337,7 +1310,6 @@ export function ClientePage() {
                                         console.log('ClientePage - Dropdown state set to:', !showUserDropdown);
                                     }}
                                 >
->>>>>>> develop
                                     {userData?.url_imagen ? (
                                         <img
                                             src={userData.url_imagen}
@@ -2441,7 +2413,6 @@ export function ClientePage() {
                                             placeholder="Solo si cambias la contraseña"
                                         />
                                     </div>
-<<<<<<< HEAD
                                 </div>
                                 <div className="mt-3 d-flex gap-2">
                                     <button
@@ -2563,7 +2534,6 @@ export function ClientePage() {
                                 <div className="text-center py-4">
                                     <div className="spinner-border text-primary" role="status">
                                         <span className="visually-hidden">Cargando tickets...</span>
-=======
                                     <div className="col-12">
                                         <button
                                             className="btn btn-success"
@@ -2589,7 +2559,6 @@ export function ClientePage() {
                                             <i className="fas fa-arrow-left me-1"></i>
                                             Volver al Dashboard
                                         </button>
->>>>>>> develop
                                     </div>
                                 </div>
                             </div>
@@ -2605,7 +2574,6 @@ export function ClientePage() {
                                 <div className="hyper-widget-header">
                                     <h3 className="hyper-widget-title">Conversaciones Activas</h3>
                                 </div>
-<<<<<<< HEAD
                             ) : (
                                 <div className="table-responsive">
                                     <table className="table table-hover">
@@ -2758,7 +2726,6 @@ export function ClientePage() {
                                                                 <div className="alert alert-warning py-2 px-3 mb-0" role="alert">
                                                                     <i className="fas fa-clock me-1"></i>
                                                                     <strong>Solicitud enviada</strong>
-=======
 
                                 <div className="hyper-widget-body">
                                     {(() => {
@@ -2845,7 +2812,6 @@ export function ClientePage() {
                                                                         <i className="fas fa-comment me-1"></i>
                                                                         Ver Comentarios
                                                                     </button>
->>>>>>> develop
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2880,7 +2846,6 @@ export function ClientePage() {
 
                 </div>
             </div>
-<<<<<<< HEAD
 
             {/* Modal de imágenes tipo carrusel */}
             {selectedTicketImages && (
@@ -2912,8 +2877,6 @@ export function ClientePage() {
                     <div className="modal-backdrop fade show" style={{ zIndex: 0 }} onClick={() => setSelectedTicketImages(null)}></div>
                 </div>
             )}
-=======
->>>>>>> develop
         </div>
     );
 }

@@ -190,6 +190,7 @@ class Ticket(db.Model):
     comentario: Mapped[str] = mapped_column(String(500), nullable=True)
     fecha_evaluacion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     url_imagen: Mapped[str] = mapped_column(String(500), nullable=True)
+    img_urls: Mapped[List[str]] = mapped_column(JSON, nullable=True)
     cliente = relationship("Cliente", back_populates="tickets")
 
     def serialize(self):

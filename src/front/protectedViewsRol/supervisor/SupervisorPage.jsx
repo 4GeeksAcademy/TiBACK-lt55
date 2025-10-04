@@ -1359,35 +1359,6 @@ export function SupervisorPage() {
     }
 
     return (
-<<<<<<< HEAD
-        <div className="container py-4">
-            <div className="d-flex justify-content-end mb-3">
-            </div>
-            {/* Header con información del supervisor */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h2 className="mb-1">
-                                    Bienvenido, {userData?.nombre === 'Pendiente' ? 'Supervisor' : userData?.nombre} {userData?.apellido === 'Pendiente' ? '' : userData?.apellido}
-                                </h2>
-                                <p className="text-muted mb-0">Panel de Supervisor - Gestión de Tickets</p>
-                                <div className="mt-2">
-                                    <span className="badge bg-success">
-                                        <i className="fas fa-wifi me-1"></i>
-                                        Conectado
-                                    </span>
-                                </div>
-                                {userData?.area_responsable && userData.area_responsable !== 'Pendiente' && (
-                                    <div className="mt-2">
-                                        <small className="text-info d-flex align-items-center">
-                                            <i className="fas fa-building me-1"></i>
-                                            <span className="fw-bold">Área:</span>
-                                            <span className="ms-1">{userData.area_responsable}</span>
-                                        </small>
-                                    </div>
-=======
         <div className="hyper-layout d-flex">
             {/* Sidebar central dinÃ¡mico */}
             <SideBarCentral
@@ -1437,7 +1408,6 @@ export function SupervisorPage() {
                                     >
                                         <i className="fas fa-times text-muted"></i>
                                     </button>
->>>>>>> develop
                                 )}
 
                                 {/* Resultados de bÃºsqueda */}
@@ -2829,28 +2799,6 @@ export function SupervisorPage() {
                         </>
                     )}
 
-<<<<<<< HEAD
-            {/* Lista de tickets */}
-            <div className="row">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-header d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0">Todos los Tickets</h5>
-                            <div className="d-flex align-items-center gap-3">
-                                <small className="text-muted">
-                                    {analistas.length} analista{analistas.length !== 1 ? 's' : ''} disponible{analistas.length !== 1 ? 's' : ''}
-                                </small>
-                                <button className="btn btn-primary" onClick={actualizarTickets}>
-                                    <i className="fas fa-refresh"></i> Actualizar Lista
-                                </button>
-                            </div>
-                        </div>
-                        <div className="card-body">
-                            {loading ? (
-                                <div className="text-center py-4">
-                                    <div className="spinner-border text-primary" role="status">
-                                        <span className="visually-hidden">Cargando tickets...</span>
-=======
                     {/* Formulario de informaciÃ³n del supervisor */}
                     {showInfoForm && (
                         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -2863,7 +2811,6 @@ export function SupervisorPage() {
                                             className="btn-close"
                                             onClick={() => setShowInfoForm(false)}
                                         ></button>
->>>>>>> develop
                                     </div>
                                     <form onSubmit={actualizarInformacion}>
                                         <div className="modal-body">

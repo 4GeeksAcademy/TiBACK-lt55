@@ -1,6 +1,4 @@
-import { string } from "prop-types";
 import { io } from "socket.io-client";
-// import { string } from "prop-types"; // No se usa en este archivo
  
 
 // Función global para manejar chats activos en localStorage

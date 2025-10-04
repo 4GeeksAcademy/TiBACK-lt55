@@ -1,36 +1,23 @@
-from datetime import datetime
-from sqlalchemy.exc import IntegrityError
-from flask_socketio import emit, join_room, leave_room
-from flask_cors import CORS
-from api.jwt_utils import (
-    generate_token, verify_token,
-    require_auth, require_role, refresh_token, get_user_from_token
-)
-from api.utils import generate_sitemap, APIException
-from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
-from flask import Flask, request, jsonify, url_for, Blueprint
-import json
-import requests
-import os
-
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
-import requests
 import json
+import requests
 import cloudinary
 import cloudinary.uploader
+from datetime import datetime
 from flask import Flask, request, jsonify, url_for, Blueprint
+from flask_cors import CORS
+from flask_socketio import emit, join_room, leave_room
+from sqlalchemy.exc import IntegrityError
+
 from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
 from api.utils import generate_sitemap, APIException
 from api.jwt_utils import (
     generate_token, verify_token, 
     require_auth, require_role, refresh_token, get_user_from_token
 )
-from flask_cors import CORS
-from flask_socketio import emit, join_room, leave_room
-from sqlalchemy.exc import IntegrityError
 
 api = Blueprint('api', __name__)
 
