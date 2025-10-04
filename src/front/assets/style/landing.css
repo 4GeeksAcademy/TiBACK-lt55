@@ -1,0 +1,94 @@
+i {
+  color: #396689;
+}
+.h-img-default {
+  height: 300px;
+}
+.clpPad {
+  clip-path: polygon(0 0, 100% 0, 100% 87%, 0% 100%);
+}
+.img-clp-w-1 {
+  padding: 40px;
+  width: 100%;
+  height: 300px;
+  border-radius: 50%;
+}
+.img-clp-w-2 {
+  margin-top: 32px;
+  margin-bottom: 27px;
+  padding: 12px;
+  width: 85%;
+  height: 240px;
+  border-radius: 50%;
+}
+.img-clp-w-3 {
+  margin-top: 15px;
+  padding: 33px;
+  width: 100%;
+  height: 280px;
+  border-radius: 50%;
+}
+.bg-default {
+  background-color: #7a8cf5;
+}
+.bg-default-q {
+  background-color: #bcc5fa;
+}
+.padding-default{
+  padding-top: 120px;
+  padding-bottom: 200px;
+}
+.w-default {
+  width: 200px;
+}
+.w-update {
+  width: 700px;
+}
+.btn-success-default {
+  background-color: #7bbe17;
+  font-size: 14px;
+}
+.btn-success-default:hover {
+  background-color: #6ea120;
+}
+.btn-info-default {
+  background-color: #39afd1;
+  font-size: 14px;
+}
+.btn-info-default:hover {
+  background-color: rgb(68, 160, 212);
+}
+.custom-navbar {
+  background-color: #1e1e2f; /* Puedes cambiar a cualquier color oscuro */
+}
+
+/* Personalización adicional de los enlaces si es necesario */
+.custom-navbar .nav-link {
+  color: #4156cf;
+  transition: color 0.3s;
+}
+
+.custom-navbar .nav-link:hover,
+.custom-navbar .nav-link.active {
+  color: #f8f9fa;
+}
+/* styles.css */
+
+/* Hero section background and padding */
+.hero-section {
+  background-color: rgb(103, 78, 241); /* Puedes cambiar el color a lo que desees */
+  padding: 80px 0;
+}
+
+/* Optional: Hero title styling */
+.hero-title {
+  font-size: 2rem;
+  line-height: 1.4;
+}
+
+/* Responsive adjustments if needed */
+@media (max-width: 767.98px) {
+  .hero-title {
+    font-size: 1.75rem;
+  }
+}
