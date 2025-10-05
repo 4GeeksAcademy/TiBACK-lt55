@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 import GoogleMapsLocation from '../components/GoogleMapsLocation';
+import TiBACKLogo from '../assets/img/TiBACK-logo.png';
 
 export function AuthForm() {
     const [searchParams] = useSearchParams();
@@ -15,6 +16,12 @@ export function AuthForm() {
         telefono: '',
         role: 'cliente'
     });
+    const backgroundImages = {
+        cliente: "https://i.pravatar.cc/1000?img=68",
+        analista: "https://i.pravatar.cc/1000?img=12",
+        supervisor: "https://i.pravatar.cc/1000?img=54",
+        administrador: "https://i.pravatar.cc/1000?img=10",
+    };
     const [locationData, setLocationData] = useState({
         address: '',
         lat: null,
@@ -25,7 +32,7 @@ export function AuthForm() {
     const { login, register, store } = useGlobalReducer();
     const navigate = useNavigate();
 
-    // Establecer el rol inicial basado en el parámetro de la URL
+    // Establecer rol inicial desde la URL
     useEffect(() => {
         const roleFromUrl = searchParams.get('role');
         if (roleFromUrl && ['cliente', 'analista', 'supervisor', 'administrador'].includes(roleFromUrl)) {
@@ -61,9 +68,7 @@ export function AuthForm() {
             if (isLogin) {
                 result = await login(formData.email, formData.password, formData.role);
             } else {
-                // Para clientes, solo registrar email y contraseña inicialmente
                 if (formData.role === 'cliente') {
-                    // Crear cliente básico solo con email y contraseña
                     const basicClientData = {
                         email: formData.email,
                         password: formData.password,
@@ -74,16 +79,14 @@ export function AuthForm() {
                         telefono: '0000000000'
                     };
                     result = await register(basicClientData);
-                    
+
                     if (result.success) {
-                        // Después del registro básico, ir directo al login
-                        setError('');
-                        alert('Cliente registrado exitosamente. Por favor inicia sesión con tus credenciales.');
+                        alert('Cliente registrado exitosamente. Por favor inicia sesión.');
                         setIsLogin(true);
                         setFormData({
                             nombre: '',
                             apellido: '',
-                            email: formData.email, // Mantener el email para facilitar el login
+                            email: formData.email,
                             password: '',
                             direccion: '',
                             telefono: '',
@@ -92,7 +95,6 @@ export function AuthForm() {
                         return;
                     }
                 } else {
-                    // Para otros roles, registro completo
                     const registerData = {
                         nombre: formData.nombre,
                         apellido: formData.apellido,
@@ -110,27 +112,18 @@ export function AuthForm() {
 
             if (result.success) {
                 if (isLogin) {
-                    // SEGURIDAD: Obtener rol del token, no del resultado
-                    const role = result.role; // Este viene del token decodificado en store.js
-                    if (role === 'cliente') {
-                        navigate('/cliente');
-                    } else if (role === 'analista') {
-                        navigate('/analista');
-                    } else if (role === 'supervisor') {
-                        navigate('/supervisor');
-                    } else if (role === 'administrador') {
-                        navigate('/administrador');
-                    }
+                    const role = result.role;
+                    if (role === 'cliente') navigate('/cliente');
+                    else if (role === 'analista') navigate('/analista');
+                    else if (role === 'supervisor') navigate('/supervisor');
+                    else if (role === 'administrador') navigate('/administrador');
                 } else {
-                    // Para registro completo, mostrar mensaje de éxito y cambiar a login
-                    setError('');
-                    alert('Cliente registrado exitosamente. Por favor inicia sesión con tus credenciales.');
+                    alert('Usuario registrado exitosamente. Inicia sesión.');
                     setIsLogin(true);
-                    setIsClientInfoStep(false);
                     setFormData({
                         nombre: '',
                         apellido: '',
-                        email: formData.email, // Mantener el email para facilitar el login
+                        email: formData.email,
                         password: '',
                         direccion: '',
                         telefono: '',
@@ -166,149 +159,142 @@ export function AuthForm() {
     };
 
     return (
-        <div className="container py-5">
-            <div className="row justify-content-center">
-                <div className="col-md-6">
-                    <div className="card">
-                        <div className="card-header text-center">
-                            <h3>{isLogin ? 'Iniciar Sesión' : 'Registrarse'}</h3>
-                            <p className="text-muted mb-0">
-                                {isLogin 
-                                    ? `Accede a tu cuenta de ${formData.role}` 
-                                    : `Crea tu cuenta de ${formData.role}`
-                                }
-                            </p>
-                            <div className="mt-2">
-                                <span className={`badge ${
-                                    formData.role === 'cliente' ? 'bg-primary' :
-                                    formData.role === 'analista' ? 'bg-success' :
-                                    formData.role === 'supervisor' ? 'bg-warning' :
-                                    'bg-danger'
-                                }`}>
-                                    <i className={`fas ${
-                                        formData.role === 'cliente' ? 'fa-user' :
-                                        formData.role === 'analista' ? 'fa-user-tie' :
-                                        formData.role === 'supervisor' ? 'fa-user-shield' :
-                                        'fa-crown'
-                                    } me-1`}></i>
-                                    {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
-                                </span>
-                            </div>
-                        </div>
-                        <div className="card-body">
-                            {error && (
-                                <div className="alert alert-danger" role="alert">
-                                    {error}
-                                </div>
+        <div className="container-fluid vh-100 m-0 p-0">
+            <div className="row h-100 g-0">
+
+                {/* Lado izquierdo: formulario (30%) */}
+                <div className="col-lg-4 col-md-5 d-flex flex-column bg-white shadow-sm px-4 pb-4">
+
+                    {/* Logo arriba */}
+                    <div className="mb-4 ms-3">
+                        <img src={TiBACKLogo} className="btn cursor-pointer ps-0" onClick={() => navigate('/')} alt="TiBACK Logo" style={{ maxWidth: "170px", height: "auto" }} />
+                    </div>
+
+                    {/* Formulario */}
+                    <div className="w-100 ms-3" style={{ maxWidth: "320px" }}>
+                        <h4 className="mb-2 text-muted">
+                            {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
+                        </h4>
+                        <p className="text-muted mb-5">
+                            {isLogin
+                                ? `Accede a tu cuenta de ${formData.role}.`
+                                : `Crea tu cuenta de ${formData.role}.`}
+                        </p>
+
+                        {error && (
+                            <div className="alert alert-danger">{error}</div>
+                        )}
+
+                        <form onSubmit={handleSubmit}>
+                            {!isLogin && formData.role !== 'cliente' && (
+                                <>
+                                    <div className="row">
+                                        <div className="col-6 mb-3">
+                                            <label className="form-label">Nombre *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="nombre"
+                                                value={formData.nombre}
+                                                onChange={handleChange}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="col-6 mb-3">
+                                            <label className="form-label">Apellido *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="apellido"
+                                                value={formData.apellido}
+                                                onChange={handleChange}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="form-label">Teléfono *</label>
+                                        <input
+                                            type="tel"
+                                            className="form-control"
+                                            name="telefono"
+                                            value={formData.telefono}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="form-label">Ubicación *</label>
+                                        <GoogleMapsLocation
+                                            onLocationChange={handleLocationChange}
+                                            initialAddress={locationData.address}
+                                            initialLat={locationData.lat}
+                                            initialLng={locationData.lng}
+                                        />
+                                    </div>
+                                </>
                             )}
 
-                            <form onSubmit={handleSubmit}>
-                                {!isLogin && formData.role !== 'cliente' && (
-                                    <>
-                                        <div className="row">
-                                            <div className="col-md-6 mb-3">
-                                                <label htmlFor="nombre" className="form-label">Nombre *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    id="nombre"
-                                                    name="nombre"
-                                                    value={formData.nombre}
-                                                    onChange={handleChange}
-                                                    required={!isLogin}
-                                                />
-                                            </div>
-                                            <div className="col-md-6 mb-3">
-                                                <label htmlFor="apellido" className="form-label">Apellido *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    id="apellido"
-                                                    name="apellido"
-                                                    value={formData.apellido}
-                                                    onChange={handleChange}
-                                                    required={!isLogin}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="mb-3">
-                                            <label htmlFor="telefono" className="form-label">Teléfono *</label>
-                                            <input
-                                                type="tel"
-                                                className="form-control"
-                                                id="telefono"
-                                                name="telefono"
-                                                value={formData.telefono}
-                                                onChange={handleChange}
-                                                required={!isLogin}
-                                            />
-                                        </div>
-                                        
-                                        <div className="mb-3">
-                                            <label className="form-label">Ubicación *</label>
-                                            <GoogleMapsLocation
-                                                onLocationChange={handleLocationChange}
-                                                initialAddress={locationData.address}
-                                                initialLat={locationData.lat}
-                                                initialLng={locationData.lng}
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-
-                                <div className="mb-3">
-                                    <label htmlFor="email" className="form-label">Email *</label>
-                                    <input
-                                        type="email"
-                                        className="form-control"
-                                        id="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                </div>
-
-                                <div className="mb-3">
-                                    <label htmlFor="password" className="form-label">Contraseña *</label>
-                                    <input
-                                        type="password"
-                                        className="form-control"
-                                        id="password"
-                                        name="password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        required
-                                        minLength="6"
-                                    />
-                                </div>
-
-
-                                <div className="d-grid">
-                                    <button
-                                        type="submit"
-                                        className="btn btn-primary"
-                                        disabled={store.auth.isLoading}
-                                    >
-                                        {store.auth.isLoading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')}
-                                    </button>
-                                </div>
-                            </form>
-
-                            <div className="text-center mt-3">
-                                <button
-                                    type="button"
-                                    className="btn btn-link"
-                                    onClick={toggleMode}
-                                >
-                                    {isLogin
-                                        ? '¿No tienes cuenta? Regístrate aquí'
-                                        : '¿Ya tienes cuenta? Inicia sesión aquí'
-                                    }
-                                </button>
+                            <div className="my-4">
+                                <label className="form-label text-muted">Email</label>
+                                <input
+                                    type="email"
+                                    className="form-control text-muted"
+                                    name="email"
+                                    value={formData.email}
+                                    placeholder="Ingresa tu email"
+                                    onChange={handleChange}
+                                    required
+                                />
                             </div>
+
+                            <div className="mb-3">
+                                <label className="form-label text-muted">Contraseña</label>
+                                <input
+                                    type="password"
+                                    className="form-control text-muted"
+                                    name="password"
+                                    value={formData.password}
+                                    placeholder="Ingresa tu contraseña"
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="btn btn-primary w-100 mt-3"
+                                disabled={store.auth.isLoading}
+                            >
+                                <i className="fa-solid fa-right-to-bracket mx-2"></i>
+                                {store.auth.isLoading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')}
+                            </button>
+                        </form>
+
+                        <div className="text-center text-muted mt-3">
+                            <button type="button" className="btn btn-link link-secondary my-5" onClick={toggleMode}>
+                                {isLogin
+                                    ? '¿No tienes cuenta? Regístrate aquí'
+                                    : '¿Ya tienes cuenta? Inicia sesión aquí'}
+                            </button>
                         </div>
+                    </div>
+                </div>
+
+
+                {/* Lado derecho: imagen (70%) */}
+                <div
+                    className="col-lg-8 col-md-7 d-flex flex-column justify-content-center align-items-center text-white"
+                    style={{
+                        backgroundImage: `url("${backgroundImages[formData.role] || backgroundImages.cliente}")`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center"
+                    }}
+                >
+                    <div className="p-5 mt-auto rounded text-center">
+                        <h1>Bienvenido a TiBACK!</h1>
+                        <h5>"Tu turno, tu tiempo, tu solución. Con la velocidad que mereces..."</h5>
+                        <h6> Hola de nuevo, {formData.role === "analista" ? "analista" : `${formData.role}/a`}</h6>
                     </div>
                 </div>
             </div>

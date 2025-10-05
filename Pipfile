@@ -26,7 +26,6 @@ google-cloud-vision = "*"
 flask = "*"
 cloudinary = "*"
 flask-sqlalchemy = "*"
-google-cloud-vision = "*"
 
 [requires]
 python_version = "3.13"

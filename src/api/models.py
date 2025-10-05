@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, ForeignKey, DateTime, Text
+from sqlalchemy import String, Boolean, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List
@@ -190,6 +190,7 @@ class Ticket(db.Model):
     comentario: Mapped[str] = mapped_column(String(500), nullable=True)
     fecha_evaluacion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     url_imagen: Mapped[str] = mapped_column(String(500), nullable=True)
+    img_urls: Mapped[List[str]] = mapped_column(JSON, nullable=True)
     cliente = relationship("Cliente", back_populates="tickets")
 
     def serialize(self):
@@ -241,6 +242,7 @@ class Ticket(db.Model):
             "url_imagen": self.url_imagen,
             "cliente": self.cliente.serialize() if self.cliente else None,
             "asignacion_actual": asignacion_actual,
+            "img_urls": self.img_urls or [],
             "comentarios": [c.serialize() for c in self.comentarios] if hasattr(self, 'comentarios') else [],
             "tiene_solicitud_reapertura_pendiente": tiene_solicitud_pendiente
         }
