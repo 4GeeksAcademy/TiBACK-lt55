@@ -12,11 +12,11 @@ from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_cors import CORS
-from api.utils import APIException, generate_sitemap
-from api.models import db
-from api.routes import api
-from api.admin import setup_admin
-from api.commands import setup_commands
+from src.api.utils import APIException, generate_sitemap
+from src.api.models import db
+from src.api.routes import api
+from src.api.admin import setup_admin
+from src.api.commands import setup_commands
 
 # from models import Person
 # Cargar variables de entorno desde .env
@@ -92,7 +92,7 @@ def handle_connect(auth=None):
     # Verificar autenticación si se proporciona
     if auth and auth.get('token'):
         try:
-            from api.jwt_utils import verify_token
+            from src.api.jwt_utils import verify_token
             user_data = verify_token(auth['token'])
             if user_data:
                 # Almacenar información del usuario en la sesión

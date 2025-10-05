@@ -213,7 +213,7 @@ class Ticket(db.Model):
         if self.estado.lower() == 'solucionado':
             # Importar la función helper
             try:
-                from api.routes import tiene_solicitud_reapertura_pendiente
+                from src.api.routes import tiene_solicitud_reapertura_pendiente
                 tiene_solicitud_pendiente = tiene_solicitud_reapertura_pendiente(self.id)
             except ImportError:
                 # Si no se puede importar, verificar directamente

@@ -12,9 +12,9 @@ from flask_cors import CORS
 from flask_socketio import emit, join_room, leave_room
 from sqlalchemy.exc import IntegrityError
 
-from api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
-from api.utils import generate_sitemap, APIException
-from api.jwt_utils import (
+from src.api.models import db, User, Cliente, Analista, Supervisor, Comentarios, Asignacion, Administrador, Ticket, Gestion
+from src.api.utils import generate_sitemap, APIException
+from src.api.jwt_utils import (
     generate_token, verify_token, 
     require_auth, require_role, refresh_token, get_user_from_token
 )
