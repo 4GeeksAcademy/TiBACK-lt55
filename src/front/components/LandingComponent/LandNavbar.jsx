@@ -28,10 +28,10 @@ export const LandNavbar = () => {
                                     Iniciar Sesion
                                 </a>
                                 <ul className="dropdown-menu">
-                                    <li><Link className="dropdown-item" to="/auth?admin">Administrador</Link></li>
-                                    <li><Link className="dropdown-item" to="/auth?supervisor">Supervisor</Link></li>
-                                    <li><Link className="dropdown-item" to="/auth?analista">Analista</Link></li>
-                                    <li><Link className="dropdown-item" to="/auth?clientes">Cliente</Link></li>
+                                    <li><Link className="dropdown-item" to="/auth?role=administrador">Administrador</Link></li>
+                                    <li><Link className="dropdown-item" to="/auth?role=supervisor">Supervisor</Link></li>
+                                    <li><Link className="dropdown-item" to="/auth?role=analista">Analista</Link></li>
+                                    <li><Link className="dropdown-item" to="/auth?role=clientes">Cliente</Link></li>
                                 </ul>
                             </li>
                         </ul>

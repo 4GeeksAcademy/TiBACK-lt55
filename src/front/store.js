@@ -177,7 +177,7 @@ export const initialStore = () => {
       {
         id: 2,
         src: "src/front/assets/img/johan.png",
-        name: "Johan",
+        name: "Johan Gómez",
         subtit: "Tecnico Web",
         prrfo:
           "Trabajando para mejorar los rocesos para los sistemas de nuestros clientes",
@@ -193,7 +193,7 @@ export const initialStore = () => {
         experiencia: [
           "Diseño de interfaces modernas",
         ],
-        proyectos: ["Dashboard analítico", "App de control de inventarios"],
+        proyectos: ["Dashboard Analítico", "App de control de inventarios"],
         contacto: {
           email: "johan@empresa.com",
           linkedin: "https://linkedin.com/in/johan",

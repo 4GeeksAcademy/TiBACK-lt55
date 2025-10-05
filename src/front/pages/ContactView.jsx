@@ -8,6 +8,9 @@ export const ContactView = () => {
 
     const formRef = useRef();
     const keypublic = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    const serviceID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const templateID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+
 
     // Estado del modal
     const [showModal, setShowModal] = useState(false);
@@ -53,8 +56,8 @@ export const ContactView = () => {
         // Enviar correo si todo está completo
         emailjs
             .sendForm(
-                "service_7s3lh9t",   // Service ID
-                "template_fnkjtzd",  // Template ID
+                serviceID,   // Service ID
+                templateID,  // Template ID
                 formRef.current,     // Form data
                 keypublic            // Public Key
             )
