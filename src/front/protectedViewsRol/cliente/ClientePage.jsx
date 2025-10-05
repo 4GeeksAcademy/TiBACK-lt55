@@ -29,12 +29,12 @@ const tokenUtils = {
 };
 
 export function ClientePage() {
-    // // Para modal de imágenes
-    // const [selectedTicketImages, setSelectedTicketImages] = useState(null);
-    // const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    // // Estados para imágenes nuevas (ahora solo URLs)
-    // const [newTicketImages, setNewTicketImages] = useState([]); // URLs de Cloudinary
-    // const [uploading, setUploading] = useState(false);
+    // Para modal de imágenes
+    const [selectedTicketImages, setSelectedTicketImages] = useState(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    // Estados para imágenes nuevas (ahora solo URLs)
+    const [newTicketImages, setNewTicketImages] = useState([]); // URLs de Cloudinary
+    const [uploading, setUploading] = useState(false);
     // const cloudinaryWidgetRef = useRef(null);
 
     // // Feedback visual para actualización de tickets

@@ -14,6 +14,7 @@ const Layout = () => {
   const isLandingPage = location.pathname === "/";
   const ContactView = location.pathname === "/contact";
   const home = location.pathname === "/Home";
+  const isAuthPage = location.pathname === "/auth";
 
   // Elegimos qué navbar mostrar
   const NavbarToShow =
@@ -21,14 +22,18 @@ const Layout = () => {
       ? <LandNavbar />
       : home
         ? <Navbar />
-        : <LandNavbar />;
+        : isAuthPage
+          ? null // No mostrar navbar en login
+          : <LandNavbar />;
 
   const FooterToShow =
     isLandingPage || ContactView
       ? <LandFooter />
       : home
         ? <Footer />
-        : <LandFooter />
+        : isAuthPage
+          ? null // No mostrar footer en login
+          : <Footer /> // Mostrar Footer con sincronización en vistas protegidas
 
   return (
     <>
