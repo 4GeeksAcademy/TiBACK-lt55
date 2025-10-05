@@ -1,7 +1,7 @@
 export const LandFooter = () => {
 
     return (
-        <footer className="bg-dark py-5">
+        <footer className="bg-dark py-5" id="footer">
                 <div className="container">
                     <div className="row">
                         <div className="col-lg-6">

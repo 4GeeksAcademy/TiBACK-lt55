@@ -105,14 +105,14 @@ export const ContactView = () => {
                 <div className="row">
 
                 </div>
-                <div className="align-items-center mt-3 ms-5 row gap-2">
-                    <div className="col-md-2 shadow border border-dark-subtle rounded py-4">
+                <div className="align-items-center mt-4 ms-5 row gap-2">
+                    <div className="col-md-2 shadow border border-dark-subtle rounded py-4 px-3">
                         <p className="text-muted mt-3"><span className="fw-bold">Atención al cliente:</span><br /> <span className="d-block mt-1">+1 234 56 7894</span></p>
                         <p className="text-muted mt-4"><span className="fw-bold">Email Address:</span><br /> <span className="d-block mt-1">info@gmail.com</span></p>
                         <p className="text-muted mt-4"><span className="fw-bold">Office Address:</span><br /><span className="d-block mt-1">4461 Cedar Street Moro, AR 72368</span></p>
                         <p className="text-muted mt-4"><span className="fw-bold">Office Time:</span><br /> <span className="d-block mt-1">9:00AM To 6:00PM</span></p>
                     </div>
-                    <div className="col-md-9 shadow border border-dark-subtle rounded p-4">
+                    <div className="col-md-9 shadow border border-dark-subtle rounded p-3">
                         <form ref={formRef} onSubmit={handleSendEmail}>
                             <div className="mt-4 row">
                                 <div className="col-lg-6">

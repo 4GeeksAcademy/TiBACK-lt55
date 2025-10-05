@@ -7,6 +7,9 @@ i {
 .clpPad {
   clip-path: polygon(0 0, 100% 0, 100% 87%, 0% 100%);
 }
+.w-default-logo {
+  width: 120px;
+}
 .img-clp-w-1 {
   padding: 40px;
   width: 100%;

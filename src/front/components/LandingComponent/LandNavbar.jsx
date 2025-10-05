@@ -5,9 +5,9 @@ export const LandNavbar = () => {
     return (
         <nav className="navbar navbar-expand-lg navbar-dark bg-default">
             <div className="container">
-                <a className="navbar-brand me-lg-5" href="#">
-                    <img src="src/front/assets/img/logotiback.png" alt="Logo" className="rounded-3" height="40" />
-                </a>
+                <Link className="navbar-brand me-lg-5" to="/">
+                    <img src="https://res.cloudinary.com/mystoreimg/image/upload/v1759679927/fsq6shibpipmssroqwe4.png" alt="Logo" className="rounded-3 w-default-logo" />
+                </Link>
                 <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
                     aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span className="navbar-toggler-icon"></span>

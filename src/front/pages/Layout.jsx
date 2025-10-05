@@ -12,24 +12,15 @@ const Layout = () => {
   const location = useLocation(); // Hook para saber en qué ruta estamos
 
   // Verificamos las rutas
-  const isLandingPage = location.pathname === "/";
-  const ContactView = location.pathname === "/contact";
+  const navbarmain = location.pathname === "/" || "/contact";
   const home = location.pathname === "/Home";
 
   // Elegimos qué navbar mostrar
   const NavbarToShow =
-    isLandingPage || ContactView
-      ? <LandNavbar />
-      : home
-        ? <Navbar />
-        : <LandNavbar />;
+    navbarmain ? <LandNavbar /> : "" ;
 
   const FooterToShow =
-    isLandingPage || ContactView
-      ? <LandFooter />
-      : home
-        ? <Footer />
-        : <LandFooter />
+    navbarmain ? <LandFooter /> : home ? <Footer /> : roles ? "" : <LandFooter />;
 
   return (
     <>
