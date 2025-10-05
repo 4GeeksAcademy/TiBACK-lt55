@@ -1,6 +1,9 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
+import cloudinary.api
+import cloudinary.uploader
+import cloudinary
 import os
 from datetime import datetime
 from flask import Flask, request, jsonify, url_for, send_from_directory
@@ -59,7 +62,7 @@ if db_url is not None:
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
         "postgres://", "postgresql://")
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///database.db"
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db, compare_type=True)
@@ -75,6 +78,8 @@ setup_commands(app)
 app.register_blueprint(api, url_prefix='/api')
 
 # Función para obtener la instancia de socketio
+
+
 def get_socketio():
     return socketio
 
@@ -108,6 +113,7 @@ def handle_connect(auth=None):
         'timestamp': datetime.now().isoformat()
     })
 
+
 @socketio.on('disconnect')
 def handle_disconnect():
     """Manejar desconexión de cliente"""
@@ -123,6 +129,7 @@ def handle_disconnect():
 def handle_ping():
     """Manejar ping para mantener conexión activa"""
     emit('pong', {'timestamp': datetime.now().isoformat()})
+
 
 @socketio.on('join_room')
 def handle_join_room(data):
@@ -140,6 +147,7 @@ def handle_join_room(data):
         'timestamp': datetime.now().isoformat()
     })
 
+
 @socketio.on('join_ticket')
 def handle_join_ticket(data):
     """Unirse al room de un ticket específico"""
@@ -147,11 +155,12 @@ def handle_join_ticket(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'room_ticket_{ticket_id}'
     join_room(room)
     print(f'Usuario se unió al ticket room: {room}')
     emit('joined_ticket', {'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('leave_ticket')
 def handle_leave_ticket(data):
@@ -160,11 +169,12 @@ def handle_leave_ticket(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'room_ticket_{ticket_id}'
     leave_room(room)
     print(f'Usuario salió del ticket room: {room}')
     emit('left_ticket', {'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('join_chat_supervisor_analista')
 def handle_join_chat_supervisor_analista(data):
@@ -173,11 +183,13 @@ def handle_join_chat_supervisor_analista(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'chat_supervisor_analista_{ticket_id}'
     join_room(room)
     print(f'✅ Usuario se unió al chat supervisor-analista: {room}')
-    emit('joined_chat_supervisor_analista', {'room': room, 'ticket_id': ticket_id})
+    emit('joined_chat_supervisor_analista', {
+         'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('leave_chat_supervisor_analista')
 def handle_leave_chat_supervisor_analista(data):
@@ -186,11 +198,13 @@ def handle_leave_chat_supervisor_analista(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'chat_supervisor_analista_{ticket_id}'
     leave_room(room)
     print(f'Usuario salió del chat supervisor-analista: {room}')
-    emit('left_chat_supervisor_analista', {'room': room, 'ticket_id': ticket_id})
+    emit('left_chat_supervisor_analista', {
+         'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('join_chat_analista_cliente')
 def handle_join_chat_analista_cliente(data):
@@ -199,11 +213,13 @@ def handle_join_chat_analista_cliente(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'chat_analista_cliente_{ticket_id}'
     join_room(room)
     print(f'✅ Usuario se unió al chat analista-cliente: {room}')
-    emit('joined_chat_analista_cliente', {'room': room, 'ticket_id': ticket_id})
+    emit('joined_chat_analista_cliente', {
+         'room': room, 'ticket_id': ticket_id})
+
 
 @socketio.on('leave_chat_analista_cliente')
 def handle_leave_chat_analista_cliente(data):
@@ -212,7 +228,7 @@ def handle_leave_chat_analista_cliente(data):
     if not ticket_id:
         emit('error', {'message': 'ticket_id requerido'})
         return
-    
+
     room = f'chat_analista_cliente_{ticket_id}'
     leave_room(room)
     print(f'👋 Usuario salió del chat analista-cliente: {room}')

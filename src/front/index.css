@@ -1,3 +1,13 @@
+.btn-primary {
+  background-color: #727cf5 !important;
+  border-color: #727cf5 !important;
+}
+
+.btn-primary:hover {
+  background-color: #606af9 !important;
+  border-color: #606af9 !important;
+}
+
 /* Estilos específicos para la plantilla Hyper - Optimizado con Bootstrap */
 
 /* Variables CSS para colores del tema Hyper */
