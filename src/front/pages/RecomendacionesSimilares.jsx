@@ -220,12 +220,28 @@ const RecomendacionesSimilares = () => {
     // Función para cambiar vista
     const changeView = (view) => {
         setActiveView(view);
+        const role = tokenUtils.getRole(store.auth.token);
+
         if (view === 'dashboard') {
-            navigate('/cliente');
+            if (role === 'cliente') {
+                navigate('/cliente', { replace: true });
+            } else if (role === 'analista') {
+                navigate('/analista', { replace: true });
+            } else if (role === 'supervisor') {
+                navigate('/supervisor', { replace: true });
+            } else if (role === 'administrador') {
+                navigate('/administrador', { replace: true });
+            }
         } else if (view === 'tickets') {
-            navigate('/cliente');
+            if (role === 'cliente') {
+                navigate('/cliente', { replace: true });
+            } else if (role === 'analista') {
+                navigate('/analista', { replace: true });
+            } else if (role === 'supervisor') {
+                navigate('/supervisor', { replace: true });
+            }
         } else if (view === 'create') {
-            navigate('/cliente');
+            navigate('/cliente', { replace: true });
         }
     };
 
@@ -268,7 +284,7 @@ const RecomendacionesSimilares = () => {
                                 onClick={toggleSidebar}
                                 title={sidebarHidden ? "Mostrar menú" : "Ocultar menú"}
                             >
-                                <i className={`fas ${sidebarHidden ? 'fa-eye' : 'fa-eye-slash'}`}></i>
+                                <i className="fas fa-bars"></i>
                             </button>
                             <div>
                                 <h1 className="mb-0 fw-semibold">
@@ -368,7 +384,6 @@ const RecomendacionesSimilares = () => {
                                                 <small className="text-muted">
                                                     <i className="fas fa-calendar me-1"></i>
                                                     Creado: {formatFecha(ticket.fecha_creacion)}
-                                                    Creado: {storeUtils.formatDate(ticket.fecha_creacion)}
                                                 </small>
                                             </div>
 
@@ -377,7 +392,6 @@ const RecomendacionesSimilares = () => {
                                                     <small className="text-muted">
                                                         <i className="fas fa-calendar-check me-1"></i>
                                                         Cerrado: {formatFecha(ticket.fecha_cierre)}
-                                                        Cerrado: {storeUtils.formatDate(ticket.fecha_cierre)}
                                                     </small>
                                                 </div>
                                             )}
@@ -408,7 +422,41 @@ const RecomendacionesSimilares = () => {
                                                                         aria-controls={`collapse-${ticket.id}`}
                                                                     >
                                                                         <i className="fas fa-comments me-2"></i>
-                                                                        Ver Comentarios ({comentariosPorTicket[ticket.id].length})
+                                                                        Ver Comentarios ({comentariosPorTicket[ticket.id].filter((comentario) => {
+                                                                            const texto = comentario.texto.toLowerCase();
+
+                                                                            // Excluir transacciones automáticas del historial del ticket
+                                                                            const esTransaccionAutomatica =
+                                                                                texto.includes('ticket asignado') ||
+                                                                                texto.includes('ticket reasignado') ||
+                                                                                texto.includes('ticket solucionado') ||
+                                                                                texto.includes('ticket escalado') ||
+                                                                                texto.includes('ticket iniciado') ||
+                                                                                texto.includes('ticket reabierto') ||
+                                                                                texto.includes('cliente solicita reapertura') ||
+                                                                                texto.includes('ticket cerrado por cliente') ||
+                                                                                texto.includes('ticket cerrado por supervisor') ||
+                                                                                texto.includes('ticket reabierto por cliente') ||
+                                                                                texto.includes('ticket reabierto por supervisor');
+
+                                                                            // Excluir recomendaciones de IA
+                                                                            const esRecomendacionIA = texto.includes('🤖 recomendación de ia generada') ||
+                                                                                texto.includes('🤖 análisis de imagen con ia:') ||
+                                                                                texto.includes('recomendación') ||
+                                                                                texto.includes('diagnóstico') ||
+                                                                                texto.includes('pasos de solución');
+
+                                                                            // Solo incluir comentarios reales entre usuarios (conversaciones reales)
+                                                                            const esComentarioReal = comentario.autor &&
+                                                                                (comentario.autor.rol === 'cliente' ||
+                                                                                    comentario.autor.rol === 'analista' ||
+                                                                                    comentario.autor.rol === 'supervisor') &&
+                                                                                texto.trim().length > 0 &&
+                                                                                !texto.includes('sistema:') &&
+                                                                                !texto.includes('automático:');
+
+                                                                            return !esTransaccionAutomatica && !esRecomendacionIA && esComentarioReal;
+                                                                        }).length})
                                                                     </button>
                                                                 </h2>
                                                                 <div
@@ -418,56 +466,73 @@ const RecomendacionesSimilares = () => {
                                                                 >
                                                                     <div className="accordion-body">
                                                                         <div className="comentarios-container" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                                                            {comentariosPorTicket[ticket.id].map((comentario, index) => {
-                                                                                const esRecomendacionIA = comentario.texto.toLowerCase().includes('recomendación') ||
-                                                                                    comentario.texto.toLowerCase().includes('diagnóstico') ||
-                                                                                    comentario.texto.toLowerCase().includes('pasos de solución');
+                                                                            {comentariosPorTicket[ticket.id]
+                                                                                .filter((comentario) => {
+                                                                                    const texto = comentario.texto.toLowerCase();
 
-                                                                                return (
-                                                                                    <div key={index} className="mb-3">
-                                                                                        <div className="d-flex align-items-start">
-                                                                                            <div className="flex-shrink-0 me-3">
-                                                                                                {esRecomendacionIA ? (
-                                                                                                    <i className="fas fa-robot text-warning"></i>
-                                                                                                ) : (
+                                                                                    // Excluir transacciones automáticas del historial del ticket
+                                                                                    const esTransaccionAutomatica =
+                                                                                        texto.includes('ticket asignado') ||
+                                                                                        texto.includes('ticket reasignado') ||
+                                                                                        texto.includes('ticket solucionado') ||
+                                                                                        texto.includes('ticket escalado') ||
+                                                                                        texto.includes('ticket iniciado') ||
+                                                                                        texto.includes('ticket reabierto') ||
+                                                                                        texto.includes('cliente solicita reapertura') ||
+                                                                                        texto.includes('ticket cerrado por cliente') ||
+                                                                                        texto.includes('ticket cerrado por supervisor') ||
+                                                                                        texto.includes('ticket reabierto por cliente') ||
+                                                                                        texto.includes('ticket reabierto por supervisor');
+
+                                                                                    // Excluir recomendaciones de IA
+                                                                                    const esRecomendacionIA = texto.includes('🤖 recomendación de ia generada') ||
+                                                                                        texto.includes('🤖 análisis de imagen con ia:') ||
+                                                                                        texto.includes('recomendación') ||
+                                                                                        texto.includes('diagnóstico') ||
+                                                                                        texto.includes('pasos de solución');
+
+                                                                                    // Solo incluir comentarios reales entre usuarios (conversaciones reales)
+                                                                                    const esComentarioReal = comentario.autor &&
+                                                                                        (comentario.autor.rol === 'cliente' ||
+                                                                                            comentario.autor.rol === 'analista' ||
+                                                                                            comentario.autor.rol === 'supervisor') &&
+                                                                                        texto.trim().length > 0 &&
+                                                                                        !texto.includes('sistema:') &&
+                                                                                        !texto.includes('automático:');
+
+                                                                                    return !esTransaccionAutomatica && !esRecomendacionIA && esComentarioReal;
+                                                                                })
+                                                                                .map((comentario, index) => {
+                                                                                    return (
+                                                                                        <div key={index} className="mb-3">
+                                                                                            <div className="d-flex align-items-start">
+                                                                                                <div className="flex-shrink-0 me-3">
                                                                                                     <i className={`${getRoleIcon(comentario.autor?.rol)} ${getRoleColor(comentario.autor?.rol)}`}></i>
-                                                                                                )}
-                                                                                            </div>
-                                                                                            <div className="flex-grow-1">
-                                                                                                <div className={`card ${esRecomendacionIA ? 'border-warning' : ''}`}>
-                                                                                                    <div className={`card-header d-flex justify-content-between align-items-center py-2 ${esRecomendacionIA ? 'bg-warning bg-opacity-10' : ''}`}>
-                                                                                                        <div>
-                                                                                                            {esRecomendacionIA ? (
-                                                                                                                <div>
-                                                                                                                    <strong className="text-warning">
-                                                                                                                        <i className="fas fa-robot me-1"></i>
-                                                                                                                        Recomendación de IA
-                                                                                                                    </strong>
-                                                                                                                </div>
-                                                                                                            ) : (
-                                                                                                                <div>
-                                                                                                                    <strong className={getRoleColor(comentario.autor?.rol)}>
-                                                                                                                        {comentario.autor?.nombre || 'Sistema'}
-                                                                                                                    </strong>
-                                                                                                                    <small className="text-muted ms-2">
-                                                                                                                        ({comentario.autor?.rol || 'sistema'})
-                                                                                                                    </small>
-                                                                                                                </div>
-                                                                                                            )}
+                                                                                                </div>
+                                                                                                <div className="flex-grow-1">
+                                                                                                    <div className="card">
+                                                                                                        <div className="card-header d-flex justify-content-between align-items-center py-2">
+                                                                                                            <div>
+                                                                                                                <strong className={getRoleColor(comentario.autor?.rol)}>
+                                                                                                                    {comentario.autor?.nombre || 'Usuario'}
+                                                                                                                </strong>
+                                                                                                                <small className="text-muted ms-2">
+                                                                                                                    ({comentario.autor?.rol || 'usuario'})
+                                                                                                                </small>
+                                                                                                            </div>
+                                                                                                            <small className="text-muted">
+                                                                                                                {formatFecha(comentario.fecha_comentario)}
+                                                                                                            </small>
                                                                                                         </div>
-                                                                                                        <small className="text-muted">
-                                                                                                            {formatFecha(comentario.fecha_comentario)}
-                                                                                                        </small>
-                                                                                                    </div>
-                                                                                                    <div className="card-body py-2">
-                                                                                                        <p className="mb-0">{comentario.texto}</p>
+                                                                                                        <div className="card-body py-2">
+                                                                                                            <p className="mb-0">{comentario.texto}</p>
+                                                                                                        </div>
                                                                                                     </div>
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
-                                                                                    </div>
-                                                                                );
-                                                                            })}
+                                                                                    );
+                                                                                })}
                                                                         </div>
                                                                     </div>
                                                                 </div>

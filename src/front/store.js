@@ -149,6 +149,7 @@ export const initialStore = () => {
 
     // Estado global para Tickets
     tickets: [],
+    ticketsCerrados: [],
     ticketDetail: null,
 
     imagegentle: [
@@ -965,8 +966,11 @@ export const authActions = {
             id_cliente: data.cliente_id,
             fecha_creacion: data.timestamp,
             fecha_cierre: data.timestamp,
+            calificacion: data.calificacion,
           };
           dispatch({ type: "tickets_upsert", payload: ticketData });
+          // También agregar a la lista de tickets cerrados
+          dispatch({ type: "tickets_cerrados_upsert", payload: ticketData });
         }
       });
 
@@ -2025,6 +2029,35 @@ export default function storeReducer(store, action = {}) {
       return {
         ...store,
         ticketDetail: null,
+        api: { loading: false, error: null },
+      };
+
+    // Tickets Cerrados
+    case "tickets_cerrados_add":
+      return {
+        ...store,
+        ticketsCerrados: [...store.ticketsCerrados, action.payload],
+        api: { loading: false, error: null },
+      };
+    case "tickets_cerrados_upsert": {
+      const t = action.payload;
+      if (!t || !t.id || typeof t.id !== "number") {
+        console.warn("tickets_cerrados_upsert: payload inválido", t);
+        return store;
+      }
+      const exists = store.ticketsCerrados.some((x) => x && x.id === t.id);
+      return {
+        ...store,
+        ticketsCerrados: exists
+          ? store.ticketsCerrados.map((x) => (x && x.id === t.id ? t : x))
+          : [...store.ticketsCerrados, t],
+        api: { loading: false, error: null },
+      };
+    }
+    case "tickets_cerrados_set_list":
+      return {
+        ...store,
+        ticketsCerrados: action.payload,
         api: { loading: false, error: null },
       };
 

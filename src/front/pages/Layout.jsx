@@ -56,8 +56,11 @@ const Layout = () => {
     location.pathname.startsWith("/analista") ||
     location.pathname.startsWith("/cliente");
 
+  // Verificamos si es la vista de recomendaciones-ia o comentarios (ocultar LandNavbar)
+  const isRecomendacionIA = location.pathname.includes("/recomendacion-ia") || location.pathname.includes("/recomendaciones-ia") || location.pathname.includes("/recomendaciones-similares") || location.pathname.includes("/comentarios");
+
   // Elegimos qué navbar mostrar
-  const NavbarToShow = navbarmain ? <LandNavbar /> : isAdminView ? <Navbar /> : isRoleView ? null : isAuthPage ? null : <LandNavbar />;
+  const NavbarToShow = navbarmain ? <LandNavbar /> : isAdminView ? <Navbar /> : isRoleView ? null : isAuthPage ? null : isRecomendacionIA ? null : <LandNavbar />;
 
   const FooterToShow = navbarmain ? <LandFooter /> : footermain ? <Footer /> : null;
 
