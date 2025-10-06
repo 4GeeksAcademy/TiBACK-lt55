@@ -5,7 +5,7 @@ import { SideBarCentral } from '../../components/SideBarCentral';
 import { DashboardCalidad } from '../../pages/DashboardCalidad';
 import VerTicketHDSupervisor from './verTicketHDsupervisor';
 import ComentariosTicketEmbedded from '../../components/ComentariosTicketEmbedded';
-import ChatAnalistaClienteEmbedded from '../../components/ChatAnalistaClienteEmbedded';
+import ChatSupervisorAnalistaEmbedded from '../../components/ChatSupervisorAnalistaEmbedded';
 import RecomendacionVistaEmbedded from '../../components/RecomendacionVistaEmbedded';
 import IdentificarImagenEmbedded from '../../components/IdentificarImagenEmbedded';
 
@@ -201,9 +201,18 @@ export function SupervisorPage() {
 
     // Función helper para actualizar tanto tickets activos como cerrados
     const actualizarTodasLasTablas = async () => {
-        await actualizarTickets();
-        if (showCerrados) {
-            await cargarTicketsCerrados();
+        try {
+            // Forzar recarga de tickets activos
+            await actualizarTickets();
+            // Forzar recarga de analistas
+            await actualizarAnalistas();
+            // Si se están mostrando tickets cerrados, recargarlos también
+            if (showCerrados) {
+                await cargarTicketsCerrados();
+            }
+            console.log('✅ Todas las tablas actualizadas correctamente');
+        } catch (error) {
+            console.error('❌ Error al actualizar tablas:', error);
         }
     };
 
@@ -1496,12 +1505,14 @@ export function SupervisorPage() {
                                 onClick={async () => {
                                     try {
                                         console.log('🔄 Iniciando sincronización desde SupervisorPage...');
-                                        await startRealtimeSync({
-                                            syncTypes: ['tickets', 'comentarios', 'asignaciones', 'gestiones'],
-                                            syncInterval: 5000,
-                                            enablePolling: true,
-                                            userData: store.auth.user
-                                        });
+                                        // Llamar a actualizarTodasLasTablas para recargar todos los datos
+                                        await actualizarTodasLasTablas();
+
+                                        // Emitir evento para notificar a otros componentes
+                                        window.dispatchEvent(new CustomEvent('supervisor_sync_completed', {
+                                            detail: { source: 'supervisor_page', timestamp: new Date().toISOString() }
+                                        }));
+
                                         console.log('✅ Sincronización completada desde SupervisorPage');
                                     } catch (error) {
                                         console.error('❌ Error en sincronización desde SupervisorPage:', error);
@@ -2161,14 +2172,15 @@ export function SupervisorPage() {
                                                                                     <i className="fas fa-users"></i>
                                                                                 </button>
 
-                                                                                {/* Chat */}
+                                                                                {/* Chat con Analista */}
                                                                                 <button
-                                                                                    className="btn btn-sidebar-secondary btn-sm"
+                                                                                    className="btn btn-sidebar-warning btn-sm"
                                                                                     title="Chat con analista"
-                                                                                    onClick={() => setActiveView(`chat-${ticket.id}`)}
+                                                                                    onClick={() => setActiveView(`supervisor-chat-${ticket.id}`)}
                                                                                 >
-                                                                                    <i className="fas fa-comments"></i>
+                                                                                    <i className="fas fa-user-cog"></i>
                                                                                 </button>
+
 
                                                                                 {/* IA */}
                                                                                 <div className="btn-group" role="group">
@@ -2342,13 +2354,13 @@ export function SupervisorPage() {
                                                                                                 Comentarios
                                                                                             </button>
                                                                                             <button
-                                                                                                className="btn btn-sidebar-secondary flex-fill"
+                                                                                                className="btn btn-sidebar-warning flex-fill"
                                                                                                 style={{ minWidth: '120px' }}
                                                                                                 title="Chat con analista"
-                                                                                                onClick={() => setActiveView(`chat-${ticket.id}`)}
+                                                                                                onClick={() => setActiveView(`supervisor-chat-${ticket.id}`)}
                                                                                             >
-                                                                                                <i className="fas fa-comments me-2"></i>
-                                                                                                Chat
+                                                                                                <i className="fas fa-user-cog me-2"></i>
+                                                                                                Chat Analista
                                                                                             </button>
                                                                                             <div className="btn-group flex-fill" role="group" style={{ minWidth: '120px' }}>
                                                                                                 <button
@@ -2836,9 +2848,9 @@ export function SupervisorPage() {
                     )}
 
                     {/* Chat View */}
-                    {activeView.startsWith('chat-') && (
-                        <ChatAnalistaClienteEmbedded
-                            ticketId={parseInt(activeView.split('-')[1])}
+                    {activeView.startsWith('supervisor-chat-') && (
+                        <ChatSupervisorAnalistaEmbedded
+                            ticketId={parseInt(activeView.split('-')[2])}
                             onBack={() => setActiveView('tickets')}
                         />
                     )}

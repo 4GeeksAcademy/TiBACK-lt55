@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 import { tokenUtils } from '../store';
 
 const ComentariosTicketEmbedded = ({ ticketId, onBack }) => {
+    const navigate = useNavigate();
     const { store, dispatch, joinTicketRoom, leaveTicketRoom } = useGlobalReducer();
     const [comentarios, setComentarios] = useState([]);
     const [nuevoComentario, setNuevoComentario] = useState('');
@@ -301,7 +303,12 @@ const ComentariosTicketEmbedded = ({ ticketId, onBack }) => {
                     texto.includes('por supervisor') ||
                     texto.includes('por administrador') ||
                     texto.includes('🤖 RECOMENDACIÓN DE IA GENERADA') ||
-                    texto.includes('🤖 ANÁLISIS DE IMAGEN CON IA:');
+                    texto.includes('🤖 ANÁLISIS DE IMAGEN CON IA:') ||
+                    texto.includes('CHAT_ANALISTA_CLIENTE:') ||
+                    texto.includes('CHAT_SUPERVISOR_ANALISTA:') ||
+                    texto.includes('Analista inició trabajo en el ticket') ||
+                    texto.includes('Chat iniciado entre') ||
+                    texto.includes('Mensaje de chat:');
 
                 if (esMovimientoAutomatico) {
                     movimientos.push(comentario);
@@ -456,7 +463,17 @@ const ComentariosTicketEmbedded = ({ ticketId, onBack }) => {
                                 Volver
                             </button>
                             <div>
-                                <h1 className="mb-0 fw-bold">Comentarios - Ticket #{ticketId}</h1>
+                                <div className="d-flex align-items-center gap-3">
+                                    <h1 className="mb-0 fw-bold">Comentarios - Ticket #{ticketId}</h1>
+                                    <button
+                                        className="btn btn-outline-warning btn-sm"
+                                        onClick={() => navigate(`/ticket/${ticketId}/recomendaciones-ia`)}
+                                        title="Ver recomendaciones guardadas de IA"
+                                    >
+                                        <i className="fas fa-robot me-1"></i>
+                                        Recomendaciones IA
+                                    </button>
+                                </div>
                                 <p className="text-muted mb-0">Vista de comentarios del ticket</p>
                             </div>
                         </div>

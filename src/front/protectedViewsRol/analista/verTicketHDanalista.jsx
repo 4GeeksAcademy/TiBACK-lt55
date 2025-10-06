@@ -293,7 +293,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                     <h6 className="fw-semibold mb-2">Fecha de Creación</h6>
                                     <p className="mb-0 text-muted">
                                         <i className="fas fa-calendar-alt me-2"></i>
-                                        {storeUtils.formatDate(ticket.fecha_creacion)}
+                                        {new Date(ticket.fecha_creacion).toLocaleString()}
                                     </p>
                                 </div>
                             </div>
@@ -304,7 +304,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                         <h6 className="fw-semibold mb-2">Fecha de Solución</h6>
                                         <p className="mb-0 text-success">
                                             <i className="fas fa-check-circle me-2"></i>
-                                            {storeUtils.formatDate(ticket.fecha_solucion)}
+                                            {new Date(ticket.fecha_solucion).toLocaleString()}
                                         </p>
                                     </div>
                                     <div className="col-md-6">
@@ -486,7 +486,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                     <div className="timeline-marker bg-primary"></div>
                                     <div className="timeline-content">
                                         <h6 className="fw-semibold">Ticket Creado</h6>
-                                        <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_creacion)}</p>
+                                        <p className="text-muted mb-1">{new Date(ticket.fecha_creacion).toLocaleString()}</p>
                                         <p className="mb-0">El ticket fue creado por el cliente: {ticket.cliente?.nombre} {ticket.cliente?.apellido}</p>
                                     </div>
                                 </div>
@@ -529,7 +529,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                         <div className="timeline-marker bg-success"></div>
                                         <div className="timeline-content">
                                             <h6 className="fw-semibold">Ticket Solucionado</h6>
-                                            <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_solucion)}</p>
+                                            <p className="text-muted mb-1">{new Date(ticket.fecha_solucion).toLocaleString()}</p>
                                             <p className="mb-0">El ticket ha sido resuelto exitosamente.</p>
                                         </div>
                                     </div>

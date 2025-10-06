@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 import { SideBarCentral } from '../components/SideBarCentral';
+import { tokenUtils } from '../store';
 
 const RecomendacionesGuardadas = () => {
     const { ticketId } = useParams();
@@ -221,7 +222,20 @@ const RecomendacionesGuardadas = () => {
                                 <div className="d-flex gap-2">
                                     <button
                                         className="btn btn-secondary"
-                                        onClick={() => navigate(-1)}
+                                        onClick={() => {
+                                            const role = tokenUtils.getRole(store.auth.token);
+                                            if (role === 'cliente') {
+                                                navigate('/cliente', { replace: true });
+                                            } else if (role === 'analista') {
+                                                navigate('/analista', { replace: true });
+                                            } else if (role === 'supervisor') {
+                                                navigate('/supervisor', { replace: true });
+                                            } else if (role === 'administrador') {
+                                                navigate('/administrador', { replace: true });
+                                            } else {
+                                                navigate(-1);
+                                            }
+                                        }}
                                     >
                                         <i className="fas fa-arrow-left me-2"></i>
                                         Volver
