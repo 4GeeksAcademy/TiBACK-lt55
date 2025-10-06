@@ -22,6 +22,8 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
         return null;
     };
 
+
+
     useEffect(() => {
         const fetchTicket = async () => {
             try {
@@ -433,6 +435,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                         Ver Sugerencias
                                     </button>
                                 )}
+                                {/* Acciones sincronizadas con AnalistaPage */}
                                 {ticket.estado === 'en_espera' && (
                                     <button
                                         className="btn btn-sidebar-success btn-sm"
@@ -451,13 +454,16 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                         Marcar como Resuelto
                                     </button>
                                 )}
-                                <button
-                                    className="btn btn-sidebar-warning btn-sm"
-                                    onClick={escalarTicket}
-                                >
-                                    <i className="fas fa-arrow-up me-2"></i>
-                                    Escalar al Supervisor
-                                </button>
+                                {/* Escalar solo disponible para tickets asignados, en progreso o escalados */}
+                                {['asignado', 'en_progreso', 'escalado'].includes(ticket.estado.toLowerCase()) && (
+                                    <button
+                                        className="btn btn-sidebar-warning btn-sm"
+                                        onClick={escalarTicket}
+                                    >
+                                        <i className="fas fa-arrow-up me-2"></i>
+                                        Escalar al Supervisor
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

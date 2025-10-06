@@ -346,7 +346,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                     <h6 className="fw-semibold mb-2">Fecha de Creación</h6>
                                     <p className="mb-0 text-muted">
                                         <i className="fas fa-calendar-alt me-2"></i>
-                                        {storeUtils.formatDate(ticket.fecha_creacion)}
+                                        {new Date(ticket.fecha_creacion).toLocaleString()}
                                     </p>
                                 </div>
                                 <div className="col-md-6">
@@ -364,7 +364,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         <h6 className="fw-semibold mb-2">Fecha de Solución</h6>
                                         <p className="mb-0 text-success">
                                             <i className="fas fa-check-circle me-2"></i>
-                                            {storeUtils.formatDate(ticket.fecha_solucion)}
+                                            {new Date(ticket.fecha_solucion).toLocaleString()}
                                         </p>
                                     </div>
                                     <div className="col-md-6">
@@ -519,14 +519,18 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         Ver Sugerencias
                                     </button>
                                 )}
-                                <button
-                                    className="btn btn-sidebar-warning btn-sm"
-                                    onClick={escalarTicket}
-                                >
-                                    <i className="fas fa-arrow-up me-2"></i>
-                                    Escalar Ticket
-                                </button>
-                                {ticket.estado !== 'cerrado' && ticket.estado !== 'resuelto' && (
+                                {/* Acciones sincronizadas con SupervisorPage usando getAvailableActions */}
+                                {['asignado', 'en_progreso', 'escalado'].includes(ticket.estado.toLowerCase()) && (
+                                    <button
+                                        className="btn btn-sidebar-warning btn-sm"
+                                        onClick={escalarTicket}
+                                    >
+                                        <i className="fas fa-arrow-up me-2"></i>
+                                        Escalar Ticket
+                                    </button>
+                                )}
+                                {/* Cerrar ticket - solo si está permitido según la lógica de SupervisorPage */}
+                                {['asignado', 'en_progreso', 'escalado', 'solucionado', 'solicitud_reapertura'].includes(ticket.estado.toLowerCase()) && (
                                     <button
                                         className="btn btn-outline-danger btn-sm"
                                         onClick={cerrarTicket}
@@ -535,7 +539,8 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         Cerrar Ticket
                                     </button>
                                 )}
-                                {ticket.estado === 'cerrado' && (
+                                {/* Reabrir ticket - solo para tickets solucionados o en solicitud de reapertura */}
+                                {['solucionado', 'solicitud_reapertura'].includes(ticket.estado.toLowerCase()) && (
                                     <button
                                         className="btn btn-outline-success btn-sm"
                                         onClick={reabrirTicket}
@@ -566,7 +571,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                     <div className="timeline-marker bg-primary"></div>
                                     <div className="timeline-content">
                                         <h6 className="fw-semibold">Ticket Creado</h6>
-                                        <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_creacion)}</p>
+                                        <p className="text-muted mb-1">{new Date(ticket.fecha_creacion).toLocaleString()}</p>
                                         <p className="mb-0">El ticket fue creado por el cliente: {ticket.cliente?.nombre} {ticket.cliente?.apellido}</p>
                                     </div>
                                 </div>
@@ -598,7 +603,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         <div className="timeline-marker bg-success"></div>
                                         <div className="timeline-content">
                                             <h6 className="fw-semibold">Ticket Solucionado</h6>
-                                            <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_solucion)}</p>
+                                            <p className="text-muted mb-1">{new Date(ticket.fecha_solucion).toLocaleString()}</p>
                                             <p className="mb-0">El ticket ha sido resuelto exitosamente.</p>
                                         </div>
                                     </div>
