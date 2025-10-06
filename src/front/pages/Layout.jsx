@@ -16,11 +16,26 @@ const Layout = () => {
   const home = location.pathname === "/Home";
   const isAuthPage = location.pathname === "/auth";
 
+  // Verificamos si es una vista privada de roles o gestión
+  const isPrivateRoleView = location.pathname.startsWith("/cliente") ||
+    location.pathname.startsWith("/analista") ||
+    location.pathname.startsWith("/supervisor") ||
+    location.pathname.startsWith("/administrador") ||
+    location.pathname.startsWith("/analistas") ||
+    location.pathname.startsWith("/supervisores") ||
+    location.pathname.startsWith("/clientes") ||
+    location.pathname.startsWith("/administradores") ||
+    location.pathname.startsWith("/tickets") ||
+    location.pathname.startsWith("/comentarios") ||
+    location.pathname.startsWith("/asignaciones") ||
+    location.pathname.startsWith("/gestiones") ||
+    location.pathname.startsWith("/dashboard-calidad");
+
   // Elegimos qué navbar mostrar
   const NavbarToShow =
     isLandingPage || ContactView
       ? <LandNavbar />
-      : home
+      : home || isPrivateRoleView
         ? <Navbar />
         : isAuthPage
           ? null // No mostrar navbar en login

@@ -3,27 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 import { SideBarCentral } from '../components/SideBarCentral';
 
-// Utilidades de token seguras
-const tokenUtils = {
-    decodeToken: (token) => {
-        try {
-            if (!token) return null;
-            const parts = token.split('.');
-            if (parts.length !== 3) return null;
-            return JSON.parse(atob(parts[1]));
-        } catch (error) {
-            return null;
-        }
-    },
-    getUserId: (token) => {
-        const payload = tokenUtils.decodeToken(token);
-        return payload ? payload.user_id : null;
-    },
-    getRole: (token) => {
-        const payload = tokenUtils.decodeToken(token);
-        return payload ? payload.role : null;
-    }
-};
+import { tokenUtils } from '../store';
+import * as storeUtils from '../store';
 
 const RecomendacionesSimilares = () => {
     const { ticketId } = useParams();
@@ -63,7 +44,7 @@ const RecomendacionesSimilares = () => {
                     await cargarComentariosTickets(data.tickets_similares);
                 }
             } catch (err) {
-                console.error('Error cargando recomendaciones:', err);
+                // Silently ignore
                 setError(err.message);
             } finally {
                 setLoading(false);
@@ -135,7 +116,7 @@ const RecomendacionesSimilares = () => {
                     });
                 }
             } catch (err) {
-                console.error('Error al cargar datos del usuario:', err);
+                // Silently ignore
             }
         };
 
@@ -203,7 +184,7 @@ const RecomendacionesSimilares = () => {
             });
             setComentariosPorTicket(comentariosMap);
         } catch (error) {
-            console.error('Error cargando comentarios:', error);
+            // Silently ignore
         }
     };
 
@@ -387,6 +368,7 @@ const RecomendacionesSimilares = () => {
                                                 <small className="text-muted">
                                                     <i className="fas fa-calendar me-1"></i>
                                                     Creado: {formatFecha(ticket.fecha_creacion)}
+                                                    Creado: {storeUtils.formatDate(ticket.fecha_creacion)}
                                                 </small>
                                             </div>
 
@@ -395,6 +377,7 @@ const RecomendacionesSimilares = () => {
                                                     <small className="text-muted">
                                                         <i className="fas fa-calendar-check me-1"></i>
                                                         Cerrado: {formatFecha(ticket.fecha_cierre)}
+                                                        Cerrado: {storeUtils.formatDate(ticket.fecha_cierre)}
                                                     </small>
                                                 </div>
                                             )}

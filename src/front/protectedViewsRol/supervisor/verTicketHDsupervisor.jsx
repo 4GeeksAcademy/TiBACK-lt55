@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as storeUtils from '../../store';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 
 export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaciones, onBack, analistas }) => {
@@ -91,16 +92,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
         }
     };
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    };
+
 
     const asignarAnalista = async () => {
         if (!selectedAnalista) {
@@ -117,7 +109,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    analista_id: parseInt(selectedAnalista)
+                    id_analista: parseInt(selectedAnalista)
                 })
             });
 
@@ -198,11 +190,11 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                     const estadoActual = ticket.estado.toLowerCase();
 
                     if (estadoActual === 'solucionado') {
-                        // Desde solucionado puede ir a 'reabierto'
-                        nuevoEstado = 'reabierto';
+                        // Desde solucionado puede ir a 'en espera' (reapertura)
+                        nuevoEstado = 'en espera';
                     } else if (['creado', 'reabierto'].includes(estadoActual)) {
                         // Desde creado o reabierto puede ir a 'en_espera'  
-                        nuevoEstado = 'en_espera';
+                        nuevoEstado = 'en espera';
                     } else {
                         // Para otros estados no hay transición válida directa
                         alert('No se puede reabrir este ticket desde su estado actual. El ticket debe estar solucionado o cerrado.');
@@ -354,7 +346,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                     <h6 className="fw-semibold mb-2">Fecha de Creación</h6>
                                     <p className="mb-0 text-muted">
                                         <i className="fas fa-calendar-alt me-2"></i>
-                                        {formatDate(ticket.fecha_creacion)}
+                                        {storeUtils.formatDate(ticket.fecha_creacion)}
                                     </p>
                                 </div>
                                 <div className="col-md-6">
@@ -372,7 +364,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         <h6 className="fw-semibold mb-2">Fecha de Solución</h6>
                                         <p className="mb-0 text-success">
                                             <i className="fas fa-check-circle me-2"></i>
-                                            {formatDate(ticket.fecha_solucion)}
+                                            {storeUtils.formatDate(ticket.fecha_solucion)}
                                         </p>
                                     </div>
                                     <div className="col-md-6">
@@ -501,7 +493,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         <li>
                                             <button
                                                 className="dropdown-item"
-                                                onClick={() => window.open(`/ticket/${ticket.id}/recomendacion-ia`, '_blank')}
+                                                onClick={() => setActiveView(`recomendacion-${ticket.id}`)}
                                             >
                                                 <i className="fas fa-lightbulb me-2"></i>
                                                 Generar Recomendación
@@ -510,7 +502,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         <li>
                                             <button
                                                 className="dropdown-item"
-                                                onClick={() => window.open(`/ticket/${ticket.id}/identificar-imagen`, '_blank')}
+                                                onClick={() => setActiveView(`identificar-${ticket.id}`)}
                                             >
                                                 <i className="fas fa-camera me-2"></i>
                                                 Analizar Imagen
@@ -574,7 +566,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                     <div className="timeline-marker bg-primary"></div>
                                     <div className="timeline-content">
                                         <h6 className="fw-semibold">Ticket Creado</h6>
-                                        <p className="text-muted mb-1">{formatDate(ticket.fecha_creacion)}</p>
+                                        <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_creacion)}</p>
                                         <p className="mb-0">El ticket fue creado por el cliente: {ticket.cliente?.nombre} {ticket.cliente?.apellido}</p>
                                     </div>
                                 </div>
@@ -606,7 +598,7 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         <div className="timeline-marker bg-success"></div>
                                         <div className="timeline-content">
                                             <h6 className="fw-semibold">Ticket Solucionado</h6>
-                                            <p className="text-muted mb-1">{formatDate(ticket.fecha_solucion)}</p>
+                                            <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_solucion)}</p>
                                             <p className="mb-0">El ticket ha sido resuelto exitosamente.</p>
                                         </div>
                                     </div>

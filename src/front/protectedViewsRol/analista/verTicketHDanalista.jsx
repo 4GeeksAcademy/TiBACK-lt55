@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as storeUtils from '../../store';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 
 export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendaciones, onBack }) => {
@@ -89,16 +90,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
         }
     };
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    };
+
 
     const iniciarTrabajo = async () => {
         if (confirm('¿Estás seguro de que quieres iniciar el trabajo en este ticket?')) {
@@ -299,7 +291,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                     <h6 className="fw-semibold mb-2">Fecha de Creación</h6>
                                     <p className="mb-0 text-muted">
                                         <i className="fas fa-calendar-alt me-2"></i>
-                                        {formatDate(ticket.fecha_creacion)}
+                                        {storeUtils.formatDate(ticket.fecha_creacion)}
                                     </p>
                                 </div>
                             </div>
@@ -310,7 +302,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                         <h6 className="fw-semibold mb-2">Fecha de Solución</h6>
                                         <p className="mb-0 text-success">
                                             <i className="fas fa-check-circle me-2"></i>
-                                            {formatDate(ticket.fecha_solucion)}
+                                            {storeUtils.formatDate(ticket.fecha_solucion)}
                                         </p>
                                     </div>
                                     <div className="col-md-6">
@@ -409,7 +401,10 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                         <li>
                                             <button
                                                 className="dropdown-item"
-                                                onClick={() => window.open(`/ticket/${ticket.id}/recomendacion-ia`, '_blank')}
+                                                onClick={() => {
+                                                    setModalTicketId(ticket.id);
+                                                    setActiveView(`recomendacion-${ticket.id}`);
+                                                }}
                                             >
                                                 <i className="fas fa-lightbulb me-2"></i>
                                                 Generar Recomendación
@@ -418,7 +413,10 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                         <li>
                                             <button
                                                 className="dropdown-item"
-                                                onClick={() => window.open(`/ticket/${ticket.id}/identificar-imagen`, '_blank')}
+                                                onClick={() => {
+                                                    setModalTicketId(ticket.id);
+                                                    setActiveView(`identificar-${ticket.id}`);
+                                                }}
                                             >
                                                 <i className="fas fa-camera me-2"></i>
                                                 Analizar Imagen
@@ -482,7 +480,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                     <div className="timeline-marker bg-primary"></div>
                                     <div className="timeline-content">
                                         <h6 className="fw-semibold">Ticket Creado</h6>
-                                        <p className="text-muted mb-1">{formatDate(ticket.fecha_creacion)}</p>
+                                        <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_creacion)}</p>
                                         <p className="mb-0">El ticket fue creado por el cliente: {ticket.cliente?.nombre} {ticket.cliente?.apellido}</p>
                                     </div>
                                 </div>
@@ -525,7 +523,7 @@ export const VerTicketHDAnalista = ({ ticketId, tickets, ticketsConRecomendacion
                                         <div className="timeline-marker bg-success"></div>
                                         <div className="timeline-content">
                                             <h6 className="fw-semibold">Ticket Solucionado</h6>
-                                            <p className="text-muted mb-1">{formatDate(ticket.fecha_solucion)}</p>
+                                            <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_solucion)}</p>
                                             <p className="mb-0">El ticket ha sido resuelto exitosamente.</p>
                                         </div>
                                     </div>

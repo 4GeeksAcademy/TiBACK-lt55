@@ -1,32 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
+import { tokenUtils } from '../../store';
 import GoogleMapsLocation from '../../components/GoogleMapsLocation';
 import ImageUpload from '../../components/ImageUpload';
 import { VerTicketHDCliente } from './verTicketHDcliente';
 import { SideBarCentral } from '../../components/SideBarCentral';
-
-// Utilidades de token seguras
-const tokenUtils = {
-    decodeToken: (token) => {
-        try {
-            if (!token) return null;
-            const parts = token.split('.');
-            if (parts.length !== 3) return null;
-            return JSON.parse(atob(parts[1]));
-        } catch (error) {
-            return null;
-        }
-    },
-    getUserId: (token) => {
-        const payload = tokenUtils.decodeToken(token);
-        return payload ? payload.user_id : null;
-    },
-    getRole: (token) => {
-        const payload = tokenUtils.decodeToken(token);
-        return payload ? payload.role : null;
-    }
-};
+import ComentariosTicketEmbedded from '../../components/ComentariosTicketEmbedded';
+import ChatAnalistaClienteEmbedded from '../../components/ChatAnalistaClienteEmbedded';
+import RecomendacionVistaEmbedded from '../../components/RecomendacionVistaEmbedded';
+import IdentificarImagenEmbedded from '../../components/IdentificarImagenEmbedded';
 
 export function ClientePage() {
     // Para modal de imágenes
@@ -40,48 +23,7 @@ export function ClientePage() {
     // // Feedback visual para actualización de tickets
     // const [feedback, setFeedback] = useState("");
 
-    // // Cargar el script del widget de Cloudinary solo una vez
-    // useEffect(() => {
-    //     if (!window.cloudinary) {
-    //         const script = document.createElement('script');
-    //         script.src = CLOUDINARY_WIDGET_URL;
-    //         script.async = true;
-    //         script.onload = () => { };
-    //         document.body.appendChild(script);
-    //     }
-    // }, []);
-
-    // // Inicializar el widget
-    // const abrirWidgetCloudinary = () => {
-    //     if (window.cloudinary) {
-    //         if (!cloudinaryWidgetRef.current) {
-    //             cloudinaryWidgetRef.current = window.cloudinary.createUploadWidget({
-    //                 cloudName: 'dda53mpsn', // cloud name real
-    // Configuración de Cloudinary comentada temporalmente
-    // uploadPreset: 'Ticket-TiBACK', // upload preset real
-    // multiple: true,
-    // maxFiles: 5,
-    // sources: ['local', 'url', 'camera', 'image_search'],
-    // resourceType: 'image',
-    // cropping: false,
-    // folder: 'tickets',
-    // }, (error, result) => {
-    //     if (!error && result && result.event === "success") {
-    //         setNewTicketImages(prev => [...prev, result.info.secure_url]);
-    //     }
-    // });
-    // }
-    // cloudinaryWidgetRef.current.open();
-    // } else {
-    //     alert('El widget de Cloudinary aún no está listo. Espera unos segundos y vuelve a intentar.');
-    // }
-    // };
-
-    // // Eliminar imagen subida (solo de la lista local, no de Cloudinary)
-    // const eliminarImagenNueva = (idx) => {
-    //     setNewTicketImages(urls => urls.filter((_, i) => i !== idx));
-    // };
-    console.log('🚀 ClientePage - Componente iniciado');
+    // (Cloudinary widget code removed — use ImageUpload component instead)
     const navigate = useNavigate();
     const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
@@ -209,17 +151,19 @@ export function ClientePage() {
         }
     }, [store.websocket.socket, tickets.length]); // Solo cuando cambia la cantidad de tickets
 
-    // Configurar sincronizaciÃ³n crÃ­tica en tiempo real
+    // Configurar sincronización crítica en tiempo real PURIFICADA
     useEffect(() => {
         if (store.auth.user && store.websocket.connected && store.websocket.socket) {
-            // Unirse a todas las rooms crÃ­ticas inmediatamente
-            joinAllCriticalRooms(store.websocket.socket, store.auth.user);
+            console.log('🔄 CLIENTE - Configurando sincronización crítica PURIFICADA');
 
-            // Configurar sincronizaciÃ³n crÃ­tica
+            // Unirse a todas las rooms críticas inmediatamente
+            joinAllCriticalRooms(store.websocket.socket, store.auth.user, store.auth.token);
+
+            // Configurar sincronización crítica
             const syncConfig = startRealtimeSync({
-                syncTypes: ['tickets', 'comentarios'],
+                syncTypes: ['tickets', 'comentarios', 'asignaciones'],
                 onSyncTriggered: (data) => {
-                    console.log('ðŸš¨ SincronizaciÃ³n crÃ­tica activada en ClientePage:', data);
+                    console.log('🔄 CLIENTE - Sincronización crítica activada:', data);
                     if (data.type === 'tickets' || data.priority === 'critical') {
                         actualizarTickets();
                     }
@@ -229,10 +173,110 @@ export function ClientePage() {
             // Unirse a rooms críticos de todos los tickets del cliente
             const ticketIds = tickets.map(ticket => ticket.id);
             if (ticketIds.length > 0) {
-                joinCriticalRooms(store.websocket.socket, ticketIds, store.auth.user);
+                joinCriticalRooms(store.websocket.socket, ticketIds, store.auth.user, store.auth.token);
+
+                // Unirse específicamente a cada room de ticket para sincronización completa
+                ticketIds.forEach(ticketId => {
+                    store.websocket.socket.emit('join_ticket_room', {
+                        ticket_id: ticketId,
+                        user_id: store.auth.user.id,
+                        role: 'cliente'
+                    });
+                });
+
+                console.log(`🎯 CLIENTE: Unido a ${ticketIds.length} rooms de tickets específicos`);
             }
+
+            // Configurar listeners COMPLETOS para eventos de tickets en tiempo real
+            const socket = store.websocket.socket;
+
+            const handleTicketUpdate = (data) => {
+                console.log('🎫 CLIENTE - ACTUALIZACIÓN DE TICKET:', data);
+                actualizarTickets();
+            };
+
+            const handleComentarioUpdate = (data) => {
+                console.log('💬 CLIENTE - NUEVO COMENTARIO:', data);
+                actualizarTickets();
+            };
+
+            const handleTicketAsignado = (data) => {
+                console.log('👤 CLIENTE - TICKET ASIGNADO:', data);
+                actualizarTickets();
+            };
+
+            const handleTicketEscalado = (data) => {
+                console.log('⬆️ CLIENTE - TICKET ESCALADO:', data);
+                actualizarTickets();
+            };
+
+            const handleTicketSolucionado = (data) => {
+                console.log('✅ CLIENTE - TICKET SOLUCIONADO:', data);
+                actualizarTickets();
+            };
+
+            const handleTicketCerrado = (data) => {
+                console.log('🔒 CLIENTE - TICKET CERRADO:', data);
+                actualizarTickets();
+            };
+
+            const handleSolicitudReapertura = (data) => {
+                console.log('🔄 CLIENTE - SOLICITUD DE REAPERTURA:', data);
+                actualizarTickets();
+            };
+
+            const handleReaperturaAprobada = (data) => {
+                console.log('✅ CLIENTE - REAPERTURA APROBADA:', data);
+
+                // Remover de solicitudes pendientes si es nuestro ticket
+                if (data.ticket_id) {
+                    setSolicitudesReapertura(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(data.ticket_id);
+                        return newSet;
+                    });
+                }
+
+                actualizarTickets();
+            };
+
+            const handleTicketReabierto = (data) => {
+                console.log('🔄 CLIENTE - TICKET REABIERTO:', data);
+                actualizarTickets();
+            };
+
+            const handleNuevoTicket = (data) => {
+                console.log('🆕 CLIENTE - NUEVO TICKET:', data);
+                actualizarTickets();
+            };
+
+            // Agregar listeners específicos
+            socket.on('ticket_actualizado', handleTicketUpdate);
+            socket.on('nuevo_comentario', handleComentarioUpdate);
+            socket.on('ticket_asignado', handleTicketAsignado);
+            socket.on('ticket_escalado', handleTicketEscalado);
+            socket.on('ticket_solucionado', handleTicketSolucionado);
+            socket.on('ticket_cerrado', handleTicketCerrado);
+            socket.on('solicitud_reapertura', handleSolicitudReapertura);
+            socket.on('reapertura_aprobada', handleReaperturaAprobada);
+            socket.on('ticket_reabierto', handleTicketReabierto);
+            socket.on('nuevo_ticket', handleNuevoTicket);
+
+            // Cleanup al desmontar
+            return () => {
+                socket.off('ticket_actualizado', handleTicketUpdate);
+                socket.off('nuevo_comentario', handleComentarioUpdate);
+                socket.off('ticket_asignado', handleTicketAsignado);
+                socket.off('ticket_escalado', handleTicketEscalado);
+                socket.off('ticket_solucionado', handleTicketSolucionado);
+                socket.off('ticket_cerrado', handleTicketCerrado);
+                socket.off('solicitud_reapertura', handleSolicitudReapertura);
+                socket.off('reapertura_aprobada', handleReaperturaAprobada);
+                socket.off('ticket_reabierto', handleTicketReabierto);
+                socket.off('nuevo_ticket', handleNuevoTicket);
+            };
         }
-    }, [store.auth.user, store.websocket.connected, tickets.length]);
+    }, [store.auth.user, store.websocket.connected]);
 
     // Efecto para manejar sincronizaciÃ³n manual desde Footer
     useEffect(() => {
@@ -593,33 +637,33 @@ export function ClientePage() {
                     // TambiÃ©n unirse a rooms crÃ­ticos
                     joinCriticalRooms(store.websocket.socket, [ticketId], store.auth.user);
                 }
-
-                // Navegar automÃ¡ticamente a "Mis Tickets" y posicionar el nuevo ticket
-                changeView('tickets');
-
-                // Esperar un momento para que se renderice la vista y luego hacer scroll al nuevo ticket
-                setTimeout(() => {
-                    const newTicketElement = document.querySelector(`[data-ticket-id="${ticketId}"]`);
-                    if (newTicketElement) {
-                        newTicketElement.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
-
-                        // Agregar un efecto visual para destacar el nuevo ticket
-                        newTicketElement.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-                        newTicketElement.style.border = '2px solid #28a745';
-                        newTicketElement.style.borderRadius = '8px';
-
-                        // Remover el efecto despuÃ©s de 3 segundos
-                        setTimeout(() => {
-                            newTicketElement.style.backgroundColor = '';
-                            newTicketElement.style.border = '';
-                            newTicketElement.style.borderRadius = '';
-                        }, 3000);
-                    }
-                }, 500);
             }
+
+            // Navegar automÃ¡ticamente a "Mis Tickets" y posicionar el nuevo ticket
+            changeView('tickets');
+
+            // Esperar un momento para que se renderice la vista y luego hacer scroll al nuevo ticket
+            setTimeout(() => {
+                const newTicketElement = document.querySelector(`[data-ticket-id="${ticketId}"]`);
+                if (newTicketElement) {
+                    newTicketElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+
+                    // Agregar un efecto visual para destacar el nuevo ticket
+                    newTicketElement.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                    newTicketElement.style.border = '2px solid #28a745';
+                    newTicketElement.style.borderRadius = '8px';
+
+                    // Remover el efecto despuÃ©s de 3 segundos
+                    setTimeout(() => {
+                        newTicketElement.style.backgroundColor = '';
+                        newTicketElement.style.border = '';
+                        newTicketElement.style.borderRadius = '';
+                    }, 3000);
+                }
+            }, 500);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -942,8 +986,9 @@ export function ClientePage() {
     };
 
     const generarRecomendacion = (ticket) => {
-        // Redirigir a la vista de recomendaciÃ³n IA
-        navigate(`/ticket/${ticket.id}/recomendacion-ia`);
+        // Usar el sistema de vistas integradas
+        setSelectedTicketId(ticket.id);
+        changeView(`recomendacion-${ticket.id}`);
     };
 
     // FunciÃ³n para verificar si un ticket tiene analista asignado
@@ -1004,8 +1049,8 @@ export function ClientePage() {
         console.log('ClientePage - Current activeView:', activeView);
         setActiveView(view);
         console.log('ClientePage - activeView set to:', view);
-        if (view.startsWith('ticket-')) {
-            const ticketId = view.replace('ticket-', '');
+        if (view.startsWith('ticket-') || view.startsWith('comentarios-') || view.startsWith('chat-') || view.startsWith('recomendacion-') || view.startsWith('identificar-')) {
+            const ticketId = view.replace(/^(ticket-|comentarios-|chat-|recomendacion-|identificar-)/, '');
             console.log('Setting selectedTicketId to:', parseInt(ticketId));
             setSelectedTicketId(parseInt(ticketId));
         } else {
@@ -1201,13 +1246,13 @@ export function ClientePage() {
     }, []);
     // FIN CAMBIO CLIENTE 3
 
-    console.log('🎨 ClientePage - Renderizando componente:', {
-        loading,
-        error,
-        ticketsCount: tickets.length,
-        activeView,
-        sidebarHidden
-    });
+    // console.log('🎨 ClientePage - Renderizando componente:', {
+    //     loading,
+    //     error,
+    //     ticketsCount: tickets.length,
+    //     activeView,
+    //     sidebarHidden
+    // });
 
 
     return (
@@ -1352,6 +1397,16 @@ export function ClientePage() {
                                                 >
                                                     <i className="fas fa-user-edit"></i>
                                                     Mi Perfil
+                                                </button>
+                                                <button
+                                                    className="btn btn-link w-100 text-start d-flex align-items-center gap-2"
+                                                    onClick={() => {
+                                                        navigate('/');
+                                                        setShowUserDropdown(false);
+                                                    }}
+                                                >
+                                                    <i className="fas fa-home"></i>
+                                                    Inicio
                                                 </button>
                                                 <div className="d-flex align-items-center justify-content-between p-2">
                                                     <span className="small">Modo Oscuro</span>
@@ -2021,14 +2076,20 @@ export function ClientePage() {
                                                                                 <button
                                                                                     className="btn btn-sidebar-accent btn-sm"
                                                                                     title="Ver y agregar comentarios"
-                                                                                    onClick={() => window.open(`/ticket/${ticket.id}/comentarios`, '_self')}
+                                                                                    onClick={() => {
+                                                                                        setSelectedTicketId(ticket.id);
+                                                                                        changeView(`comentarios-${ticket.id}`);
+                                                                                    }}
                                                                                 >
                                                                                     <i className="fas fa-users"></i>
                                                                                 </button>
                                                                                 <button
                                                                                     className="btn btn-sidebar-secondary btn-sm"
                                                                                     title={tieneAnalistaAsignado(ticket) ? `Chat con ${getAnalistaAsignado(ticket)}` : "Chat con analista"}
-                                                                                    onClick={() => window.open(`/ticket/${ticket.id}/chat-analista-cliente`, '_self')}
+                                                                                    onClick={() => {
+                                                                                        setSelectedTicketId(ticket.id);
+                                                                                        changeView(`chat-${ticket.id}`);
+                                                                                    }}
                                                                                 >
                                                                                     <i className={`fas ${tieneAnalistaAsignado(ticket) ? 'fa-signal' : 'fa-comments'}`}></i>
                                                                                 </button>
@@ -2059,7 +2120,10 @@ export function ClientePage() {
                                                                                         <li>
                                                                                             <button
                                                                                                 className="dropdown-item"
-                                                                                                onClick={() => window.open(`/ticket/${ticket.id}/identificar-imagen`, '_self')}
+                                                                                                onClick={() => {
+                                                                                                    setSelectedTicketId(ticket.id);
+                                                                                                    changeView(`identificar-${ticket.id}`);
+                                                                                                }}
                                                                                             >
                                                                                                 <i className="fas fa-camera me-2"></i>
                                                                                                 Analizar Imagen
@@ -2090,7 +2154,7 @@ export function ClientePage() {
                                                                                         <button
                                                                                             className="btn btn-outline-warning btn-sm"
                                                                                             title="Reabrir ticket si la solución no fue satisfactoria"
-                                                                                            onClick={() => reabrirTicket(ticket.id)}
+                                                                                            onClick={() => solicitarReapertura(ticket.id)}
                                                                                         >
                                                                                             <i className="fas fa-redo"></i>
                                                                                         </button>
@@ -2141,7 +2205,10 @@ export function ClientePage() {
                                                                                             className="btn btn-sidebar-accent flex-fill"
                                                                                             style={{ minWidth: '120px' }}
                                                                                             title="Ver y agregar comentarios"
-                                                                                            onClick={() => window.open(`/ticket/${ticket.id}/comentarios`, '_self')}
+                                                                                            onClick={() => {
+                                                                                                setSelectedTicketId(ticket.id);
+                                                                                                changeView(`comentarios-${ticket.id}`);
+                                                                                            }}
                                                                                         >
                                                                                             <i className="fas fa-comments me-2"></i>
                                                                                             Comentarios
@@ -2150,7 +2217,10 @@ export function ClientePage() {
                                                                                             className="btn btn-sidebar-secondary flex-fill"
                                                                                             style={{ minWidth: '120px' }}
                                                                                             title={tieneAnalistaAsignado(ticket) ? `Chat con ${getAnalistaAsignado(ticket)}` : "Chat con analista"}
-                                                                                            onClick={() => window.open(`/ticket/${ticket.id}/chat-analista-cliente`, '_self')}
+                                                                                            onClick={() => {
+                                                                                                setSelectedTicketId(ticket.id);
+                                                                                                changeView(`chat-${ticket.id}`);
+                                                                                            }}
                                                                                         >
                                                                                             <i className={`fas ${tieneAnalistaAsignado(ticket) ? 'fa-signal' : 'fa-comments'} me-2`}></i>
                                                                                             Chat
@@ -2179,7 +2249,10 @@ export function ClientePage() {
                                                                                                 <li>
                                                                                                     <button
                                                                                                         className="dropdown-item"
-                                                                                                        onClick={() => window.open(`/ticket/${ticket.id}/identificar-imagen`, '_self')}
+                                                                                                        onClick={() => {
+                                                                                                            setSelectedTicketId(ticket.id);
+                                                                                                            changeView(`identificar-${ticket.id}`);
+                                                                                                        }}
                                                                                                     >
                                                                                                         <i className="fas fa-camera me-2"></i>
                                                                                                         Analizar Imagen
@@ -2215,7 +2288,7 @@ export function ClientePage() {
                                                                                                     className="btn btn-outline-warning flex-fill"
                                                                                                     style={{ minWidth: '120px' }}
                                                                                                     title="Reabrir ticket si la solución no fue satisfactoria"
-                                                                                                    onClick={() => reabrirTicket(ticket.id)}
+                                                                                                    onClick={() => solicitarReapertura(ticket.id)}
                                                                                                 >
                                                                                                     <i className="fas fa-redo me-2"></i>
                                                                                                     Reabrir
@@ -2627,18 +2700,58 @@ export function ClientePage() {
                     {/* VerTicketHD View */}
                     {
                         (() => {
-                            console.log('VerTicketHD render check:', {
-                                activeView,
-                                startsWithTicket: activeView.startsWith('ticket-'),
-                                selectedTicketId,
-                                shouldRender: activeView.startsWith('ticket-') && selectedTicketId
-                            });
+                            // console.log('VerTicketHD render check:', {
+                            //     activeView,
+                            //     startsWithTicket: activeView.startsWith('ticket-'),
+                            //     selectedTicketId,
+                            //     shouldRender: activeView.startsWith('ticket-') && selectedTicketId
+                            // });
                             return activeView.startsWith('ticket-') && selectedTicketId;
                         })() && (
                             <VerTicketHDCliente
                                 ticketId={selectedTicketId}
                                 tickets={tickets}
                                 ticketsConRecomendaciones={ticketsConRecomendaciones}
+                                onBack={() => changeView('tickets')}
+                            />
+                        )
+                    }
+
+                    {/* Comentarios View */}
+                    {
+                        activeView.startsWith('comentarios-') && selectedTicketId && (
+                            <ComentariosTicketEmbedded
+                                ticketId={selectedTicketId}
+                                onBack={() => changeView('tickets')}
+                            />
+                        )
+                    }
+
+                    {/* Chat View */}
+                    {
+                        activeView.startsWith('chat-') && selectedTicketId && (
+                            <ChatAnalistaClienteEmbedded
+                                ticketId={selectedTicketId}
+                                onBack={() => changeView('tickets')}
+                            />
+                        )
+                    }
+
+                    {/* Recomendación IA View */}
+                    {
+                        activeView.startsWith('recomendacion-') && selectedTicketId && (
+                            <RecomendacionVistaEmbedded
+                                ticketId={selectedTicketId}
+                                onBack={() => changeView('tickets')}
+                            />
+                        )
+                    }
+
+                    {/* Identificar Imagen View */}
+                    {
+                        activeView.startsWith('identificar-') && selectedTicketId && (
+                            <IdentificarImagenEmbedded
+                                ticketId={selectedTicketId}
                                 onBack={() => changeView('tickets')}
                             />
                         )

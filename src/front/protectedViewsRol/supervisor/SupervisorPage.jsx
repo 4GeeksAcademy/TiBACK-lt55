@@ -4,32 +4,47 @@ import useGlobalReducer from '../../hooks/useGlobalReducer';
 import { SideBarCentral } from '../../components/SideBarCentral';
 import { DashboardCalidad } from '../../pages/DashboardCalidad';
 import VerTicketHDSupervisor from './verTicketHDsupervisor';
+import ComentariosTicketEmbedded from '../../components/ComentariosTicketEmbedded';
+import ChatAnalistaClienteEmbedded from '../../components/ChatAnalistaClienteEmbedded';
+import RecomendacionVistaEmbedded from '../../components/RecomendacionVistaEmbedded';
+import IdentificarImagenEmbedded from '../../components/IdentificarImagenEmbedded';
 
-// Utilidades de token seguras
-const tokenUtils = {
-    decodeToken: (token) => {
-        try {
-            if (!token) return null;
-            const parts = token.split('.');
-            if (parts.length !== 3) return null;
-            return JSON.parse(atob(parts[1]));
-        } catch (error) {
-            return null;
-        }
-    },
-    getUserId: (token) => {
-        const payload = tokenUtils.decodeToken(token);
-        return payload ? payload.user_id : null;
-    },
-    getRole: (token) => {
-        const payload = tokenUtils.decodeToken(token);
-        return payload ? payload.role : null;
-    }
-};
+import { tokenUtils } from '../../store';
 
 export function SupervisorPage() {
     const navigate = useNavigate();
-    const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms } = useGlobalReducer();
+    const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms } = useGlobalReducer();
+
+    // Helper resilient fetch that tries configured BACKEND then same-origin then relative
+    const backendRequest = async (path, options = {}) => {
+        const tried = [];
+        const backendBase = import.meta.env.VITE_BACKEND_URL || '';
+        const candidates = [];
+        if (backendBase) candidates.push(`${backendBase}${path}`);
+        // Try same origin
+        try { candidates.push(`${window.location.origin}${path}`); } catch (e) { }
+        // Finally relative
+        candidates.push(path);
+
+        for (const url of candidates) {
+            if (!url) continue;
+            tried.push(url);
+            try {
+                const resp = await fetch(url, options);
+                // If we get a CORS/network type failure, fetch will throw; if server responds 4xx/5xx we still check
+                if (!resp.ok) {
+                    // If server error, try next candidate
+                    continue;
+                }
+                return resp;
+            } catch (err) {
+                // network error, try next
+                continue;
+            }
+        }
+        const err = new Error('Network request failed or blocked by CORS. Tried: ' + tried.join(', '));
+        throw err;
+    };
     const [tickets, setTickets] = useState([]);
     const [ticketsCerrados, setTicketsCerrados] = useState([]);
     const [analistas, setAnalistas] = useState([]);
@@ -71,10 +86,7 @@ export function SupervisorPage() {
     };
 
     const changeView = (view) => {
-        console.log('SupervisorPage - changeView called with:', view);
-        console.log('SupervisorPage - Current activeView:', activeView);
         setActiveView(view);
-        console.log('SupervisorPage - activeView set to:', view);
     };
 
     const toggleTheme = () => {
@@ -124,18 +136,15 @@ export function SupervisorPage() {
     const actualizarTickets = async () => {
         try {
             const token = store.auth.token;
-            const ticketsResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/supervisor`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+            const resp = await backendRequest('/api/tickets/supervisor', {
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
             });
-            if (ticketsResponse.ok) {
-                const ticketsData = await ticketsResponse.json();
-                setTickets(ticketsData);
-            }
+            const ticketsData = await resp.json();
+            setTickets(ticketsData);
         } catch (err) {
-            console.error('Error al actualizar tickets:', err);
+            // Surface a concise message but don't break UI
+            console.warn('No se pudieron cargar tickets (intentos de backend fallaron):', err.message);
+            setError('No se pudieron cargar tickets. Comprueba backend o CORS.');
         }
     };
 
@@ -155,7 +164,7 @@ export function SupervisorPage() {
                 setTicketsCerrados(ticketsData);
             }
         } catch (err) {
-            console.error('Error al cargar tickets cerrados:', err);
+            // Silently ignore
         } finally {
             setLoadingCerrados(false);
         }
@@ -178,7 +187,7 @@ export function SupervisorPage() {
                 dispatch({ type: "analistas_set_list", payload: analistasData });
             }
         } catch (err) {
-            console.error('Error al actualizar analistas:', err);
+            // Silently ignore
         }
     };
 
@@ -231,13 +240,13 @@ export function SupervisorPage() {
     useEffect(() => {
         if (store.auth.user && store.websocket.connected && store.websocket.socket) {
             // Unirse a todas las rooms críticas inmediatamente
-            joinAllCriticalRooms(store.websocket.socket, store.auth.user);
+            joinAllCriticalRooms(store.websocket.socket, store.auth.user, store.auth.token);
 
             // Configurar sincronización crítica
             const syncConfig = startRealtimeSync({
                 syncTypes: ['tickets', 'comentarios', 'asignaciones', 'chats'],
                 onSyncTriggered: (data) => {
-                    console.log('🔄 Sincronización crítica activada en SupervisorPage:', data);
+                    // Removed debug log
                     if (data.type === 'tickets' || data.priority === 'critical') {
                         actualizarTodasLasTablas();
                     }
@@ -247,25 +256,27 @@ export function SupervisorPage() {
             // Unirse a rooms críticos de todos los tickets supervisados
             const ticketIds = tickets.map(ticket => ticket.id);
             if (ticketIds.length > 0) {
-                joinCriticalRooms(store.websocket.socket, ticketIds, store.auth.user);
+                joinCriticalRooms(store.websocket.socket, ticketIds, store.auth.user, store.auth.token);
 
                 // Unirse específicamente a cada room de ticket para sincronización completa
                 ticketIds.forEach(ticketId => {
-                    store.websocket.socket.emit('join_ticket_room', {
-                        ticket_id: ticketId,
-                        user_id: store.auth.user.id,
-                        role: 'supervisor'
-                    });
+                    try {
+                        if (joinTicketRoom) {
+                            joinTicketRoom(store.websocket.socket, ticketId);
+                        } else {
+                            store.websocket.socket.emit('join_ticket', { ticket_id: ticketId, user_id: store.auth.user.id, role: 'supervisor' });
+                        }
+                    } catch (e) {
+                        // silently ignore per defensive strategy
+                    }
                 });
-
-                console.log(`🎯 SUPERVISOR: Unido a ${ticketIds.length} rooms de tickets específicos`);
             }
 
             // CAMBIO 4A: Configurar listeners COMPLETOS para eventos de tickets en tiempo real
             const socket = store.websocket.socket;
 
             const handleTicketUpdate = (data) => {
-                console.log('🎫 SUPERVISOR - ACTUALIZACIÓN DE TICKET:', data);
+                // Removed debug log
                 actualizarTodasLasTablas();
 
                 // Emitir evento para sincronización cruzada
@@ -275,52 +286,57 @@ export function SupervisorPage() {
             };
 
             const handleComentarioUpdate = (data) => {
-                console.log('💬 SUPERVISOR - NUEVO COMENTARIO:', data);
+                // Removed debug log
                 actualizarTodasLasTablas();
             };
 
             const handleChatUpdate = (data) => {
-                console.log('💬 SUPERVISOR - ACTUALIZACIÓN DE CHAT:', data);
+                // Removed debug log
                 // Actualizar si es necesario
             };
 
             // EVENTOS CRÍTICOS PARA FLUJO COMPLETO
             const handleTicketCreated = (data) => {
-                console.log('🆕 SUPERVISOR - TICKET CREADO:', data);
+                // Removed debug log
                 actualizarTodasLasTablas();
             };
 
             const handleTicketAsignado = (data) => {
-                console.log('👤 SUPERVISOR - TICKET ASIGNADO:', data);
+                // Removed debug log
                 actualizarTodasLasTablas();
             };
 
             const handleTicketEscalado = (data) => {
-                console.log('⬆️ SUPERVISOR - TICKET ESCALADO:', data);
+                // Removed debug log
                 actualizarTodasLasTablas();
             };
 
             const handleTicketSolucionado = (data) => {
-                console.log('✅ SUPERVISOR - TICKET SOLUCIONADO:', data);
+                // Removed debug log
                 actualizarTodasLasTablas();
             };
 
             const handleTicketCerrado = (data) => {
-                console.log('🔒 SUPERVISOR - TICKET CERRADO:', data);
+                // Removed debug log
                 // Mover inmediatamente a lista de cerrados
                 moveTicketToClosed(data.ticket_id);
                 actualizarTodasLasTablas();
             };
 
             const handleTicketReabierto = (data) => {
-                console.log('🔓 SUPERVISOR - TICKET REABIERTO:', data);
+                // Removed debug log
                 // Mover de cerrados a activos
                 moveTicketToActive(data.ticket_id);
                 actualizarTodasLasTablas();
             };
 
             const handleSolicitudReapertura = (data) => {
-                console.log('🔄 SUPERVISOR - SOLICITUD REAPERTURA:', data);
+                // Removed debug log
+                actualizarTodasLasTablas();
+            };
+
+            const handleNuevoTicket = (data) => {
+                // Removed debug log
                 actualizarTodasLasTablas();
             };
 
@@ -338,6 +354,8 @@ export function SupervisorPage() {
             socket.on('nuevo_comentario', handleComentarioUpdate);
             socket.on('nuevo_mensaje_chat_analista_cliente', handleChatUpdate);
             socket.on('nuevo_mensaje_chat_supervisor_analista', handleChatUpdate);
+            socket.on('nuevo_ticket', handleNuevoTicket);
+            socket.on('ticket_actualizado', handleTicketUpdate);
 
             // Cleanup COMPLETO
             return () => {
@@ -354,9 +372,11 @@ export function SupervisorPage() {
                 socket.off('nuevo_comentario', handleComentarioUpdate);
                 socket.off('nuevo_mensaje_chat_analista_cliente', handleChatUpdate);
                 socket.off('nuevo_mensaje_chat_supervisor_analista', handleChatUpdate);
+                socket.off('nuevo_ticket', handleNuevoTicket);
+                socket.off('ticket_actualizado', handleTicketUpdate);
             };
         }
-    }, [store.auth.user, store.websocket.connected, tickets.length]);
+    }, [store.auth.user, store.websocket.connected]);
     // FIN CAMBIO 4
 
     // CAMBIO 4B: Funciones auxiliares para movimiento de tickets entre listas
@@ -372,7 +392,7 @@ export function SupervisorPage() {
             setTickets(prev => prev.filter(t => t.id !== ticketId));
             setTicketsCerrados(prev => [ticketCerrado, ...prev]);
 
-            console.log(`🔒 Ticket ${ticketId} movido a cerrados`);
+            // Removed debug log
         }
     };
 
@@ -395,7 +415,7 @@ export function SupervisorPage() {
             setTicketsCerrados(prev => prev.filter(t => t.id !== ticketId));
             setTickets(prev => [ticketReabierto, ...prev]);
 
-            console.log(`🔓 Ticket ${ticketId} movido a activos con estado ${nuevoEstado}`);
+            // Removed debug log
         }
     };
     // FIN CAMBIO 4B
@@ -403,32 +423,32 @@ export function SupervisorPage() {
     // CAMBIO 4C: Listeners para eventos de sincronización HTTP (fallback)
     useEffect(() => {
         const handleForceUpdate = (event) => {
-            console.log('🔄 SUPERVISOR - FORZAR ACTUALIZACIÓN:', event.detail);
+            // Removed debug log
             actualizarTodasLasTablas();
         };
 
         const handleSyncSupervisor = (event) => {
-            console.log('👑 SUPERVISOR - SINCRONIZACIÓN ESPECÍFICA:', event.detail);
+            // Removed debug log
             actualizarTodasLasTablas();
         };
 
         const handleManualSync = (event) => {
-            console.log('🔧 SUPERVISOR - SINCRONIZACIÓN MANUAL:', event.detail);
+            // Removed debug log
             actualizarTodasLasTablas();
         };
 
         const handleTotalSync = (event) => {
-            console.log('🌐 SUPERVISOR - SINCRONIZACIÓN TOTAL:', event.detail);
+            // Removed debug log
             actualizarTodasLasTablas();
         };
 
         const handleSyncTickets = (event) => {
-            console.log('🎫 SUPERVISOR - SINCRONIZACIÓN TICKETS:', event.detail);
+            // Removed debug log
             actualizarTodasLasTablas();
         };
 
         const handleSyncError = (event) => {
-            console.error('❌ SUPERVISOR - ERROR DE SINCRONIZACIÓN:', event.detail);
+            // Silently ignore
             // Intentar actualizar de todas formas
             actualizarTodasLasTablas();
         };
@@ -585,7 +605,7 @@ export function SupervisorPage() {
                     }
                 }
             } catch (err) {
-                console.error('Error al cargar datos del usuario:', err);
+                // Silently ignore
             }
         };
 
@@ -627,7 +647,7 @@ export function SupervisorPage() {
                     const analistasData = await analistasResponse.json();
                     setAnalistas(analistasData);
                 } else {
-                    console.error('Error al cargar analistas:', analistasResponse.status, analistasResponse.statusText);
+                    // Silently ignore
                     setError(`Error al cargar la lista de analistas: ${analistasResponse.status} ${analistasResponse.statusText}`);
                 }
 
@@ -659,7 +679,7 @@ export function SupervisorPage() {
 
             // Verificar que tenemos tickets y token válido
             if (!tickets || tickets.length === 0 || !token) {
-                console.log('âš ï¸ No hay tickets o token para verificar recomendaciones');
+                // Removed debug log
                 return;
             }
 
@@ -667,7 +687,7 @@ export function SupervisorPage() {
                 try {
                     // Validar que el ticket tenga contenido válido
                     if (!ticket.titulo || !ticket.descripcion || ticket.titulo.trim() === '' || ticket.descripcion.trim() === '') {
-                        console.log(`âš ï¸ Ticket ${ticket.id} sin contenido suficiente para recomendaciones`);
+                        // Removed debug log
                         return { ticketId: ticket.id, tieneRecomendaciones: false, razon: 'sin_contenido' };
                     }
 
@@ -683,7 +703,7 @@ export function SupervisorPage() {
                     if (response.ok) {
                         const data = await response.json();
                         const tieneRecomendaciones = data.total_encontrados > 0;
-                        console.log(`âœ… Ticket ${ticket.id}: ${data.total_encontrados} recomendaciones encontradas`);
+                        // Removed debug log
                         return {
                             ticketId: ticket.id,
                             tieneRecomendaciones,
@@ -692,19 +712,19 @@ export function SupervisorPage() {
                         };
                     } else {
                         // Log del error específico pero no fallar
-                        console.warn(`âš ï¸ Error ${response.status} verificando recomendaciones para ticket ${ticket.id}`);
+                        // Silently ignore
                         return { ticketId: ticket.id, tieneRecomendaciones: false, razon: `error_${response.status}` };
                     }
                 } catch (fetchError) {
                     // Manejar errores individuales sin fallar toda la operación
                     if (fetchError.name === 'AbortError') {
-                        console.warn(`â° Timeout verificando recomendaciones para ticket ${ticket.id}`);
+                        // Silently ignore
                         return { ticketId: ticket.id, tieneRecomendaciones: false, razon: 'timeout' };
                     } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
-                        console.warn(`ðŸŒ Error de red verificando recomendaciones para ticket ${ticket.id}`);
+                        // Silently ignore
                         return { ticketId: ticket.id, tieneRecomendaciones: false, razon: 'network_error' };
                     } else {
-                        console.warn(`âŒ Error verificando recomendaciones para ticket ${ticket.id}:`, fetchError.message);
+                        // Silently ignore
                         return { ticketId: ticket.id, tieneRecomendaciones: false, razon: 'unknown_error' };
                     }
                 }
@@ -716,20 +736,10 @@ export function SupervisorPage() {
             const ticketsConRecomendaciones = resultados.filter(r => r.tieneRecomendaciones);
             const ticketsSinRecomendaciones = resultados.filter(r => !r.tieneRecomendaciones);
 
-            console.log('ðŸ“Š Resultados de recomendaciones:', {
-                total: resultados.length,
-                conRecomendaciones: ticketsConRecomendaciones.length,
-                sinRecomendaciones: ticketsSinRecomendaciones.length,
-                detalles: resultados
-            });
+            // Removed debug log
 
             // Log específico para tickets sin recomendaciones
-            if (ticketsSinRecomendaciones.length > 0) {
-                console.log('âš ï¸ Tickets sin recomendaciones:', ticketsSinRecomendaciones.map(t => ({
-                    id: t.ticketId,
-                    razon: t.razon
-                })));
-            }
+            // (debug log removed)
 
             // Actualizar estado con validaciones robustas
             const ticketsConRecomendacionesSet = new Set();
@@ -740,9 +750,9 @@ export function SupervisorPage() {
             });
             setTicketsConRecomendaciones(ticketsConRecomendacionesSet);
 
-            console.log(`✅ Verificación de recomendaciones completada para ${tickets.length} tickets`);
+            // Removed debug log
         } catch (error) {
-            console.error('âŒ Error general verificando recomendaciones:', error);
+            // Silently ignore
             // En caso de error general, limpiar el estado
             setTicketsConRecomendaciones(new Set());
         }
@@ -752,13 +762,13 @@ export function SupervisorPage() {
     useEffect(() => {
         if (store.auth.user && store.websocket.connected && store.websocket.socket) {
             // Unirse a todas las rooms críticas inmediatamente
-            joinAllCriticalRooms(store.websocket.socket, store.auth.user);
+            joinAllCriticalRooms(store.websocket.socket, store.auth.user, store.auth.token);
 
             // Configurar sincronización crítica
             const syncConfig = startRealtimeSync({
                 syncTypes: ['tickets', 'comentarios', 'asignaciones', 'analistas'],
                 onSyncTriggered: (data) => {
-                    console.log('🔄 Sincronización crítica activada en SupervisorPage:', data);
+                    // Removed debug log
                     if (data.type === 'tickets' || data.priority === 'critical') {
                         actualizarTickets();
                     }
@@ -771,15 +781,15 @@ export function SupervisorPage() {
             // Unirse a rooms críticos de todos los tickets supervisados
             const ticketIds = tickets.map(ticket => ticket.id);
             if (ticketIds.length > 0) {
-                joinCriticalRooms(store.websocket.socket, ticketIds, store.auth.user);
+                joinCriticalRooms(store.websocket.socket, ticketIds, store.auth.user, store.auth.token);
             }
         }
-    }, [store.auth.user, store.websocket.connected, tickets.length]);
+    }, [store.auth.user, store.websocket.connected]);
 
     // Efecto para manejar sincronización manual desde Footer
     useEffect(() => {
         const handleManualSync = (event) => {
-            console.log('🔄 Sincronización manual recibida en SupervisorPage:', event.detail);
+            // Removed debug log
             if (event.detail.role === 'supervisor') {
                 actualizarTickets();
                 actualizarAnalistas();
@@ -793,21 +803,21 @@ export function SupervisorPage() {
     // Escuchar eventos de sincronización total desde el Footer
     useEffect(() => {
         const handleTotalSync = (event) => {
-            console.log('🔄 Sincronización total recibida en SupervisorPage:', event.detail);
+            // Removed debug log
             if (event.detail.role === 'supervisor' || event.detail.source === 'footer_sync') {
                 // Recargar todos los datos del supervisor
                 actualizarTickets();
                 actualizarAnalistas();
-                console.log('✅ Datos del supervisor actualizados por sincronización total');
+                // Removed debug log
             }
         };
 
         const handleSyncCompleted = (event) => {
-            console.log('✅ Sincronización total completada en SupervisorPage:', event.detail);
+            // Removed debug log
         };
 
         const handleSyncError = (event) => {
-            console.error('❌ Error en sincronización total en SupervisorPage:', event.detail);
+            // Silently ignore
         };
 
         // Escuchar eventos de sincronización
@@ -834,7 +844,7 @@ export function SupervisorPage() {
     useEffect(() => {
         if (store.websocket.criticalTicketUpdate) {
             const criticalUpdate = store.websocket.criticalTicketUpdate;
-            console.log('ðŸš¨ ACTUALIZACIÃ“N CRÃTICA RECIBIDA EN SUPERVISOR:', criticalUpdate);
+            // Removed debug log
 
             // Actualizar inmediatamente para acciones crÃ­ticas
             if (criticalUpdate.priority === 'critical') {
@@ -845,7 +855,7 @@ export function SupervisorPage() {
                     criticalUpdate.action === 'ticket_actualizado' ||
                     criticalUpdate.action === 'ticket_creado' ||
                     criticalUpdate.action.includes('estado_cambiado')) {
-                    console.log(`ðŸš¨ AcciÃ³n crÃ­tica: ${criticalUpdate.action} en ticket ${criticalUpdate.ticket_id}`);
+                    // Removed debug log
                 }
             }
         }
@@ -877,9 +887,7 @@ export function SupervisorPage() {
 
             // ActualizaciÃ³n especÃ­fica para analistas eliminados
             if (lastNotification.tipo === 'analista_eliminado') {
-                console.log('ðŸ—‘ï¸ SUPERVISOR - Analista eliminado detectado:', lastNotification);
-                console.log('ðŸ“Š SUPERVISOR - ID del analista eliminado:', lastNotification.analista_id);
-                console.log('ðŸ“Š SUPERVISOR - Lista actual de analistas antes:', analistas.length);
+                // Removed debug log
 
                 // Remover inmediatamente de la lista local
                 if (lastNotification.analista_id) {
@@ -966,6 +974,17 @@ export function SupervisorPage() {
 
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('❌ Error en asignación:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorData: errorData,
+                    ticketId: ticketId,
+                    analistaId: analistaId,
+                    requestBody: {
+                        id_analista: analistaId,
+                        es_reasignacion: esReasignacion
+                    }
+                });
                 throw new Error(`Error al asignar ticket: ${errorData.message || 'Error desconocido'}`);
             }
 
@@ -1045,8 +1064,8 @@ export function SupervisorPage() {
     };
 
     const generarRecomendacion = (ticket) => {
-        // Redirigir a la vista de recomendaciÃ³n IA
-        navigate(`/ticket/${ticket.id}/recomendacion-ia`);
+        // Usar el sistema de vistas integradas
+        setActiveView(`recomendacion-${ticket.id}`);
     };
 
     const asignarAnalista = (ticketId) => {
@@ -1149,11 +1168,11 @@ export function SupervisorPage() {
                     const estadoActual = ticket.estado.toLowerCase();
 
                     if (estadoActual === 'solucionado') {
-                        // Desde solucionado puede ir a 'reabierto'
-                        nuevoEstado = 'reabierto';
+                        // Desde solucionado puede ir a 'en espera' (reapertura)
+                        nuevoEstado = 'en espera';
                     } else if (['creado', 'reabierto'].includes(estadoActual)) {
                         // Desde creado o reabierto puede ir a 'en_espera'  
-                        nuevoEstado = 'en_espera';
+                        nuevoEstado = 'en espera';
                     } else {
                         // Para otros estados (asignado, en_progreso, etc.) no hay transición válida directa
                         alert('No se puede reabrir este ticket desde su estado actual. El ticket debe estar solucionado o cerrado.');
@@ -1284,8 +1303,13 @@ export function SupervisorPage() {
         }
     };
 
-    // FunciÃ³n para determinar el color del semÃ¡foro
+    // FunciÃ³n para determinar el color del semÃ¡foro - MEJORADA
     const getSemaforoColor = (ticket, allTickets) => {
+        // PRIORIDAD 1: Solicitud de reapertura pendiente → AMARILLO
+        if (tieneSolicitudReapertura(ticket)) {
+            return 'table-warning'; // Amarillo para solicitudes de reapertura
+        }
+
         const fechaActual = new Date();
         const fechaCreacion = new Date(ticket.fecha_creacion);
         const diasDiferencia = Math.floor((fechaActual - fechaCreacion) / (1000 * 60 * 60 * 24));
@@ -1301,7 +1325,7 @@ export function SupervisorPage() {
         const prioridadAlta = ticket.prioridad.toLowerCase() === 'alta';
         const esTicketViejo = diasDiferencia >= 3; // Consideramos viejo si tiene 3+ dÃ­as
 
-        // LÃ³gica del semÃ¡foro
+        // LÃ³gica del semÃ¡foro original
         if (prioridadAlta && esTicketMasViejo) {
             return 'table-danger'; // Rojo: Prioridad alta y ticket mÃ¡s viejo
         } else if (prioridadAlta || esTicketViejo) {
@@ -1311,14 +1335,21 @@ export function SupervisorPage() {
         }
     };
 
-    // FunciÃ³n helper para detectar si hay una solicitud de reapertura del cliente
+    // FunciÃ³n helper para detectar si hay una solicitud de reapertura del cliente - MEJORADA
     const tieneSolicitudReapertura = (ticket) => {
+        // Usar la información del backend si está disponible
+        if (ticket.tiene_solicitud_reapertura_pendiente !== undefined) {
+            return ticket.tiene_solicitud_reapertura_pendiente;
+        }
+
+        // Fallback: verificar comentarios manualmente
         if (!ticket.comentarios || !Array.isArray(ticket.comentarios)) {
             return false;
         }
 
         return ticket.comentarios.some(comentario =>
-            comentario.texto === "Cliente solicita reapertura del ticket" &&
+            (comentario.texto === "Cliente solicitó reapertura del ticket - Pendiente de decisión del supervisor" ||
+                comentario.texto === "Cliente solicita reapertura del ticket") &&
             comentario.autor?.rol === "cliente"
         );
     };
@@ -1480,6 +1511,16 @@ export function SupervisorPage() {
                                             >
                                                 <i className="fas fa-user-edit"></i>
                                                 Mi Perfil
+                                            </button>
+                                            <button
+                                                className="btn btn-link w-100 text-start d-flex align-items-center gap-2"
+                                                onClick={() => {
+                                                    navigate('/');
+                                                    setShowUserDropdown(false);
+                                                }}
+                                            >
+                                                <i className="fas fa-home"></i>
+                                                Inicio
                                             </button>
                                             <div className="d-flex align-items-center justify-content-between p-2">
                                                 <span className="small">Modo Oscuro</span>
@@ -2041,7 +2082,7 @@ export function SupervisorPage() {
                                                                                 <button
                                                                                     className="btn btn-sidebar-accent btn-sm"
                                                                                     title="Ver y agregar comentarios"
-                                                                                    onClick={() => window.open(`/ticket/${ticket.id}/comentarios`, '_self')}
+                                                                                    onClick={() => setActiveView(`comentarios-${ticket.id}`)}
                                                                                 >
                                                                                     <i className="fas fa-users"></i>
                                                                                 </button>
@@ -2050,7 +2091,7 @@ export function SupervisorPage() {
                                                                                 <button
                                                                                     className="btn btn-sidebar-secondary btn-sm"
                                                                                     title="Chat con analista"
-                                                                                    onClick={() => window.open(`/ticket/${ticket.id}/chat`, '_self')}
+                                                                                    onClick={() => setActiveView(`chat-${ticket.id}`)}
                                                                                 >
                                                                                     <i className="fas fa-comments"></i>
                                                                                 </button>
@@ -2079,7 +2120,7 @@ export function SupervisorPage() {
                                                                                         <li>
                                                                                             <button
                                                                                                 className="dropdown-item"
-                                                                                                onClick={() => window.open(`/ticket/${ticket.id}/identificar-imagen`, '_self')}
+                                                                                                onClick={() => setActiveView(`identificar-${ticket.id}`)}
                                                                                             >
                                                                                                 <i className="fas fa-camera me-2"></i>
                                                                                                 Analizar Imagen
@@ -2115,6 +2156,7 @@ export function SupervisorPage() {
                                                                                                     ? "Ticket escalado - Reasignar analista"
                                                                                                     : "Asignar analista"
                                                                                             }
+                                                                                            disabled={!(ticket.estado === 'en_espera' || ticket.estado === 'reabierto')}
                                                                                         >
                                                                                             <i className="fas fa-user-plus"></i>
                                                                                         </button>
@@ -2124,6 +2166,7 @@ export function SupervisorPage() {
                                                                                                     <button
                                                                                                         className="dropdown-item"
                                                                                                         onClick={() => asignarTicket(ticket.id, analista.id)}
+                                                                                                        disabled={!(ticket.estado === 'en_espera' || ticket.estado === 'reabierto')}
                                                                                                     >
                                                                                                         <i className="fas fa-user me-2"></i>
                                                                                                         {analista.nombre} {analista.apellido}
@@ -2219,7 +2262,7 @@ export function SupervisorPage() {
                                                                                                 className="btn btn-sidebar-accent flex-fill"
                                                                                                 style={{ minWidth: '120px' }}
                                                                                                 title="Ver y agregar comentarios"
-                                                                                                onClick={() => window.open(`/ticket/${ticket.id}/comentarios`, '_self')}
+                                                                                                onClick={() => setActiveView(`comentarios-${ticket.id}`)}
                                                                                             >
                                                                                                 <i className="fas fa-comments me-2"></i>
                                                                                                 Comentarios
@@ -2228,7 +2271,7 @@ export function SupervisorPage() {
                                                                                                 className="btn btn-sidebar-secondary flex-fill"
                                                                                                 style={{ minWidth: '120px' }}
                                                                                                 title="Chat con analista"
-                                                                                                onClick={() => window.open(`/ticket/${ticket.id}/chat`, '_self')}
+                                                                                                onClick={() => setActiveView(`chat-${ticket.id}`)}
                                                                                             >
                                                                                                 <i className="fas fa-comments me-2"></i>
                                                                                                 Chat
@@ -2257,7 +2300,7 @@ export function SupervisorPage() {
                                                                                                     <li>
                                                                                                         <button
                                                                                                             className="dropdown-item"
-                                                                                                            onClick={() => window.open(`/ticket/${ticket.id}/identificar-imagen`, '_self')}
+                                                                                                            onClick={() => setActiveView(`identificar-${ticket.id}`)}
                                                                                                         >
                                                                                                             <i className="fas fa-camera me-2"></i>
                                                                                                             Analizar Imagen
@@ -2705,6 +2748,38 @@ export function SupervisorPage() {
                                 onBack={() => setActiveView('tickets')}
                             />
                         </>
+                    )}
+
+                    {/* Comentarios View */}
+                    {activeView.startsWith('comentarios-') && (
+                        <ComentariosTicketEmbedded
+                            ticketId={parseInt(activeView.split('-')[1])}
+                            onBack={() => setActiveView('tickets')}
+                        />
+                    )}
+
+                    {/* Chat View */}
+                    {activeView.startsWith('chat-') && (
+                        <ChatAnalistaClienteEmbedded
+                            ticketId={parseInt(activeView.split('-')[1])}
+                            onBack={() => setActiveView('tickets')}
+                        />
+                    )}
+
+                    {/* Recomendación IA View */}
+                    {activeView.startsWith('recomendacion-') && (
+                        <RecomendacionVistaEmbedded
+                            ticketId={parseInt(activeView.split('-')[1])}
+                            onBack={() => setActiveView('tickets')}
+                        />
+                    )}
+
+                    {/* Identificar Imagen View */}
+                    {activeView.startsWith('identificar-') && (
+                        <IdentificarImagenEmbedded
+                            ticketId={parseInt(activeView.split('-')[1])}
+                            onBack={() => setActiveView('tickets')}
+                        />
                     )}
 
                     {/* Profile View */}
