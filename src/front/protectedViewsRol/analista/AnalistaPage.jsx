@@ -6,6 +6,7 @@ import VerTicketHDanalista from './verTicketHDanalista';
 import { tokenUtils } from '../../store';
 import ComentariosTicketEmbedded from '../../components/ComentariosTicketEmbedded';
 import ChatAnalistaClienteEmbedded from '../../components/ChatAnalistaClienteEmbedded';
+import ChatSupervisorAnalistaEmbedded from '../../components/ChatSupervisorAnalistaEmbedded';
 import RecomendacionVistaEmbedded from '../../components/RecomendacionVistaEmbedded';
 import IdentificarImagenEmbedded from '../../components/IdentificarImagenEmbedded';
 
@@ -195,6 +196,22 @@ function AnalistaPage() {
         }
         setModalTicketId(ticketId);
         setActiveView(`chat-${ticketId}`);
+    };
+
+    const openSupervisorChat = (ticketId) => {
+        try {
+            const socket = store.websocket.socket;
+            if (socket && joinChatSupervisorAnalista) {
+                joinChatSupervisorAnalista(socket, ticketId);
+            }
+            if (socket && joinTicketRoom) {
+                joinTicketRoom(socket, ticketId);
+            }
+        } catch (e) {
+            /* Silently ignore */
+        }
+        setModalTicketId(ticketId);
+        setActiveView(`supervisor-chat-${ticketId}`);
     };
 
     const openVerHD = (ticketId) => {
@@ -505,7 +522,12 @@ function AnalistaPage() {
             <SideBarCentral
                 sidebarHidden={sidebarHidden}
                 activeView={activeView}
-                changeView={setActiveView}
+                changeView={(view) => {
+                    setActiveView(view);
+                    if (view === 'dashboard' || view === 'tickets' || view === 'profile') {
+                        setModalTicketId(null);
+                    }
+                }}
             />
             <div className={`hyper-main-content flex-grow-1 ${sidebarHidden ? 'sidebar-hidden' : ''}`}>
                 <header className="hyper-header bg-white border-bottom p-3">
@@ -1131,6 +1153,13 @@ function AnalistaPage() {
                                                                                 >
                                                                                     <i className="fas fa-comments"></i>
                                                                                 </button>
+                                                                                <button
+                                                                                    className="btn btn-sidebar-warning btn-sm"
+                                                                                    title="Chat con supervisor"
+                                                                                    onClick={() => openSupervisorChat(ticket.id)}
+                                                                                >
+                                                                                    <i className="fas fa-user-tie"></i>
+                                                                                </button>
                                                                                 <div className="btn-group" role="group">
                                                                                     <button
                                                                                         className="btn btn-sidebar-primary btn-sm dropdown-toggle"
@@ -1487,8 +1516,74 @@ function AnalistaPage() {
                         </div>
                     </>
                 )}
+
+                {/* Comentarios View */}
+                {
+                    activeView.startsWith('comentarios-') && modalTicketId && (
+                        <ComentariosTicketEmbedded
+                            ticketId={modalTicketId}
+                            onBack={() => {
+                                setActiveView('tickets');
+                                setModalTicketId(null);
+                            }}
+                        />
+                    )
+                }
+
+                {/* Chat View */}
+                {
+                    activeView.startsWith('chat-') && modalTicketId && (
+                        <ChatAnalistaClienteEmbedded
+                            ticketId={modalTicketId}
+                            onBack={() => {
+                                setActiveView('tickets');
+                                setModalTicketId(null);
+                            }}
+                        />
+                    )
+                }
+
+                {/* Supervisor Chat View */}
+                {
+                    activeView.startsWith('supervisor-chat-') && modalTicketId && (
+                        <ChatSupervisorAnalistaEmbedded
+                            ticketId={modalTicketId}
+                            onBack={() => {
+                                setActiveView('tickets');
+                                setModalTicketId(null);
+                            }}
+                        />
+                    )
+                }
+
+                {/* Recomendación IA View */}
+                {
+                    activeView.startsWith('recomendacion-') && modalTicketId && (
+                        <RecomendacionVistaEmbedded
+                            ticketId={modalTicketId}
+                            onBack={() => {
+                                setActiveView('tickets');
+                                setModalTicketId(null);
+                            }}
+                        />
+                    )
+                }
+
+                {/* Identificar Imagen View */}
+                {
+                    activeView.startsWith('identificar-') && modalTicketId && (
+                        <IdentificarImagenEmbedded
+                            ticketId={modalTicketId}
+                            onBack={() => {
+                                setActiveView('tickets');
+                                setModalTicketId(null);
+                            }}
+                        />
+                    )
+                }
             </div>
-            {modalTicketId && (
+
+            {modalTicketId && !activeView.startsWith('chat-') && !activeView.startsWith('supervisor-chat-') && !activeView.startsWith('comentarios-') && !activeView.startsWith('recomendacion-') && !activeView.startsWith('identificar-') && (
                 <div className="analista-modal-overlay">
                     <div className="analista-modal-content">
                         <button className="btn btn-sm btn-outline-secondary mb-2" onClick={() => setModalTicketId(null)}>Cerrar</button>
@@ -1496,66 +1591,6 @@ function AnalistaPage() {
                     </div>
                 </div>
             )}
-
-            {/* Comentarios View */}
-            {
-                activeView.startsWith('comentarios-') && modalTicketId && (
-                    <div className="analista-modal-overlay">
-                        <div className="analista-modal-content">
-                            <button className="btn btn-sm btn-outline-secondary mb-2" onClick={() => setModalTicketId(null)}>Cerrar</button>
-                            <ComentariosTicketEmbedded
-                                ticketId={modalTicketId}
-                                onBack={() => setModalTicketId(null)}
-                            />
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* Chat View */}
-            {
-                activeView.startsWith('chat-') && modalTicketId && (
-                    <div className="analista-modal-overlay">
-                        <div className="analista-modal-content">
-                            <button className="btn btn-sm btn-outline-secondary mb-2" onClick={() => setModalTicketId(null)}>Cerrar</button>
-                            <ChatAnalistaClienteEmbedded
-                                ticketId={modalTicketId}
-                                onBack={() => setModalTicketId(null)}
-                            />
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* Recomendación IA View */}
-            {
-                activeView.startsWith('recomendacion-') && modalTicketId && (
-                    <div className="analista-modal-overlay">
-                        <div className="analista-modal-content">
-                            <button className="btn btn-sm btn-outline-secondary mb-2" onClick={() => setModalTicketId(null)}>Cerrar</button>
-                            <RecomendacionVistaEmbedded
-                                ticketId={modalTicketId}
-                                onBack={() => setModalTicketId(null)}
-                            />
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* Identificar Imagen View */}
-            {
-                activeView.startsWith('identificar-') && modalTicketId && (
-                    <div className="analista-modal-overlay">
-                        <div className="analista-modal-content">
-                            <button className="btn btn-sm btn-outline-secondary mb-2" onClick={() => setModalTicketId(null)}>Cerrar</button>
-                            <IdentificarImagenEmbedded
-                                ticketId={modalTicketId}
-                                onBack={() => setModalTicketId(null)}
-                            />
-                        </div>
-                    </div>
-                )
-            }
         </div>
     );
 }

@@ -90,7 +90,9 @@ function ClientePage() {
     const actualizarTickets = async () => {
         try {
             const token = store.auth.token;
-            const ticketsResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente`, {
+            // Forzar petición fresca sin cache
+            const ticketsResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/cliente?t=${Date.now()}`, {
+                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -99,12 +101,13 @@ function ClientePage() {
             if (ticketsResponse.ok) {
                 const ticketsData = await ticketsResponse.json();
                 setTickets(ticketsData);
+                console.log(`📋 Cliente - Tickets cargados: ${ticketsData.length} tickets`);
 
                 // Limpiar solicitudes de reapertura para tickets que ya no estÃ¡n en estado 'solucionado'
                 setSolicitudesReapertura(prev => {
                     const newSet = new Set();
                     ticketsData.forEach(ticket => {
-                        if (ticket.estado.toLowerCase() === 'solucionado' && prev.has(ticket.id)) {
+                        if (ticket.estado && ticket.estado.toLowerCase() === 'solucionado' && prev.has(ticket.id)) {
                             newSet.add(ticket.id);
                         }
                     });
@@ -112,8 +115,8 @@ function ClientePage() {
                 });
             }
         } catch (err) {
-            setFeedback("Error al actualizar la lista");
-            setTimeout(() => setFeedback(""), 2000);
+            setError("Error al actualizar la lista");
+            setTimeout(() => setError(""), 2000);
             console.error('Error al actualizar tickets:', err);
         }
     };
@@ -195,6 +198,20 @@ function ClientePage() {
                 actualizarTickets();
             };
 
+            const handleTicketEstadoChanged = (data) => {
+                console.log('🔄 CLIENTE - ESTADO DE TICKET CAMBIADO:', data);
+                // Si el ticket cambió a solucionado, hacer actualización agresiva
+                if (data.estado === 'solucionado' || data.ticket_estado === 'solucionado') {
+                    console.log('🎯 CLIENTE - TICKET SOLUCIONADO DETECTADO EN ESTADO_CHANGED');
+                    actualizarTickets();
+                    setTimeout(() => {
+                        actualizarTickets();
+                    }, 1000);
+                } else {
+                    actualizarTickets();
+                }
+            };
+
             const handleComentarioUpdate = (data) => {
                 console.log('💬 CLIENTE - NUEVO COMENTARIO:', data);
                 actualizarTickets();
@@ -212,7 +229,18 @@ function ClientePage() {
 
             const handleTicketSolucionado = (data) => {
                 console.log('✅ CLIENTE - TICKET SOLUCIONADO:', data);
+                // Actualización inmediata y agresiva
                 actualizarTickets();
+
+                // Forzar actualización adicional después de un breve delay
+                setTimeout(() => {
+                    actualizarTickets();
+                }, 1000);
+
+                // Emitir evento para notificar a otros componentes
+                window.dispatchEvent(new CustomEvent('ticket_solucionado_cliente', {
+                    detail: { ...data, source: 'cliente_websocket' }
+                }));
             };
 
             const handleTicketCerrado = (data) => {
@@ -252,6 +280,7 @@ function ClientePage() {
 
             // Agregar listeners específicos
             socket.on('ticket_actualizado', handleTicketUpdate);
+            socket.on('ticket_estado_changed', handleTicketEstadoChanged);
             socket.on('nuevo_comentario', handleComentarioUpdate);
             socket.on('ticket_asignado', handleTicketAsignado);
             socket.on('ticket_escalado', handleTicketEscalado);
@@ -265,6 +294,7 @@ function ClientePage() {
             // Cleanup al desmontar
             return () => {
                 socket.off('ticket_actualizado', handleTicketUpdate);
+                socket.off('ticket_estado_changed', handleTicketEstadoChanged);
                 socket.off('nuevo_comentario', handleComentarioUpdate);
                 socket.off('ticket_asignado', handleTicketAsignado);
                 socket.off('ticket_escalado', handleTicketEscalado);
@@ -276,7 +306,7 @@ function ClientePage() {
                 socket.off('nuevo_ticket', handleNuevoTicket);
             };
         }
-    }, [store.auth.user, store.websocket.connected]);
+    }, [store.auth.user, store.websocket.connected, tickets.length]);
 
     // Efecto para manejar sincronizaciÃ³n manual desde Footer
     useEffect(() => {
@@ -377,12 +407,30 @@ function ClientePage() {
             }
 
             // Actualización ULTRA RÁPIDA para todos los eventos críticos
-            if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado' || lastNotification.tipo === 'creado') {
-                // Los datos ya están en el store por el WebSocket - actualización instantánea
-            }
+            if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado' || lastNotification.tipo === 'creado' || lastNotification.tipo === 'solucionado') {
+                console.log('🚀 CLIENTE - EVENTO CRÍTICO DETECTADO:', lastNotification.tipo);
 
-            // Sincronización ULTRA RÁPIDA con servidor para TODOS los eventos
-            actualizarTickets();
+                // Para tickets solucionados, hacer múltiples actualizaciones
+                if (lastNotification.tipo === 'solucionado') {
+                    console.log('🎯 CLIENTE - TICKET SOLUCIONADO DETECTADO EN NOTIFICACIONES');
+                    // Actualización inmediata
+                    actualizarTickets();
+                    // Actualización adicional después de un delay
+                    setTimeout(() => {
+                        actualizarTickets();
+                    }, 500);
+                    // Actualización final después de otro delay
+                    setTimeout(() => {
+                        actualizarTickets();
+                    }, 1500);
+                } else {
+                    // Los datos ya están en el store por el WebSocket - actualización instantánea
+                    actualizarTickets();
+                }
+            } else {
+                // Sincronización ULTRA RÁPIDA con servidor para TODOS los eventos
+                actualizarTickets();
+            }
         }
     }, [store.websocket.notifications]);
 
@@ -719,12 +767,34 @@ function ClientePage() {
         try {
             const token = store.auth.token;
 
-            // Agregar a solicitudes pendientes para mostrar el mensaje
-            setSolicitudesReapertura(prev => {
-                const newSet = new Set(prev);
-                newSet.add(ticketId);
-                return newSet;
+            // Debug: Verificar el estado actual del ticket
+            const ticket = tickets.find(t => t.id === ticketId);
+            console.log('🔍 DEBUG - Estado del ticket antes de solicitar reapertura:', {
+                ticketId,
+                estado: ticket?.estado,
+                estadoLower: ticket?.estado?.toLowerCase()
             });
+
+            // Debug: Llamar al endpoint de debug del backend
+            try {
+                const debugResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/debug`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (debugResponse.ok) {
+                    const debugData = await debugResponse.json();
+                    console.log('🔍 DEBUG BACKEND - Información del ticket:', debugData);
+                    console.log('🔍 DEBUG BACKEND - Validaciones de transición:', debugData.validacion_transicion);
+                }
+            } catch (debugErr) {
+                console.log('⚠️ No se pudo obtener debug del backend:', debugErr);
+            }
+
+            const requestBody = { estado: 'solicitud_reapertura' };
+            console.log('🔍 DEBUG - Enviando al backend:', requestBody);
 
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
                 method: 'PUT',
@@ -732,16 +802,22 @@ function ClientePage() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ estado: 'solicitud_reapertura' })  // Backend ahora maneja la solicitud de reapertura
+                body: JSON.stringify(requestBody)
             });
 
-            if (!response.ok) {
-                // Si hay error, remover de solicitudes pendientes
+            if (response.ok) {
+                // Solo agregar a solicitudes pendientes si la petición fue exitosa
                 setSolicitudesReapertura(prev => {
                     const newSet = new Set(prev);
-                    newSet.delete(ticketId);
+                    newSet.add(ticketId);
                     return newSet;
                 });
+
+                // Actualizar tickets sin recargar la pÃ¡gina
+                await actualizarTickets();
+
+                alert('Solicitud de reapertura enviada. El supervisor revisará tu solicitud.');
+            } else {
                 // Capturar el mensaje de error específico del backend
                 const errorData = await response.json();
                 const errorMessage = errorData.message || 'Error al solicitar reapertura';
@@ -750,126 +826,15 @@ function ClientePage() {
                 console.error('Response data:', errorData);
                 throw new Error(errorMessage);
             }
-
-            // Actualizar tickets sin recargar la pÃ¡gina
-            await actualizarTickets();
-
-            // NO remover de solicitudes pendientes - el mensaje debe permanecer hasta que el supervisor apruebe
-            // El mensaje se removerá cuando el ticket cambie a estado 'reabierto' por el supervisor
-
-            alert('Solicitud de reapertura enviada. El supervisor revisará tu solicitud.');
         } catch (err) {
             setError(err.message);
         }
     };
 
-    const debugTicket = async (ticketId) => {
-        try {
-            const token = store.auth.token;
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/debug`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('🔍 DEBUG TICKET:', data);
-                console.log('🔍 VALIDACION TRANSICION:', data.validacion_transicion);
-                return data;
-            } else {
-                console.error('Error en debug:', await response.text());
-            }
-        } catch (err) {
-            console.error('Error al hacer debug:', err);
-        }
-    };
-
-    const testReapertura = async (ticketId) => {
-        try {
-            const token = store.auth.token;
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/test-reapertura`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('🧪 TEST REAPERTURA EXITOSO:', data);
-                return data;
-            } else {
-                const errorData = await response.json();
-                console.error('🧪 TEST REAPERTURA ERROR:', errorData);
-                return errorData;
-            }
-        } catch (err) {
-            console.error('Error al probar reapertura:', err);
-        }
-    };
 
     const reabrirTicket = async (ticketId) => {
-        try {
-            // Primero hacer debug del ticket
-            await debugTicket(ticketId);
-
-            // Probar la lógica de reapertura directamente
-            const testResult = await testReapertura(ticketId);
-            if (testResult && testResult.message === "Solicitud de reapertura procesada exitosamente") {
-                console.log('✅ Solicitud de reapertura procesada exitosamente');
-                await actualizarTickets();
-                alert('Solicitud de reapertura enviada. El supervisor revisará tu solicitud.');
-                return;
-            }
-
-            const token = store.auth.token;
-
-            // Agregar a solicitudes pendientes para mostrar el mensaje
-            setSolicitudesReapertura(prev => {
-                const newSet = new Set(prev);
-                newSet.add(ticketId);
-                return newSet;
-            });
-
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ estado: 'solicitud_reapertura' })  // Backend ahora maneja la solicitud de reapertura
-            });
-
-            if (!response.ok) {
-                // Si hay error, remover de solicitudes pendientes
-                setSolicitudesReapertura(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(ticketId);
-                    return newSet;
-                });
-                // Capturar el mensaje de error específico del backend
-                const errorData = await response.json();
-                const errorMessage = errorData.message || 'Error al solicitar reapertura';
-                console.error('Error del servidor:', errorMessage);
-                console.error('Response status:', response.status);
-                console.error('Response data:', errorData);
-                throw new Error(errorMessage);
-            }
-
-            // Actualizar tickets sin recargar la pÃ¡gina
-            await actualizarTickets();
-
-            // NO remover de solicitudes pendientes - el mensaje debe permanecer hasta que el supervisor apruebe
-            // El mensaje se removerá cuando el ticket cambie a estado 'reabierto' por el supervisor
-
-            alert('Solicitud de reapertura enviada. El supervisor revisará tu solicitud.');
-        } catch (err) {
-            setError(err.message);
-        }
+        // Usar la función principal de solicitar reapertura
+        await solicitarReapertura(ticketId);
     };
 
     // FunciÃ³n para actualizar informaciÃ³n del cliente
@@ -1339,9 +1304,9 @@ function ClientePage() {
                                                             </small>
                                                         </div>
                                                         <div className="ms-2">
-                                                            <span className={`badge ${ticket.estado.toLowerCase() === 'solucionado' ? 'bg-success' :
-                                                                ticket.estado.toLowerCase() === 'en_proceso' ? 'bg-warning' :
-                                                                    ticket.estado.toLowerCase() === 'en_espera' ? 'bg-info' :
+                                                            <span className={`badge ${ticket.estado && ticket.estado.toLowerCase() === 'solucionado' ? 'bg-success' :
+                                                                ticket.estado && ticket.estado.toLowerCase() === 'en_proceso' ? 'bg-warning' :
+                                                                    ticket.estado && ticket.estado.toLowerCase() === 'en_espera' ? 'bg-info' :
                                                                         'bg-primary'
                                                                 }`}>
                                                                 {ticket.estado}
@@ -1363,12 +1328,8 @@ function ClientePage() {
                                 onClick={async () => {
                                     try {
                                         console.log('🔄 Iniciando sincronización desde ClientePage...');
-                                        await startRealtimeSync({
-                                            syncTypes: ['tickets', 'comentarios'],
-                                            syncInterval: 5000,
-                                            enablePolling: true,
-                                            userData: userData
-                                        });
+                                        // Llamar a actualizarTickets para recargar los datos
+                                        await actualizarTickets();
                                         console.log('✅ Sincronización completada desde ClientePage');
                                     } catch (error) {
                                         console.error('❌ Error en sincronización desde ClientePage:', error);
@@ -1702,8 +1663,8 @@ function ClientePage() {
                                                                     <td className="text-center">
                                                                         <span className="d-flex align-items-center justify-content-center gap-2">
                                                                             <span
-                                                                                className={`rounded-circle d-inline-block ${ticket.estado.toLowerCase() === 'solucionado' ? 'dot-estado-solucionado' :
-                                                                                    ticket.estado.toLowerCase() === 'en_proceso' ? 'dot-estado-en-proceso' :
+                                                                                className={`rounded-circle d-inline-block ${ticket.estado && ticket.estado.toLowerCase() === 'solucionado' ? 'dot-estado-solucionado' :
+                                                                                    ticket.estado && ticket.estado.toLowerCase() === 'en_proceso' ? 'dot-estado-en-proceso' :
                                                                                         'dot-ct-blue'
                                                                                     }`}
                                                                             ></span>
@@ -1993,9 +1954,9 @@ function ClientePage() {
                                                                     <td className="text-center px-3">
                                                                         <span className="d-flex align-items-center justify-content-center gap-2">
                                                                             <span
-                                                                                className={`rounded-circle d-inline-block ${ticket.estado.toLowerCase() === 'solucionado' ? 'dot-estado-solucionado' :
-                                                                                    ticket.estado.toLowerCase() === 'en_proceso' ? 'dot-estado-en-proceso' :
-                                                                                        ticket.estado.toLowerCase() === 'en_espera' ? 'dot-estado-en-espera' :
+                                                                                className={`rounded-circle d-inline-block ${ticket.estado && ticket.estado.toLowerCase() === 'solucionado' ? 'dot-estado-solucionado' :
+                                                                                    ticket.estado && ticket.estado.toLowerCase() === 'en_proceso' ? 'dot-estado-en-proceso' :
+                                                                                        ticket.estado && ticket.estado.toLowerCase() === 'en_espera' ? 'dot-estado-en-espera' :
                                                                                             'dot-ct-blue'
                                                                                     }`}
                                                                             ></span>
@@ -2715,7 +2676,7 @@ function ClientePage() {
                                                         </td>
                                                         <td>
                                                             <div className="btn-group" role="group">
-                                                                {ticket.estado.toLowerCase() === 'solucionado' && !solicitudesReapertura.has(ticket.id) && (
+                                                                {ticket.estado && ticket.estado.toLowerCase() === 'solucionado' && !solicitudesReapertura.has(ticket.id) && (
                                                                     <>
                                                                         <button
                                                                             className="btn btn-success btn-sm"
@@ -2733,7 +2694,7 @@ function ClientePage() {
                                                                         </button>
                                                                     </>
                                                                 )}
-                                                                {ticket.estado.toLowerCase() === 'solucionado' && solicitudesReapertura.has(ticket.id) && (
+                                                                {ticket.estado && ticket.estado.toLowerCase() === 'solucionado' && solicitudesReapertura.has(ticket.id) && (
                                                                     <div className="alert alert-warning py-2 px-3 mb-0" role="alert">
                                                                         <i className="fas fa-clock me-1"></i>
                                                                         <strong>Solicitud enviada</strong>

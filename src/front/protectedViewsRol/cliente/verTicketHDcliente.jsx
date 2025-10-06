@@ -52,12 +52,13 @@ export const VerTicketHDCliente = ({ ticketId, tickets, ticketsConRecomendacione
     const solicitarReapertura = async (ticketId) => {
         try {
             const token = store.auth.token;
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/solicitar-reapertura`, {
-                method: 'POST',
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
+                method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({ estado: 'solicitud_reapertura' })
             });
 
             if (response.ok) {
@@ -244,7 +245,7 @@ export const VerTicketHDCliente = ({ ticketId, tickets, ticketsConRecomendacione
                                     <h6 className="fw-semibold mb-2">Fecha de Creación</h6>
                                     <p className="mb-0 text-muted">
                                         <i className="fas fa-calendar-alt me-2"></i>
-                                        {storeUtils.formatDate(ticket.fecha_creacion)}
+                                        {new Date(ticket.fecha_creacion).toLocaleString()}
                                     </p>
                                 </div>
                             </div>
@@ -255,7 +256,7 @@ export const VerTicketHDCliente = ({ ticketId, tickets, ticketsConRecomendacione
                                         <h6 className="fw-semibold mb-2">Fecha de Solución</h6>
                                         <p className="mb-0 text-success">
                                             <i className="fas fa-check-circle me-2"></i>
-                                            {storeUtils.formatDate(ticket.fecha_solucion)}
+                                            {new Date(ticket.fecha_solucion).toLocaleString()}
                                         </p>
                                     </div>
                                     <div className="col-md-6">
@@ -463,7 +464,7 @@ export const VerTicketHDCliente = ({ ticketId, tickets, ticketsConRecomendacione
                                     <div className="timeline-marker bg-primary"></div>
                                     <div className="timeline-content">
                                         <h6 className="fw-semibold">Ticket Creado</h6>
-                                        <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_creacion)}</p>
+                                        <p className="text-muted mb-1">{new Date(ticket.fecha_creacion).toLocaleString()}</p>
                                         <p className="mb-0">El ticket fue creado y está esperando asignación.</p>
                                     </div>
                                 </div>
@@ -484,7 +485,7 @@ export const VerTicketHDCliente = ({ ticketId, tickets, ticketsConRecomendacione
                                         <div className="timeline-marker bg-success"></div>
                                         <div className="timeline-content">
                                             <h6 className="fw-semibold">Ticket Solucionado</h6>
-                                            <p className="text-muted mb-1">{storeUtils.formatDate(ticket.fecha_solucion)}</p>
+                                            <p className="text-muted mb-1">{new Date(ticket.fecha_solucion).toLocaleString()}</p>
                                             <p className="mb-0">El ticket ha sido resuelto exitosamente.</p>
                                         </div>
                                     </div>
