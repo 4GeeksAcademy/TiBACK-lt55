@@ -26,7 +26,8 @@ export const LandNavbar = () => {
     const role = tokenUtils.getRole(token);
     const navigate = useNavigate();
 
-    const goToFeature = () => {
+    const goToFeature = (e) => {
+        e.preventDefault();
         navigate("/"); // vuelve a la raíz
         setTimeout(() => {
             const feature = document.getElementById("feature");
@@ -35,7 +36,8 @@ export const LandNavbar = () => {
             }
         }, 300); // da tiempo a que la raíz cargue
     };
-    const goToDesigns = () => {
+    const goToDesigns = (e) => {
+        e.preventDefault();
         navigate("/"); // vuelve a la raíz
         setTimeout(() => {
             const feature = document.getElementById("layout");
@@ -44,7 +46,8 @@ export const LandNavbar = () => {
             }
         }, 300); // da tiempo a que la raíz cargue
     };
-    const goToQuestion = () => {
+    const goToQuestion = (e) => {
+        e.preventDefault();
         navigate("/"); // vuelve a la raíz
         setTimeout(() => {
             const feature = document.getElementById("question");
@@ -69,10 +72,10 @@ export const LandNavbar = () => {
                 <div className="collapse navbar-collapse" id="navbarContent">
                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                         <li className="nav-item ms-4"><Link className="nav-link active text-white" to="/">Inicio</Link></li>
-                        <li className="nav-item ms-4"><a className="nav-link text-white-50" onClick={goToDesigns}>Diseños</a></li>
-                        <li className="nav-item ms-4"><a className="nav-link text-white-50" onClick={goToFeature}>Características</a></li>
+                        <li className="nav-item ms-4"><a className="nav-link text-white-50" href="#layout" onClick={goToDesigns}>Diseños</a></li>
+                        <li className="nav-item ms-4"><a className="nav-link text-white-50" href="#feature" onClick={goToFeature}>Características</a></li>
                         {/* <li className="nav-item ms-4"><a className="nav-link text-white-50" href="#price">Precios</a></li> */}
-                        <li className="nav-item ms-4"><a className="nav-link text-white-50" onClick={goToQuestion}>Preguntas Frecuentes</a></li>
+                        <li className="nav-item ms-4"><a className="nav-link text-white-50" href="#question" onClick={goToQuestion}>Preguntas Frecuentes</a></li>
                         <li className="nav-item ms-4"><Link className="nav-link text-white-50" to="/contact">Contacto</Link></li>
                     </ul>
                     <div className="d-flex">

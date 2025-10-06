@@ -11,17 +11,18 @@ const Layout = () => {
   const location = useLocation(); // Hook para saber en qué ruta estamos
 
   // Verificamos las rutas
-  const navbarmain = 
-  location.pathname === "/" || 
-  location.pathname === "/contact" ||
-  location.pathname === "/feature/apps" ||
-  location.pathname === "/feature/design";
+  const isLandingPage = location.pathname === "/";
+  const isContactPage = location.pathname === "/contact";
+  const isFeaturePage = location.pathname === "/feature/apps" || location.pathname === "/feature/design";
+  const isAuthPage = location.pathname === "/auth";
 
-  const footermain = 
-  location.pathname === "/cliente" ||
-  location.pathname === "/analista" ||
-  location.pathname === "/supervisor" || 
-  location.pathname === "/administrador";
+  const navbarmain = isLandingPage || isContactPage || isFeaturePage;
+
+  const footermain =
+    location.pathname === "/cliente" ||
+    location.pathname === "/analista" ||
+    location.pathname === "/supervisor" ||
+    location.pathname === "/administrador";
 
   // Verificamos si es una vista privada de roles o gestión
   const isPrivateRoleView = location.pathname.startsWith("/cliente") ||
@@ -38,19 +39,27 @@ const Layout = () => {
     location.pathname.startsWith("/gestiones") ||
     location.pathname.startsWith("/dashboard-calidad");
 
-  // Elegimos qué navbar mostrar
-  const NavbarToShow =
-    isLandingPage || ContactView
-      ? <LandNavbar />
-      : home || isPrivateRoleView
-        ? <Navbar />
-        : isAuthPage
-          ? null // No mostrar navbar en login
-          : <LandNavbar />;
-    navbarmain ? <LandNavbar /> :  "";
+  // Verificamos si es una vista de administrador (solo administrador ve el navbar)
+  const isAdminView = location.pathname.startsWith("/administrador") ||
+    location.pathname.startsWith("/administradores") ||
+    location.pathname.startsWith("/analistas") ||
+    location.pathname.startsWith("/supervisores") ||
+    location.pathname.startsWith("/clientes") ||
+    location.pathname.startsWith("/tickets") ||
+    location.pathname.startsWith("/comentarios") ||
+    location.pathname.startsWith("/asignaciones") ||
+    location.pathname.startsWith("/gestiones") ||
+    location.pathname.startsWith("/dashboard-calidad");
 
-  const FooterToShow =
-    navbarmain ? <LandFooter /> : footermain ? <Footer /> : "" ;
+  // Verificamos si es una vista de supervisor, analista o cliente (no mostrar navbar)
+  const isRoleView = location.pathname.startsWith("/supervisor") ||
+    location.pathname.startsWith("/analista") ||
+    location.pathname.startsWith("/cliente");
+
+  // Elegimos qué navbar mostrar
+  const NavbarToShow = navbarmain ? <LandNavbar /> : isAdminView ? <Navbar /> : isRoleView ? null : isAuthPage ? null : <LandNavbar />;
+
+  const FooterToShow = navbarmain ? <LandFooter /> : footermain ? <Footer /> : null;
 
   return (
     <>
