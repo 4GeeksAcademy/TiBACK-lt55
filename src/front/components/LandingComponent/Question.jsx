@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 
 export const Question = () => {
 
@@ -12,8 +13,8 @@ export const Question = () => {
                             </h1>
                             <h3 className="text-muted">Preguntas <span className="text-primary">Frecuentes</span></h3>
                             <p className="text-muted mt-3">A continuación, se presentan algunos tipos básicos de preguntas para nuestros clientes. Para más información,<br />para más información póngase en contacto con nosotros.</p>
-                            <button type="button" className="btn btn-lg btn-success-default text-white btn-sm mt-2 text-muted"><i className="fa-regular fa-envelope fa-sm"></i> Envíanos tu pregunta por correo electrónico</button>
-                            <button type="button" className="btn btn-lg btn-info-default text-white btn-sm mt-2 ms-1 text-muted"><i className="fa-brands fa-twitter fa-sm"></i> Envíanos un tweet</button>
+                            <Link type="button" className="btn btn-lg btn-success-default btn-sm mt-2 text-white" to="/contact"><i className="fa-regular fa-envelope fa-sm"></i> Envíanos tu pregunta por correo electrónico</Link>
+                            {/* <button type="button" className="btn btn-lg btn-info-default text-white btn-sm mt-2 ms-1 text-muted"><i className="fa-brands fa-twitter fa-sm"></i> Envíanos un tweet</button> */}
                         </div>
                     </div>
                 </div>

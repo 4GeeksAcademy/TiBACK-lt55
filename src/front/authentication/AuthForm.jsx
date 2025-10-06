@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 import GoogleMapsLocation from '../components/GoogleMapsLocation';
 import TiBACKLogo from '../assets/img/TiBACK-logo.png';
+import { Link } from 'react-router-dom';
 
 export function AuthForm() {
     const [searchParams] = useSearchParams();
@@ -272,11 +273,16 @@ export function AuthForm() {
                         </form>
 
                         <div className="text-center text-muted mt-3">
-                            <button type="button" className="btn btn-link link-secondary my-5" onClick={toggleMode}>
+                            <button type="button" className="btn btn-link link-secondary mt-5" onClick={toggleMode}>
                                 {isLogin
                                     ? '¿No tienes cuenta? Regístrate aquí'
                                     : '¿Ya tienes cuenta? Inicia sesión aquí'}
                             </button>
+                        </div>
+                        <div className="text-center text-muted">
+                            <Link to="/" className="btn btn-link link-secondary">
+                                    Volver Atras
+                            </Link>
                         </div>
                     </div>
                 </div>

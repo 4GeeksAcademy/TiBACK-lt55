@@ -137,12 +137,11 @@ export const SideBarCentral = ({ sidebarHidden, activeView, changeView }) => {
 
     return (
         <div className={`hyper-sidebar ${sidebarHidden ? 'hidden' : ''} overflow-auto`} data-hidden={sidebarHidden}>
+
+            
             <div className="hyper-sidebar-header p-4">
-                <a href="#" className="hyper-logo d-flex align-items-center gap-2 text-decoration-none">
-                    <i className="fas fa-ticket-alt fs-4"></i>
-                    {!sidebarHidden && <span className="fw-bold">TiBACK</span>}
-                </a>
-            </div>
+                <img src="https://res.cloudinary.com/mystoreimg/image/upload/v1759679927/fsq6shibpipmssroqwe4.png" className="w-default-logo" />
+            </div> 
 
             <nav className="p-3">
                 <div className="mb-4">

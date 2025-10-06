@@ -1,58 +1,67 @@
+import React, { useState } from "react";
+import useGlobalReducer from "../../hooks/useGlobalReducer";
 
 export const Layout = () => {
-    
+    const { store } = useGlobalReducer();
+    // Estado que controla qué imagen se muestra en el modal
+    const [selectedImage, setSelectedImage] = useState(null);
+
+    // Cierra el modal
+    const closeModal = () => setSelectedImage(null);
+
     return (
         <section className="py-5 bg-light-lighten border-top border-bottom border-light">
-                <div className="container">
-                    <div className="row">
-                        <div className="col-lg-12">
-                            <div className="text-center">
-                                <h3 className="text-muted">Diseños <span className="text-primary">Flexibles</span>
-                                </h3>
-                                <p className="text-muted mt-2">Hay tres opciones de diseño diferentes disponibles para satisfacer las necesidades de cualquier <br /> aplicación web moderna.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-1 row">
-                        <div className="col-lg-4 col-md-6">
-                            <div className="demo-box text-center mt-3">
-                                <img alt="" className="img-fluid shadow-sm rounded" src="https://picsum.photos/id/1/500/400" />
-                                <h5 className="mt-3 f-17 text-muted">Diseño Vertical</h5>
-                            </div>
-                        </div>
-                        <div className="col-lg-4 col-md-6">
-                            <div className="demo-box text-center mt-3">
-                                <img alt="" className="img-fluid shadow-sm rounded" src="https://picsum.photos/id/1/500/400" />
-                                <h5 className="mt-3 f-17 text-muted">Diseño Horizontal</h5>
-                            </div>
-                        </div>
+            <div className="container">
+                {/* Encabezado */}
+                <div className="text-center mb-5">
+                    <h3 className="text-muted">
+                        Diseños <span className="text-primary">Flexibles</span>
+                    </h3>
+                    <p className="text-muted mt-2">
+                        Tres opciones de diseño diferentes para adaptarse a cualquier aplicación
+                        web moderna y mantener una experiencia visual agradable.
+                    </p>
+                </div>
 
-                        <div className="col-lg-4 col-md-6">
-                            <div className="demo-box text-center mt-3">
-                                <img alt="" className="img-fluid shadow-sm rounded" src="https://picsum.photos/id/1/500/400" />
-                                <h5 className="mt-3 f-17 text-muted">Diseño Separada</h5>
+                {/* Galería de diseños */}
+                <div className="row justify-content-center">
+                    {store.designs.map((item, index) => (
+                        <div key={index} className="col-lg-4 col-md-6">
+                            <div className="demo-box text-center mt-3 hover-preview">
+                                <div
+                                    className="image-container"
+                                    onClick={() => setSelectedImage(item)}
+                                >
+                                    <img
+                                        src={item.img}
+                                        alt={item.title}
+                                        className="img-fluid shadow rounded border border-light img-size-default"
+                                    />
+                                </div>
+
+                                <h5 className="mt-3 text-muted">{item.title}</h5>
                             </div>
                         </div>
-                        <div className="col-lg-4 col-md-6">
-                            <div className="demo-box text-center mt-3">
-                                <img alt="" className="img-fluid shadow-sm rounded" src="https://picsum.photos/id/1/500/400" />
-                                <h5 className="mt-3 f-17 text-muted">Disposición de Light Sidenav</h5>
-                            </div>
-                        </div>
-                        <div className="col-lg-4 col-md-6">
-                            <div className="demo-box text-center mt-3">
-                                <img alt="" className="img-fluid shadow-sm rounded" src="https://picsum.photos/id/1/500/400" />
-                                <h5 className="mt-3 f-17 text-muted">Diseño en Caja</h5>
-                            </div>
-                        </div>
-                        <div className="col-lg-4 col-md-6">
-                            <div className="demo-box text-center mt-3">
-                                <img alt="" className="img-fluid shadow-sm rounded" src="https://picsum.photos/id/1/500/400" />
-                                <h5 className="mt-3 f-17 text-muted">Diseño Semi Oscuro</h5>
-                            </div>
-                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Modal de imagen */}
+            {selectedImage && (
+                <div className="modal-overlay" onClick={closeModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="close-btn" onClick={closeModal}>
+                            &times;
+                        </button>
+                        <img
+                            src={selectedImage.img}
+                            alt={selectedImage.title}
+                            className="modal-image"
+                        />
+                        <p className="modal-caption">{selectedImage.title}</p>
                     </div>
                 </div>
-            </section>
-    )
-}
+            )}
+        </section>
+    );
+};
