@@ -313,7 +313,7 @@ function AnalistaPage() {
                             <button className="hyper-sidebar-toggle btn btn-link p-2" onClick={() => setSidebarHidden(!sidebarHidden)}><i className="fas fa-bars"></i></button>
                             <span className="fw-semibold">{store.auth.user?.nombre || 'Analista'}</span>
                         </div>
-                        <div className="d-flex align-items-center gap-2">
+                        <div className="d-flex align-items-center gap-3">
                             <button
                                 className="btn btn-link"
                                 onClick={() => navigate('/')}
@@ -535,3 +535,4 @@ function AnalistaPage() {
 }
 
 export default AnalistaPage;
+

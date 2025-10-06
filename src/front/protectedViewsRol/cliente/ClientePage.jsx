@@ -1347,7 +1347,47 @@ export function ClientePage() {
                             </div>
                         </div>
 
-                        <div className="d-flex align-items-center gap-2">
+                        <div className="d-flex align-items-center gap-3">
+                            {/* Botón de sincronizar */}
+                            <button
+                                className="btn btn-outline-primary d-flex align-items-center gap-2"
+                                onClick={async () => {
+                                    try {
+                                        console.log('🔄 Iniciando sincronización desde ClientePage...');
+                                        await startRealtimeSync({
+                                            syncTypes: ['tickets', 'comentarios'],
+                                            syncInterval: 5000,
+                                            enablePolling: true,
+                                            userData: userData
+                                        });
+                                        console.log('✅ Sincronización completada desde ClientePage');
+                                    } catch (error) {
+                                        console.error('❌ Error en sincronización desde ClientePage:', error);
+                                    }
+                                }}
+                                title="Sincronizar datos"
+                                style={{
+                                    borderColor: 'var(--ct-primary)',
+                                    color: 'var(--ct-primary)',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '500',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.5rem',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = 'var(--ct-primary)';
+                                    e.target.style.color = 'white';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent';
+                                    e.target.style.color = 'var(--ct-primary)';
+                                }}
+                            >
+                                <i className="fas fa-sync-alt"></i>
+                                <span>Sincronizar</span>
+                            </button>
+
                             {/* Dropdown del usuario */}
                             <div className="position-relative dropdown">
                                 <button
@@ -1388,6 +1428,9 @@ export function ClientePage() {
                                             <div className="p-2">
                                                 <button
                                                     className="btn btn-link w-100 text-start d-flex align-items-center gap-2"
+                                                    style={{ textDecoration: 'none' }}
+                                                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
                                                     onClick={() => {
                                                         console.log('ClientePage - Mi Perfil button clicked');
                                                         changeView('profile');
@@ -1400,6 +1443,9 @@ export function ClientePage() {
                                                 </button>
                                                 <button
                                                     className="btn btn-link w-100 text-start d-flex align-items-center gap-2"
+                                                    style={{ textDecoration: 'none' }}
+                                                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
                                                     onClick={() => {
                                                         navigate('/');
                                                         setShowUserDropdown(false);

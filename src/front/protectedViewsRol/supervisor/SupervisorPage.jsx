@@ -1412,7 +1412,7 @@ export function SupervisorPage() {
                                 <i className="fas fa-bars"></i>
                             </button>
 
-                            {/* Barra de bÃºsqueda */}
+                            {/* Barra de búsqueda */}
                             <div className="hyper-search position-relative">
                                 <i className="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
                                 <input
@@ -1475,7 +1475,47 @@ export function SupervisorPage() {
                             </div>
                         </div>
 
-                        <div className="d-flex align-items-center gap-2">
+                        <div className="d-flex align-items-center gap-3">
+                            {/* Botón de sincronizar */}
+                            <button
+                                className="btn btn-outline-primary d-flex align-items-center gap-2"
+                                onClick={async () => {
+                                    try {
+                                        console.log('🔄 Iniciando sincronización desde SupervisorPage...');
+                                        await startRealtimeSync({
+                                            syncTypes: ['tickets', 'comentarios', 'asignaciones', 'gestiones'],
+                                            syncInterval: 5000,
+                                            enablePolling: true,
+                                            userData: store.auth.user
+                                        });
+                                        console.log('✅ Sincronización completada desde SupervisorPage');
+                                    } catch (error) {
+                                        console.error('❌ Error en sincronización desde SupervisorPage:', error);
+                                    }
+                                }}
+                                title="Sincronizar datos"
+                                style={{
+                                    borderColor: 'var(--ct-primary)',
+                                    color: 'var(--ct-primary)',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '500',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.5rem',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = 'var(--ct-primary)';
+                                    e.target.style.color = 'white';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent';
+                                    e.target.style.color = 'var(--ct-primary)';
+                                }}
+                            >
+                                <i className="fas fa-sync-alt"></i>
+                                <span>Sincronizar</span>
+                            </button>
+
                             {/* Dropdown del usuario */}
                             <div className="position-relative">
                                 <button
@@ -1502,6 +1542,9 @@ export function SupervisorPage() {
                                         <div className="p-2">
                                             <button
                                                 className="btn btn-link w-100 text-start d-flex align-items-center gap-2"
+                                                style={{ textDecoration: 'none' }}
+                                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
                                                 onClick={() => {
                                                     console.log('SupervisorPage - Mi Perfil button clicked');
                                                     changeView('profile');
@@ -1514,6 +1557,9 @@ export function SupervisorPage() {
                                             </button>
                                             <button
                                                 className="btn btn-link w-100 text-start d-flex align-items-center gap-2"
+                                                style={{ textDecoration: 'none' }}
+                                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
                                                 onClick={() => {
                                                     navigate('/');
                                                     setShowUserDropdown(false);
