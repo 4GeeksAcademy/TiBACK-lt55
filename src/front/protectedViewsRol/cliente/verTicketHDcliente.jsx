@@ -7,6 +7,7 @@ export const VerTicketHDCliente = ({ ticketId, tickets, ticketsConRecomendacione
     const [ticket, setTicket] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [solicitudesReapertura, setSolicitudesReapertura] = useState(new Set());
 
     // Función para verificar si un ticket tiene analista asignado
     const tieneAnalistaAsignado = (ticket) => {
@@ -20,6 +21,55 @@ export const VerTicketHDCliente = ({ ticketId, tickets, ticketsConRecomendacione
             return `${analista.nombre} ${analista.apellido}`;
         }
         return null;
+    };
+
+    // Función para cerrar ticket
+    const cerrarTicket = async (ticketId) => {
+        try {
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/cerrar`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                // Actualizar el ticket local
+                setTicket(prev => ({ ...prev, estado: 'cerrado' }));
+                alert('Ticket cerrado exitosamente');
+            } else {
+                alert('Error al cerrar el ticket');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al cerrar el ticket');
+        }
+    };
+
+    // Función para solicitar reapertura
+    const solicitarReapertura = async (ticketId) => {
+        try {
+            const token = store.auth.token;
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/solicitar-reapertura`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                setSolicitudesReapertura(prev => new Set([...prev, ticketId]));
+                alert('Solicitud de reapertura enviada al supervisor');
+            } else {
+                alert('Error al solicitar reapertura');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al solicitar reapertura');
+        }
     };
 
     useEffect(() => {
@@ -360,6 +410,36 @@ export const VerTicketHDCliente = ({ ticketId, tickets, ticketsConRecomendacione
                                         <i className="fas fa-lightbulb me-2"></i>
                                         Ver Sugerencias
                                     </button>
+                                )}
+
+                                {/* Botones de Cerrar y Reabrir para tickets solucionados - Sincronizado con ClientePage */}
+                                {ticket.estado.toLowerCase() === 'solucionado' && !solicitudesReapertura.has(ticket.id) && (
+                                    <>
+                                        <button
+                                            className="btn btn-outline-success btn-lg"
+                                            title="Cerrar ticket y calificar servicio"
+                                            onClick={() => cerrarTicket(ticket.id)}
+                                        >
+                                            <i className="fas fa-check me-2"></i>
+                                            Cerrar Ticket
+                                        </button>
+                                        <button
+                                            className="btn btn-outline-warning btn-lg"
+                                            title="Reabrir ticket si la solución no fue satisfactoria"
+                                            onClick={() => solicitarReapertura(ticket.id)}
+                                        >
+                                            <i className="fas fa-redo me-2"></i>
+                                            Solicitar Reapertura
+                                        </button>
+                                    </>
+                                )}
+
+                                {/* Mostrar mensaje si hay solicitud de reapertura pendiente */}
+                                {solicitudesReapertura.has(ticket.id) && (
+                                    <div className="alert alert-warning">
+                                        <i className="fas fa-clock me-2"></i>
+                                        Solicitud de reapertura enviada al supervisor. Esperando respuesta.
+                                    </div>
                                 )}
                             </div>
                         </div>
