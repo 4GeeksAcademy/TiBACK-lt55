@@ -61,8 +61,8 @@ export const Navbar = () => {
 
 				{/* Contenido del navbar */}
 				<div className="collapse navbar-collapse" id="navbarNav">
-					{/* Navegación principal - Solo Dashboard */}
-					<ul className="navbar-nav">
+					{/* Navegación principal - Solo Dashboard - OCULTO */}
+					{/* <ul className="navbar-nav">
 						{isAuthenticated && (
 							<li className="nav-item">
 								<Link to={`/${role}`} className="nav-link d-flex align-items-center" style={{ color: 'var(--ct-white)', fontSize: '1.1rem', fontWeight: '500' }}>
@@ -71,7 +71,7 @@ export const Navbar = () => {
 								</Link>
 							</li>
 						)}
-					</ul>
+					</ul> */}
 
 					{/* Menús de administración - Ocupan toda la mitad del navbar */}
 					{role === 'administrador' && (

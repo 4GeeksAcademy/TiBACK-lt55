@@ -916,6 +916,10 @@ export function ClientePage() {
 
             const updatedUser = await response.json();
             setUserData(updatedUser);
+
+            // Actualizar el store global para que se refleje en el SideBarCentral
+            dispatch({ type: 'SET_USER', payload: updatedUser });
+
             setShowInfoForm(false);
             setClienteImageUrl(''); // Limpiar imagen temporal
             setError('');

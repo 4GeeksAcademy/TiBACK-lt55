@@ -1262,13 +1262,17 @@ export function SupervisorPage() {
             }
 
             // Actualizar los datos locales
-            setUserData(prev => ({
-                ...prev,
+            const updatedUserData = {
+                ...userData,
                 nombre: infoData.nombre,
                 apellido: infoData.apellido,
                 email: infoData.email,
                 area_responsable: infoData.area_responsable
-            }));
+            };
+            setUserData(updatedUserData);
+
+            // Actualizar el store global para que se refleje en el SideBarCentral
+            dispatch({ type: 'SET_USER', payload: updatedUserData });
 
             alert('InformaciÃ³n actualizada exitosamente');
             setShowInfoForm(false);
@@ -1517,14 +1521,22 @@ export function SupervisorPage() {
                             </button>
 
                             {/* Dropdown del usuario */}
-                            <div className="position-relative">
+                            <div className="position-relative dropdown">
                                 <button
                                     className="btn btn-link d-flex align-items-center gap-2 text-decoration-none"
                                     onClick={() => setShowUserDropdown(!showUserDropdown)}
                                 >
-                                    <div className="hyper-user-avatar bg-primary d-flex align-items-center justify-content-center rounded-circle avatar-small">
-                                        <i className="fas fa-user-shield text-white icon-small"></i>
-                                    </div>
+                                    {userData?.url_imagen ? (
+                                        <img
+                                            src={userData.url_imagen}
+                                            alt="Avatar"
+                                            className="avatar-header-normal rounded-circle"
+                                        />
+                                    ) : (
+                                        <div className="avatar-header-normal bg-primary d-flex align-content-center rounded-circle">
+                                            <i className="fa-solid fa-user fa-xl text-white text-center"></i>
+                                        </div>
+                                    )}
                                     <span className="fw-semibold">
                                         {userData?.nombre === 'Pendiente' ? 'Supervisor' : userData?.nombre}
                                     </span>
@@ -1553,7 +1565,7 @@ export function SupervisorPage() {
                                                 }}
                                             >
                                                 <i className="fas fa-user-edit"></i>
-                                                Mi Perfil
+                                                <span>Mi Perfil</span>
                                             </button>
                                             <button
                                                 className="btn btn-link w-100 text-start d-flex align-items-center gap-2"
@@ -1561,12 +1573,12 @@ export function SupervisorPage() {
                                                 onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
                                                 onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
                                                 onClick={() => {
-                                                    navigate('/');
                                                     setShowUserDropdown(false);
+                                                    navigate('/');
                                                 }}
                                             >
                                                 <i className="fas fa-home"></i>
-                                                Inicio
+                                                <span>Ir al inicio</span>
                                             </button>
                                             <div className="d-flex align-items-center justify-content-between p-2">
                                                 <span className="small">Modo Oscuro</span>
@@ -1581,11 +1593,17 @@ export function SupervisorPage() {
                                             </div>
                                             <hr className="my-2" />
                                             <button
-                                                className="btn btn-link w-100 text-start text-danger d-flex align-items-center gap-2"
-                                                onClick={logout}
+                                                className="btn btn-link w-100 text-start d-flex align-items-center gap-2 text-danger"
+                                                style={{ textDecoration: 'none' }}
+                                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                                                onClick={() => {
+                                                    setShowUserDropdown(false);
+                                                    logout();
+                                                }}
                                             >
                                                 <i className="fas fa-sign-out-alt"></i>
-                                                Cerrar Sesion
+                                                <span>Cerrar sesión</span>
                                             </button>
                                         </div>
                                     </div>
