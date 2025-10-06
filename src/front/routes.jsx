@@ -11,6 +11,8 @@ import { ContactView } from "./pages/ContactView"
 import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
 import { Demo } from "./pages/Demo";
+import { FeatureAppsPage } from "./components/LandingComponent/FeatureAppsPage";
+import { FeatureDesignPage } from "./components/LandingComponent/FeatureDesignPage";
 
 import { Supervisor } from "./pages/Supervisor";
 import VerSupervisor from "./pages/VerSupervisor";
@@ -80,6 +82,8 @@ export const router = createBrowserRouter(
       <Route path="/Home" element={<Home />} />
       <Route path="/demo" element={<Demo />} />
       <Route path="/contact" element={<ContactView />} />
+      <Route path="/feature/apps" element={<FeatureAppsPage />} />
+      <Route path="/feature/design" element={<FeatureDesignPage />} />
 
       {/* rutas de autenticacion */}
       <Route path="/auth" element={<AuthForm />} />

@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 
 export const SideBarCentral = ({ sidebarHidden, activeView, changeView }) => {
     const { store } = useGlobalReducer();
     const userData = store.auth.user;
-    const [activeChats, setActiveChats] = useState([]);
 
 
     // Obtener el rol directamente del token JWT usando la variable dinámica
@@ -19,50 +18,6 @@ export const SideBarCentral = ({ sidebarHidden, activeView, changeView }) => {
         }
     })() : null;
 
-    // Función para obtener chats activos desde localStorage
-    const getActiveChats = () => {
-        try {
-            const chatsData = localStorage.getItem('activeChats');
-            if (chatsData) {
-                const chats = JSON.parse(chatsData);
-                // Filtrar solo los chats del usuario actual
-                return chats.filter(chat =>
-                    chat.userId === userData?.id &&
-                    (chat.commentsCount > 0 || chat.messagesCount > 0)
-                );
-            }
-        } catch (error) {
-            console.error('Error al obtener chats activos:', error);
-        }
-        return [];
-    };
-
-    // Cargar chats activos al montar el componente
-    useEffect(() => {
-        if (userData?.id) {
-            const chats = getActiveChats();
-            setActiveChats(chats);
-        }
-    }, [userData?.id]);
-
-    // Escuchar cambios en localStorage para actualizar chats activos
-    useEffect(() => {
-        const handleStorageChange = () => {
-            if (userData?.id) {
-                const chats = getActiveChats();
-                setActiveChats(chats);
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        // También escuchar eventos personalizados para cambios en la misma pestaña
-        window.addEventListener('activeChatsUpdated', handleStorageChange);
-
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('activeChatsUpdated', handleStorageChange);
-        };
-    }, [userData?.id]);
 
 
     // Verificar si el usuario está autenticado
@@ -182,12 +137,11 @@ export const SideBarCentral = ({ sidebarHidden, activeView, changeView }) => {
 
     return (
         <div className={`hyper-sidebar ${sidebarHidden ? 'hidden' : ''} overflow-auto`} data-hidden={sidebarHidden}>
+
+            
             <div className="hyper-sidebar-header p-4">
-                <a href="#" className="hyper-logo d-flex align-items-center gap-2 text-decoration-none">
-                    <i className="fas fa-ticket-alt fs-4"></i>
-                    {!sidebarHidden && <span className="fw-bold">TiBACK</span>}
-                </a>
-            </div>
+                <img src="https://res.cloudinary.com/mystoreimg/image/upload/v1759679927/fsq6shibpipmssroqwe4.png" className="w-default-logo" />
+            </div> 
 
             <nav className="p-3">
                 <div className="mb-4">
@@ -223,46 +177,6 @@ export const SideBarCentral = ({ sidebarHidden, activeView, changeView }) => {
                     ))}
                 </div>
 
-                {/* Chats Activos */}
-                {!sidebarHidden && activeChats.length > 0 && (
-                    <div className="mb-4">
-                        <div className="hyper-nav-title px-3 mb-2">Chats Activos</div>
-                        {activeChats.map((chat) => (
-                            <a
-                                key={`chat-${chat.ticketId}`}
-                                href="#"
-                                className="hyper-nav-item d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    // Navegar al chat del ticket específico
-                                    if (userRole === 'cliente') {
-                                        window.open(`/ticket/${chat.ticketId}/chat`, '_self');
-                                    } else if (userRole === 'analista') {
-                                        window.open(`/ticket/${chat.ticketId}/chat`, '_self');
-                                    } else if (userRole === 'supervisor') {
-                                        window.open(`/ticket/${chat.ticketId}/chat`, '_self');
-                                    }
-                                }}
-                                title={`Ticket #${chat.ticketId} - ${chat.ticketTitle}`}
-                            >
-                                <i className="fas fa-comment-dots text-primary"></i>
-                                <div className="flex-grow-1">
-                                    <div className="fw-semibold small text-truncate">
-                                        #{chat.ticketId}
-                                    </div>
-                                    <div className="text-muted" style={{ fontSize: '0.7rem' }}>
-                                        {chat.commentsCount > 0 && `${chat.commentsCount} comentarios`}
-                                        {chat.commentsCount > 0 && chat.messagesCount > 0 && ' • '}
-                                        {chat.messagesCount > 0 && `${chat.messagesCount} mensajes`}
-                                    </div>
-                                </div>
-                                <div className="text-muted" style={{ fontSize: '0.6rem' }}>
-                                    {new Date(chat.lastActivity).toLocaleDateString()}
-                                </div>
-                            </a>
-                        ))}
-                    </div>
-                )}
 
 
                 {/* Información del usuario */}

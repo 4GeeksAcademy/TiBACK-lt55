@@ -1,6 +1,24 @@
 import { useState, useEffect } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
+// Utilidades de token seguras
+const tokenUtils = {
+	decodeToken: (token) => {
+		try {
+			if (!token) return null;
+			const parts = token.split('.');
+			if (parts.length !== 3) return null;
+			return JSON.parse(atob(parts[1]));
+		} catch (error) {
+			return null;
+		}
+	},
+	getRole: (token) => {
+		const payload = tokenUtils.decodeToken(token);
+		return payload ? payload.role : null;
+	}
+};
+
 export const Footer = () => {
 	const { store, getRealtimeStatus, startRealtimeSync, joinAllCriticalRooms, connectWebSocket } = useGlobalReducer();
 	const [showDetails, setShowDetails] = useState(false);
@@ -8,7 +26,10 @@ export const Footer = () => {
 	const [sidebarState, setSidebarState] = useState({ collapsed: false, hidden: false, exists: false });
 
 	const realtimeStatus = getRealtimeStatus();
-	const { isAuthenticated } = store.auth;
+	const { isAuthenticated, token } = store.auth;
+
+	// SEGURIDAD: Obtener rol del token
+	const role = tokenUtils.getRole(token);
 
 	// Debug: Monitorear cambios en el estado de autenticación
 	useEffect(() => {
@@ -17,9 +38,10 @@ export const Footer = () => {
 			hasUser: !!store.auth.user,
 			hasToken: !!store.auth.token,
 			userRole: store.auth.user?.role,
+			tokenRole: role,
 			userId: store.auth.user?.id
 		});
-	}, [store.auth.isAuthenticated, store.auth.user, store.auth.token]);
+	}, [store.auth.isAuthenticated, store.auth.user, store.auth.token, role]);
 
 	// Detectar estado del sidebar
 	useEffect(() => {
@@ -431,67 +453,71 @@ export const Footer = () => {
 						<h4>"Tu turno, tu tiempo, tu solución. Con la velocidad que mereces."</h4>
 					</div>
 					<div className="col-md-4">
-						{/* Estado de sincronización compacto */}
-						<div className="d-flex align-items-center justify-content-end">
-							<div className="me-3">
-								<span className={`badge ${realtimeStatus.isConnected ? 'bg-success' : realtimeStatus.isPolling ? 'bg-warning' : 'bg-danger'}`}>
-									{realtimeStatus.statusIcon} {realtimeStatus.statusText}
-								</span>
-								<small className="text-muted ms-2">
-									Última sync: {realtimeStatus.lastSyncFormatted}
-								</small>
-							</div>
-							<button
-								className={`btn btn-sm me-2 ${isSyncing ? 'btn-warning' : 'btn-outline-primary'}`}
-								onClick={handleManualSync}
-								disabled={isSyncing || !store.auth.isAuthenticated || !store.auth.token}
-								title={
-									isSyncing
-										? "Sincronización total en progreso..."
-										: (!store.auth.isAuthenticated || !store.auth.token)
-											? "Usuario no autenticado"
-											: "Sincronización total - Actualizar todo"
-								}
-							>
-								{isSyncing ? (
-									<>
-										<span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-										⏳ Sincronizando...
-									</>
-								) : (
-									'🔄 Sincronizar Todo'
-								)}
-							</button>
-							<button
-								className="btn btn-sm btn-outline-secondary"
-								onClick={() => setShowDetails(!showDetails)}
-								title="Mostrar detalles"
-							>
-								{showDetails ? '−' : '+'}
-							</button>
-						</div>
-
-						{/* Detalles expandibles */}
-						{showDetails && (
-							<div className="mt-3 p-3 bg-light rounded">
-								<h6>Estado de Sincronización</h6>
-								<div className="row">
-									<div className="col-6">
-										<small>
-											<strong>WebSocket:</strong> {realtimeStatus.isConnected ? 'Conectado' : 'Desconectado'}<br />
-											<strong>Polling:</strong> {realtimeStatus.isPolling ? 'Activo' : 'Inactivo'}<br />
-											<strong>Notificaciones:</strong> {realtimeStatus.notifications}
+						{/* Estado de sincronización compacto - Solo para administradores */}
+						{role === 'administrador' && (
+							<>
+								<div className="d-flex align-items-center justify-content-end">
+									<div className="me-3">
+										<span className={`badge ${realtimeStatus.isConnected ? 'bg-success' : realtimeStatus.isPolling ? 'bg-warning' : 'bg-danger'}`}>
+											{realtimeStatus.statusIcon} {realtimeStatus.statusText}
+										</span>
+										<small className="text-muted ms-2">
+											Última sync: {realtimeStatus.lastSyncFormatted}
 										</small>
 									</div>
-									<div className="col-6">
-										<small>
-											<strong>Polling activo:</strong> {realtimeStatus.pollingStats.activePolling.join(', ') || 'Ninguno'}<br />
-											<strong>Total intervalos:</strong> {realtimeStatus.pollingStats.totalIntervals}<br />
-											<strong>Usuario:</strong> {store.auth.user?.role || 'N/A'}
-										</small>
-									</div>
+									<button
+										className={`btn btn-sm me-2 ${isSyncing ? 'btn-warning' : 'btn-outline-primary'}`}
+										onClick={handleManualSync}
+										disabled={isSyncing || !store.auth.isAuthenticated || !store.auth.token}
+										title={
+											isSyncing
+												? "Sincronización total en progreso..."
+												: (!store.auth.isAuthenticated || !store.auth.token)
+													? "Usuario no autenticado"
+													: "Sincronización total - Actualizar todo"
+										}
+									>
+										{isSyncing ? (
+											<>
+												<span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+												⏳ Sincronizando...
+											</>
+										) : (
+											'🔄 Sincronizar Todo'
+										)}
+									</button>
+									<button
+										className="btn btn-sm btn-outline-secondary"
+										onClick={() => setShowDetails(!showDetails)}
+										title="Mostrar detalles"
+									>
+										{showDetails ? '−' : '+'}
+									</button>
 								</div>
-							</div>
+
+								{/* Detalles expandibles */}
+								{showDetails && (
+									<div className="mt-3 p-3 bg-light rounded">
+										<h6>Estado de Sincronización</h6>
+										<div className="row">
+											<div className="col-6">
+												<small>
+													<strong>WebSocket:</strong> {realtimeStatus.isConnected ? 'Conectado' : 'Desconectado'}<br />
+													<strong>Polling:</strong> {realtimeStatus.isPolling ? 'Activo' : 'Inactivo'}<br />
+													<strong>Notificaciones:</strong> {realtimeStatus.notifications}
+												</small>
+											</div>
+											<div className="col-6">
+												<small>
+													<strong>Polling activo:</strong> {realtimeStatus.pollingStats.activePolling.join(', ') || 'Ninguno'}<br />
+													<strong>Total intervalos:</strong> {realtimeStatus.pollingStats.totalIntervals}<br />
+													<strong>Usuario:</strong> {store.auth.user?.role || 'N/A'}
+												</small>
+											</div>
+										</div>
+									</div>
+								)}
+							</>
 						)}
 					</div>
 				</div>

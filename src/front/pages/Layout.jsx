@@ -12,28 +12,54 @@ const Layout = () => {
 
   // Verificamos las rutas
   const isLandingPage = location.pathname === "/";
-  const ContactView = location.pathname === "/contact";
-  const home = location.pathname === "/Home";
+  const isContactPage = location.pathname === "/contact";
+  const isFeaturePage = location.pathname === "/feature/apps" || location.pathname === "/feature/design";
   const isAuthPage = location.pathname === "/auth";
 
-  // Elegimos qué navbar mostrar
-  const NavbarToShow =
-    isLandingPage || ContactView
-      ? <LandNavbar />
-      : home
-        ? <Navbar />
-        : isAuthPage
-          ? null // No mostrar navbar en login
-          : <LandNavbar />;
+  const navbarmain = isLandingPage || isContactPage || isFeaturePage;
 
-  const FooterToShow =
-    isLandingPage || ContactView
-      ? <LandFooter />
-      : home
-        ? <Footer />
-        : isAuthPage
-          ? null // No mostrar footer en login
-          : <Footer /> // Mostrar Footer con sincronización en vistas protegidas
+  const footermain =
+    location.pathname === "/cliente" ||
+    location.pathname === "/analista" ||
+    location.pathname === "/supervisor" ||
+    location.pathname === "/administrador";
+
+  // Verificamos si es una vista privada de roles o gestión
+  const isPrivateRoleView = location.pathname.startsWith("/cliente") ||
+    location.pathname.startsWith("/analista") ||
+    location.pathname.startsWith("/supervisor") ||
+    location.pathname.startsWith("/administrador") ||
+    location.pathname.startsWith("/analistas") ||
+    location.pathname.startsWith("/supervisores") ||
+    location.pathname.startsWith("/clientes") ||
+    location.pathname.startsWith("/administradores") ||
+    location.pathname.startsWith("/tickets") ||
+    location.pathname.startsWith("/comentarios") ||
+    location.pathname.startsWith("/asignaciones") ||
+    location.pathname.startsWith("/gestiones") ||
+    location.pathname.startsWith("/dashboard-calidad");
+
+  // Verificamos si es una vista de administrador (solo administrador ve el navbar)
+  const isAdminView = location.pathname.startsWith("/administrador") ||
+    location.pathname.startsWith("/administradores") ||
+    location.pathname.startsWith("/analistas") ||
+    location.pathname.startsWith("/supervisores") ||
+    location.pathname.startsWith("/clientes") ||
+    location.pathname.startsWith("/tickets") ||
+    location.pathname.startsWith("/comentarios") ||
+    location.pathname.startsWith("/asignaciones") ||
+    location.pathname.startsWith("/gestiones") ||
+    location.pathname.startsWith("/dashboard-calidad");
+
+  // Verificamos si es una vista de supervisor, analista o cliente (no mostrar navbar)
+  const isRoleView = location.pathname.startsWith("/supervisor") ||
+    location.pathname.startsWith("/analista") ||
+    location.pathname.startsWith("/cliente");
+
+  // Elegimos qué navbar mostrar
+  const NavbarToShow = navbarmain ? <LandNavbar /> : isAdminView ? <Navbar /> : isRoleView ? null : isAuthPage ? null : <LandNavbar />;
+
+  const FooterToShow = navbarmain ? <LandFooter /> : footermain ? <Footer /> : null;
 
   return (
     <>
@@ -52,27 +78,3 @@ const Layout = () => {
 };
 
 export default Layout;
-
-
-
-// import { Outlet, useLocation } from "react-router-dom";
-// import ScrollToTop from "../components/ScrollToTop";
-// import { Navbar } from "../components/Navbar";
-// import { Footer } from "../components/Footer";
-
-// export const Layout = () => {
-//     const location = useLocation();
-
-//     // Ocultar Navbar y Footer en /auth
-//     const hideNavAndFooter = location.pathname.startsWith("/auth");
-
-//     return (
-//         <ScrollToTop>
-//             {!hideNavAndFooter && <Navbar />}
-//             <Outlet />
-//             {!hideNavAndFooter && <Footer />}
-//         </ScrollToTop>
-//     );
-// };
-
-// export default Layout;

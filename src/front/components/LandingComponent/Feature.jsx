@@ -1,3 +1,5 @@
+import React from "react";
+import { Link } from "react-router-dom";
 
 export const Feature = () => {
 
@@ -17,7 +19,7 @@ export const Feature = () => {
                 </div>
                 <div className="mt-2 py-5 align-items-center row">
                     <div className="col-lg-5 col-md-6">
-                        <img className="img-fluid" alt="" src="src/front/assets/img/403857-PD6A24-339.jpg" />
+                        <img className="img-fluid" alt="" src="https://res.cloudinary.com/mystoreimg/image/upload/v1759724421/e6vgqmcqirurcnjprci8.jpg" />
                     </div>
                     <div className="col-lg-6 col-md-5 offset-md-1">
                         <h3 className="fw-normal">Aplicaciones y páginas integradas</h3>
@@ -28,7 +30,7 @@ export const Feature = () => {
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-primary"></i>Perfil, precios, factura</p>
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-primary"></i>Iniciar sesión, registrarse, olvidar contraseña</p>
                         </div>
-                        <a className="btn btn-lg btn-info-default text-white rounded-pill mt-3" href="#" >Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></a>
+                        <Link className="btn btn-lg btn-info-default text-white rounded-pill mt-3" to="/feature/apps" >Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></Link>
                     </div>
                 </div>
                 <div className="pb-3 pt-5 align-items-center row">
@@ -42,10 +44,10 @@ export const Feature = () => {
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-success"></i>Uso extensivo de variables CSS</p>
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-success"></i>Código bien documentado y estructurado</p>
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-success"></i>Documentación detallada</p></div>
-                        <a className="btn btn-lg btn-info-default text-white rounded-pill mt-3" href="#">Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></a>
+                        <Link className="btn btn-lg btn-info-default text-white rounded-pill mt-3" to="/feature/design" >Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></Link>
                     </div>
                     <div className="col-lg-5 col-md-6 offset-md-1">
-                        <img className="img-fluid" alt="" src="src/front/assets/img/Work_3.jpg" />
+                        <img className="img-fluid" alt="" src="https://res.cloudinary.com/mystoreimg/image/upload/v1759724422/vczgu3pol8s4kzlqbyc8.jpg" />
                     </div>
                 </div>
             </div>

@@ -93,7 +93,7 @@ export const CardCreadores = () => {
                             <h6 className="text-primary my-3">Contacto</h6>
                             <div className="d-flex justify-content-center gap-3">
                                 <p>
-                                    <a href={`mailto:${selectedUser.contacto?.linkedin}`} target="_blank">
+                                    <a href={selectedUser.contacto?.linkedin} target="_blank">
                                         <i className="fa-brands fa-linkedin fa-2xl"></i>
                                     </a>
                                 </p>
