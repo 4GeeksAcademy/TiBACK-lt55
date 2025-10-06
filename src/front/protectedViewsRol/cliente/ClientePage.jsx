@@ -1250,8 +1250,8 @@ export function ClientePage() {
                                             className="avatar-header-normal rounded-circle"
                                         />
                                     ) : (
-                                        <div className="avatar-header-normal bg-primary d-flex align-items-center justify-content-center rounded-circle">
-                                            <i className="fas fa-user text-white"></i>
+                                        <div className="avatar-header-normal bg-primary d-flex align-content-center rounded-circle">
+                                            <i className="fa-solid fa-user fa-xl text-white text-center"></i>
                                         </div>
                                     )}
                                     <span className="fw-semibold">

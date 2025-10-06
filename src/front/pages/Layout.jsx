@@ -12,15 +12,25 @@ const Layout = () => {
   const location = useLocation(); // Hook para saber en qué ruta estamos
 
   // Verificamos las rutas
-  const navbarmain = location.pathname === "/" || "/contact";
+  const navbarmain = 
+  location.pathname === "/" || 
+  location.pathname === "/contact";
+
+  const footermain = 
+  location.pathname === "/cliente" ||
+  location.pathname === "/analista" ||
+  location.pathname === "/supervisor" || 
+  location.pathname === "/administrador";
+
+
   const home = location.pathname === "/Home";
 
   // Elegimos qué navbar mostrar
   const NavbarToShow =
-    navbarmain ? <LandNavbar /> : "" ;
+    navbarmain ? <LandNavbar /> : location.pathname === "/auth" ? <Navbar /> : "";
 
   const FooterToShow =
-    navbarmain ? <LandFooter /> : home ? <Footer /> : roles ? "" : <LandFooter />;
+    navbarmain ? <LandFooter /> : location.pathname === "/auth" ? <Footer /> : footermain ? <Footer /> : "" ;
 
   return (
     <>

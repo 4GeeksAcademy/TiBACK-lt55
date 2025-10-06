@@ -67,6 +67,7 @@
 		"react-bootstrap": "^2.10.10",
 		"react-dom": "^18.2.0",
 		"react-router-dom": "^6.18.0",
+		"react-router-hash-link": "^2.4.3",
 		"react-textarea-autosize": "^8.5.9",
 		"reactstrap": "^9.2.3",
 		"socket.io-client": "^4.7.4"

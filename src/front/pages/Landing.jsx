@@ -2,6 +2,7 @@ import "../assets/style/landing.css";
 import { Layout } from "../components/LandingComponent/Layout"
 import { Feature } from "../components/LandingComponent/Feature"
 import { Price } from "../components/LandingComponent/Price"
+import { Link } from "react-router-dom";
 import { Question } from "../components/LandingComponent/Question"
 
 export const Landing = () => {
@@ -20,11 +21,11 @@ export const Landing = () => {
                                 <h2 className="text-white fw-normal mb-4 mt-3 hero-title">TiBACK - Kit de interfaz de usuario web adaptable &amp; Plantilla de Panel</h2>
                                 <p className="mb-4 font-16 text-white-50">TiBACK es un panel de control y una plantilla de administración con todas las funciones que viene con muchos elementos de interfaz de usuario, componentes, widgets y páginas bien diseñados.</p>
                                 <div className="d-flex gap-1">
-                                    <button className="btn btn-lg btn-success-default text-white" href="#" target="_blank">Obtenga una prueba gratuita <i className="fa-solid fa-arrow-right fs-6 ms-1"></i>
-                                    </button>
-                                    <button className="btn btn-lg btn-info-default text-white py-0" href="#" target="_blank">
+                                    <Link className="btn btn-lg btn-success-default text-white" to="/" role="button">Obtenga una prueba gratuita <i className="fa-solid fa-arrow-right fs-6 ms-1"></i>
+                                    </Link>
+                                    <Link className="btn btn-lg btn-info-default text-white" to="/" role="button">
                                         Revisar Demos
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         </div>
@@ -46,9 +47,7 @@ export const Landing = () => {
                                     <i className="fa-solid fa-infinity fa-xs"></i>
                                 </h1>
                                 <h4 className="text-muted">El administrador está completamente
-                                    <span className="text-primary text-muted">sensible</span>
-                                    y fácil de
-                                    <span className="text-primary text-muted">personalizar</span>
+                                    <span className="text-primary text-muted"> sensible </span>y fácil de <span className="text-primary text-muted">personalizar</span>
                                 </h4>
                                 <p className="text-muted mt-2">El código limpio y bien comentado permite una fácil personalización del tema. Está diseñado para<br />describir su aplicación, agencia o negocio, para una mejor gestion y produccion.</p>
                             </div>

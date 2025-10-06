@@ -17,7 +17,7 @@ export const Feature = () => {
                 </div>
                 <div className="mt-2 py-5 align-items-center row">
                     <div className="col-lg-5 col-md-6">
-                        <img className="img-fluid" alt="" src="src/front/assets/img/403857-PD6A24-339.jpg" />
+                        <img className="img-fluid" alt="" src="https://res.cloudinary.com/mystoreimg/image/upload/v1759724421/e6vgqmcqirurcnjprci8.jpg" />
                     </div>
                     <div className="col-lg-6 col-md-5 offset-md-1">
                         <h3 className="fw-normal">Aplicaciones y páginas integradas</h3>
@@ -45,7 +45,7 @@ export const Feature = () => {
                         <a className="btn btn-lg btn-info-default text-white rounded-pill mt-3" href="#">Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></a>
                     </div>
                     <div className="col-lg-5 col-md-6 offset-md-1">
-                        <img className="img-fluid" alt="" src="src/front/assets/img/Work_3.jpg" />
+                        <img className="img-fluid" alt="" src="https://res.cloudinary.com/mystoreimg/image/upload/v1759724422/vczgu3pol8s4kzlqbyc8.jpg" />
                     </div>
                 </div>
             </div>

@@ -2,43 +2,49 @@
 import { io } from "socket.io-client";
 
 // Función global para manejar chats activos en localStorage
-window.updateActiveChat = (ticketId, ticketTitle, userId, commentsCount = 0, messagesCount = 0) => {
-    try {
-        const chatsData = localStorage.getItem('activeChats');
-        let activeChats = chatsData ? JSON.parse(chatsData) : [];
-        
-        // Buscar si ya existe un chat para este ticket y usuario
-        const existingChatIndex = activeChats.findIndex(
-            chat => chat.ticketId === ticketId && chat.userId === userId
-        );
-        
-        const chatData = {
-            ticketId,
-            ticketTitle,
-            userId,
-            commentsCount,
-            messagesCount,
-            lastActivity: new Date().toISOString()
-        };
-        
-        if (existingChatIndex !== -1) {
-            // Actualizar chat existente
-            activeChats[existingChatIndex] = chatData;
-        } else {
-            // Agregar nuevo chat
-            activeChats.push(chatData);
-        }
-        
-        // Guardar en localStorage
-        localStorage.setItem('activeChats', JSON.stringify(activeChats));
-        
-        // Disparar evento personalizado para notificar cambios
-        window.dispatchEvent(new CustomEvent('activeChatsUpdated'));
-        
-        console.log('Chat activo actualizado:', chatData);
-    } catch (error) {
-        console.error('Error al actualizar chat activo:', error);
+window.updateActiveChat = (
+  ticketId,
+  ticketTitle,
+  userId,
+  commentsCount = 0,
+  messagesCount = 0
+) => {
+  try {
+    const chatsData = localStorage.getItem("activeChats");
+    let activeChats = chatsData ? JSON.parse(chatsData) : [];
+
+    // Buscar si ya existe un chat para este ticket y usuario
+    const existingChatIndex = activeChats.findIndex(
+      (chat) => chat.ticketId === ticketId && chat.userId === userId
+    );
+
+    const chatData = {
+      ticketId,
+      ticketTitle,
+      userId,
+      commentsCount,
+      messagesCount,
+      lastActivity: new Date().toISOString(),
+    };
+
+    if (existingChatIndex !== -1) {
+      // Actualizar chat existente
+      activeChats[existingChatIndex] = chatData;
+    } else {
+      // Agregar nuevo chat
+      activeChats.push(chatData);
     }
+
+    // Guardar en localStorage
+    localStorage.setItem("activeChats", JSON.stringify(activeChats));
+
+    // Disparar evento personalizado para notificar cambios
+    window.dispatchEvent(new CustomEvent("activeChatsUpdated"));
+
+    console.log("Chat activo actualizado:", chatData);
+  } catch (error) {
+    console.error("Error al actualizar chat activo:", error);
+  }
 };
 
 // Utilidades de token seguras - SOLO TOKEN COMO FUENTE DE VERDAD
@@ -153,17 +159,15 @@ export const initialStore = () => {
         subtit: "Técnico Web",
         prrfo: "Mejorando procesos de sistemas para clientes.",
         stl: "img-clp-w-1",
-        skillstech: [ 
-          "JavaScript", 
-          "Python", 
-          "Flask", 
+        skillstech: [
+          "JavaScript",
+          "Python",
+          "Flask",
           "PostgreSQL",
-          "React", 
+          "React",
           "Node.js",
         ],
-        experiencia: [
-          "3 años desarrollando aplicaciones web",
-        ],
+        experiencia: ["3 años desarrollando aplicaciones web"],
         proyectos: [
           "Sistema de gestión documental",
           "Plataforma de reservas online",
@@ -182,17 +186,15 @@ export const initialStore = () => {
         prrfo:
           "Trabajando para mejorar los rocesos para los sistemas de nuestros clientes",
         stl: "img-clp-w-2",
-        skillstech: [ 
-          "JavaScript", 
-          "Python", 
-          "Flask", 
+        skillstech: [
+          "JavaScript",
+          "Python",
+          "Flask",
           "PostgreSQL",
-          "React", 
+          "React",
           "Node.js",
         ],
-        experiencia: [
-          "Diseño de interfaces modernas",
-        ],
+        experiencia: ["Diseño de interfaces modernas"],
         proyectos: ["Dashboard Analítico", "App de control de inventarios"],
         contacto: {
           email: "johan@empresa.com",
@@ -209,23 +211,21 @@ export const initialStore = () => {
           "Trabajando para mejorar los rocesos para los sistemas de nuestros clientes",
         stl: "img-clp-w-3",
         skillstech: [
-          "JavaScript", 
-          "Python", 
-          "Flask", 
+          "JavaScript",
+          "Python",
+          "Flask",
           "PostgreSQL",
-          "React", 
-          "Node.js", 
-          ],
+          "React",
+          "Node.js",
+        ],
         experiencia: [
           "Desarrollo de APIs REST",
           "Automatización de procesos internos",
         ],
-        proyectos: [
-          "Sistema de tickets de soporte",
-        ],
+        proyectos: ["Sistema de tickets de soporte"],
         contacto: {
           email: "manuel@empresa.com",
-          linkedin: "https://github.com/ManuelFreire-rgb",
+          linkedin: "https://www.linkedin.com/in/manuel-freire-60837837b/",
           github: "https://github.com/ManuelFreire-rgb",
         },
       },
@@ -527,30 +527,34 @@ export const authActions = {
       // Suprimir errores específicos de WebSocket frame header
       const originalConsoleError = console.error;
       const originalConsoleWarn = console.warn;
-      
+
       console.error = (...args) => {
-        const message = args.join(' ');
-        if (message.includes('Invalid frame header') || 
-            message.includes('WebSocket connection failed') ||
-            message.includes('probe') ||
-            message.includes('WebSocket') ||
-            message.includes('transport') ||
-            message.includes('socket.io') ||
-            message.includes('EIO=4')) {
+        const message = args.join(" ");
+        if (
+          message.includes("Invalid frame header") ||
+          message.includes("WebSocket connection failed") ||
+          message.includes("probe") ||
+          message.includes("WebSocket") ||
+          message.includes("transport") ||
+          message.includes("socket.io") ||
+          message.includes("EIO=4")
+        ) {
           return; // No mostrar estos errores específicos
         }
         originalConsoleError.apply(console, args);
       };
-      
+
       console.warn = (...args) => {
-        const message = args.join(' ');
-        if (message.includes('Invalid frame header') || 
-            message.includes('WebSocket connection failed') ||
-            message.includes('probe') ||
-            message.includes('WebSocket') ||
-            message.includes('transport') ||
-            message.includes('socket.io') ||
-            message.includes('EIO=4')) {
+        const message = args.join(" ");
+        if (
+          message.includes("Invalid frame header") ||
+          message.includes("WebSocket connection failed") ||
+          message.includes("probe") ||
+          message.includes("WebSocket") ||
+          message.includes("transport") ||
+          message.includes("socket.io") ||
+          message.includes("EIO=4")
+        ) {
           return; // No mostrar estos warnings específicos
         }
         originalConsoleWarn.apply(console, args);
@@ -576,26 +580,27 @@ export const authActions = {
 
       // Verificar si ya hay una conexión en progreso
       if (window.websocketConnecting) {
-        console.log('🔄 WebSocket ya está conectando, esperando...');
+        console.log("🔄 WebSocket ya está conectando, esperando...");
         return null;
       }
 
       // Verificar si hay un retry reciente (evitar reconexiones demasiado frecuentes)
       const lastRetry = window.lastWebSocketRetry || 0;
       const now = Date.now();
-      if (now - lastRetry < 5000) { // Esperar al menos 5 segundos entre intentos
-        console.log('⏳ Esperando antes del siguiente intento de conexión...');
+      if (now - lastRetry < 5000) {
+        // Esperar al menos 5 segundos entre intentos
+        console.log("⏳ Esperando antes del siguiente intento de conexión...");
         return null;
       }
       window.lastWebSocketRetry = now;
 
       // Marcar como conectando globalmente
       window.websocketConnecting = true;
-      dispatch({ type: 'websocket_connecting' });
+      dispatch({ type: "websocket_connecting" });
 
       const socket = io(backendUrl, {
-      //  transports: ["websocket", "polling"],
-        transports: ['polling'], // Empezar solo con polling para evitar errores de frame
+        //  transports: ["websocket", "polling"],
+        transports: ["polling"], // Empezar solo con polling para evitar errores de frame
         auth: {
           token: token,
         },
@@ -618,11 +623,11 @@ export const authActions = {
         dispatch({ type: "websocket_notification", payload: data });
       });
 
-      socket.on('connect', () => {
+      socket.on("connect", () => {
         window.websocketConnecting = false;
-        console.log('🔌 WebSocket conectado exitosamente');
-        dispatch({ type: 'websocket_connected', payload: socket });
-        
+        console.log("🔌 WebSocket conectado exitosamente");
+        dispatch({ type: "websocket_connected", payload: socket });
+
         // Unirse automáticamente a rooms del rol si el usuario está autenticado
         const currentUser = dispatch.getState?.()?.auth?.user;
         if (currentUser) {
@@ -631,34 +636,44 @@ export const authActions = {
         }
       });
 
-      socket.on('disconnect', (reason) => {
-        console.log('🔌 WebSocket desconectado:', reason);
-        dispatch({ type: 'websocket_disconnected', payload: { reason } });
+      socket.on("disconnect", (reason) => {
+        console.log("🔌 WebSocket desconectado:", reason);
+        dispatch({ type: "websocket_disconnected", payload: { reason } });
       });
 
-      socket.on('connect_error', (error) => {
+      socket.on("connect_error", (error) => {
         window.websocketConnecting = false;
-        console.error('❌ Error de conexión WebSocket:', error);
-        
+        console.error("❌ Error de conexión WebSocket:", error);
+
         // Manejo específico para errores de frame
-        if (error.message && error.message.includes('Invalid frame header')) {
-          console.log('🔄 Error de frame detectado, intentando reconexión con polling...');
+        if (error.message && error.message.includes("Invalid frame header")) {
+          console.log(
+            "🔄 Error de frame detectado, intentando reconexión con polling..."
+          );
           // Forzar reconexión con polling primero
           setTimeout(() => {
             if (socket && !socket.connected) {
-              socket.io.opts.transports = ['polling'];
+              socket.io.opts.transports = ["polling"];
               socket.connect();
             }
           }, 2000);
         }
-        
-        dispatch({ type: 'websocket_error', payload: { error: error.message } });
+
+        dispatch({
+          type: "websocket_error",
+          payload: { error: error.message },
+        });
       });
 
-      socket.on('reconnect', (attemptNumber) => {
-        console.log(`🔄 WebSocket reconectado después de ${attemptNumber} intentos`);
-        dispatch({ type: 'websocket_reconnected', payload: { attempts: attemptNumber } });
-        
+      socket.on("reconnect", (attemptNumber) => {
+        console.log(
+          `🔄 WebSocket reconectado después de ${attemptNumber} intentos`
+        );
+        dispatch({
+          type: "websocket_reconnected",
+          payload: { attempts: attemptNumber },
+        });
+
         // Reunirse a todas las rooms críticas después de reconexión
         const currentUser = dispatch.getState?.()?.auth?.user;
         if (currentUser) {
@@ -666,103 +681,113 @@ export const authActions = {
         }
       });
 
-      socket.on('reconnect_attempt', (attemptNumber) => {
+      socket.on("reconnect_attempt", (attemptNumber) => {
         console.log(`🔄 Intento de reconexión WebSocket #${attemptNumber}`);
-        dispatch({ type: 'websocket_reconnecting', payload: { attempt: attemptNumber } });
-      });
-
-      socket.on('reconnect_error', (error) => {
-        console.error('❌ Error en reconexión WebSocket:', error);
-        dispatch({ type: 'websocket_reconnect_error', payload: { error: error.message } });
-      });
-
-      socket.on('reconnect_failed', () => {
-        console.error('❌ Falló la reconexión WebSocket después de todos los intentos');
-        dispatch({ type: 'websocket_reconnect_failed' });
-      });
-
-      // Eventos de sincronización global
-      socket.on('sync_triggered', (data) => {
-        console.log('🔄 Sincronización global solicitada:', data);
-        dispatch({ type: 'sync_triggered', payload: data });
-      });
-
-      socket.on('sync_requested', (data) => {
-        console.log('🔄 Solicitud de sincronización recibida:', data);
-        dispatch({ type: 'sync_requested', payload: data });
-      });
-
-      // Eventos críticos de tickets
-      socket.on('critical_ticket_update', (data) => {
-        console.log('🚨 ACTUALIZACIÓN CRÍTICA DE TICKET:', data);
-        dispatch({ 
-          type: 'critical_ticket_update', 
-          payload: {
-            ...data,
-            timestamp: Date.now()
-          }
+        dispatch({
+          type: "websocket_reconnecting",
+          payload: { attempt: attemptNumber },
         });
       });
 
-      socket.on('joined_critical_rooms', (data) => {
-        console.log('🔐 Unido a rooms críticos:', data);
-        dispatch({ type: 'joined_critical_rooms', payload: data });
+      socket.on("reconnect_error", (error) => {
+        console.error("❌ Error en reconexión WebSocket:", error);
+        dispatch({
+          type: "websocket_reconnect_error",
+          payload: { error: error.message },
+        });
+      });
+
+      socket.on("reconnect_failed", () => {
+        console.error(
+          "❌ Falló la reconexión WebSocket después de todos los intentos"
+        );
+        dispatch({ type: "websocket_reconnect_failed" });
+      });
+
+      // Eventos de sincronización global
+      socket.on("sync_triggered", (data) => {
+        console.log("🔄 Sincronización global solicitada:", data);
+        dispatch({ type: "sync_triggered", payload: data });
+      });
+
+      socket.on("sync_requested", (data) => {
+        console.log("🔄 Solicitud de sincronización recibida:", data);
+        dispatch({ type: "sync_requested", payload: data });
+      });
+
+      // Eventos críticos de tickets
+      socket.on("critical_ticket_update", (data) => {
+        console.log("🚨 ACTUALIZACIÓN CRÍTICA DE TICKET:", data);
+        dispatch({
+          type: "critical_ticket_update",
+          payload: {
+            ...data,
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      socket.on("joined_critical_rooms", (data) => {
+        console.log("🔐 Unido a rooms críticos:", data);
+        dispatch({ type: "joined_critical_rooms", payload: data });
       });
 
       // Remover el evento disconnect duplicado - se maneja más abajo
 
       // Manejar errores de conexión
-      socket.on('connect_error', (error) => {
+      socket.on("connect_error", (error) => {
         window.websocketConnecting = false;
         // Filtrar errores específicos de frame header y upgrade
         const errorMessage = error.message || error.toString();
-        const isFrameHeaderError = errorMessage.includes('Invalid frame header') || 
-                                 errorMessage.includes('WebSocket connection failed') ||
-                                 errorMessage.includes('probe') ||
-                                 errorMessage.includes('WebSocket') ||
-                                 errorMessage.includes('transport');
-        
+        const isFrameHeaderError =
+          errorMessage.includes("Invalid frame header") ||
+          errorMessage.includes("WebSocket connection failed") ||
+          errorMessage.includes("probe") ||
+          errorMessage.includes("WebSocket") ||
+          errorMessage.includes("transport");
+
         if (!isFrameHeaderError) {
-          console.warn('Error de conexión WebSocket:', errorMessage);
+          console.warn("Error de conexión WebSocket:", errorMessage);
         }
         // No dispatchar errores de frame header para evitar interrupciones
         if (!isFrameHeaderError) {
-          dispatch({ type: 'websocket_error', payload: errorMessage });
+          dispatch({ type: "websocket_error", payload: errorMessage });
         }
       });
 
       // Manejar errores de transporte
-      socket.on('error', (error) => {
+      socket.on("error", (error) => {
         const errorMessage = error.toString();
-        const isFrameHeaderError = errorMessage.includes('Invalid frame header') || 
-                                 errorMessage.includes('WebSocket connection failed') ||
-                                 errorMessage.includes('probe') ||
-                                 errorMessage.includes('WebSocket') ||
-                                 errorMessage.includes('transport');
-        
+        const isFrameHeaderError =
+          errorMessage.includes("Invalid frame header") ||
+          errorMessage.includes("WebSocket connection failed") ||
+          errorMessage.includes("probe") ||
+          errorMessage.includes("WebSocket") ||
+          errorMessage.includes("transport");
+
         if (!isFrameHeaderError) {
-          console.warn('Error WebSocket:', error);
+          console.warn("Error WebSocket:", error);
         }
         // No dispatchar errores de frame header para evitar interrupciones
         if (!isFrameHeaderError) {
-          dispatch({ type: 'websocket_error', payload: error });
+          dispatch({ type: "websocket_error", payload: error });
         }
       });
 
       // Manejar errores específicos de upgrade
-      socket.on('upgradeError', (error) => {
+      socket.on("upgradeError", (error) => {
         // Silenciar errores de upgrade ya que usamos solo polling
         window.websocketConnecting = false;
       });
 
       // Interceptar errores de WebSocket antes de que se propaguen
       const originalEmit = socket.emit;
-      socket.emit = function(event, ...args) {
+      socket.emit = function (event, ...args) {
         try {
           return originalEmit.call(this, event, ...args);
         } catch (error) {
           // Silenciar errores de frame header durante el probe
-          if (error.message && error.message.includes('Invalid frame header')) {
+          if (error.message && error.message.includes("Invalid frame header")) {
             return;
           }
           throw error;
@@ -770,18 +795,18 @@ export const authActions = {
       };
 
       // Manejar errores específicos de WebSocket
-      socket.on('disconnect', (reason) => {
+      socket.on("disconnect", (reason) => {
         window.websocketConnecting = false;
         // Solo mostrar desconexiones no intencionales
-        if (reason !== 'io client disconnect') {
-          console.warn('WebSocket desconectado:', reason);
+        if (reason !== "io client disconnect") {
+          console.warn("WebSocket desconectado:", reason);
         }
-        dispatch({ type: 'websocket_disconnected' });
+        dispatch({ type: "websocket_disconnected" });
       });
 
       // Eventos de tickets
-      socket.on('nuevo_ticket', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("nuevo_ticket", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         // Para administradores, agregar el ticket completo al store
         if (data.ticket) {
           dispatch({ type: "tickets_upsert", payload: data.ticket });
@@ -799,8 +824,8 @@ export const authActions = {
         }
       });
 
-      socket.on('nuevo_ticket_disponible', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("nuevo_ticket_disponible", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         // Convertir datos de notificación a formato de ticket
         const ticketData = {
           id: data.ticket_id,
@@ -813,8 +838,8 @@ export const authActions = {
         dispatch({ type: "tickets_upsert", payload: ticketData });
       });
 
-      socket.on('ticket_actualizado', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("ticket_actualizado", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         // Si tiene ticket completo, usarlo; si no, convertir datos de notificación
         if (data.ticket) {
           dispatch({ type: "tickets_upsert", payload: data.ticket });
@@ -831,8 +856,8 @@ export const authActions = {
         }
       });
 
-      socket.on('ticket_asignado', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("ticket_asignado", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         // Si tiene ticket completo, usarlo; si no, convertir datos de notificación
         if (data.ticket) {
           dispatch({ type: "tickets_upsert", payload: data.ticket });
@@ -849,67 +874,61 @@ export const authActions = {
         }
       });
 
-      socket.on('nuevo_comentario', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'comentarios_add', payload: data.comentario });
+      socket.on("nuevo_comentario", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
+        dispatch({ type: "comentarios_add", payload: data.comentario });
       });
 
-      socket.on('ticket_eliminado', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'tickets_remove', payload: data.ticket_id });
+      socket.on("ticket_eliminado", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
+        dispatch({ type: "tickets_remove", payload: data.ticket_id });
       });
 
       // Eventos de confirmación de rooms
-      socket.on('joined_ticket', (data) => {
-      });
+      socket.on("joined_ticket", (data) => {});
 
-      socket.on('left_ticket', (data) => {
-      });
+      socket.on("left_ticket", (data) => {});
 
       // Eventos de confirmación de chats específicos
-      socket.on('joined_chat_supervisor_analista', (data) => {
-      });
+      socket.on("joined_chat_supervisor_analista", (data) => {});
 
-      socket.on('left_chat_supervisor_analista', (data) => {
-      });
+      socket.on("left_chat_supervisor_analista", (data) => {});
 
-      socket.on('joined_chat_analista_cliente', (data) => {
-      });
+      socket.on("joined_chat_analista_cliente", (data) => {});
 
-      socket.on('left_chat_analista_cliente', (data) => {
-      });
+      socket.on("left_chat_analista_cliente", (data) => {});
 
       // Eventos de analistas
-      socket.on('analista_creado', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'analistas_add', payload: data.analista });
+      socket.on("analista_creado", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
+        dispatch({ type: "analistas_add", payload: data.analista });
       });
 
-      socket.on('analista_eliminado', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'analistas_remove', payload: data.analista_id });
+      socket.on("analista_eliminado", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
+        dispatch({ type: "analistas_remove", payload: data.analista_id });
       });
 
-      socket.on('solicitud_reapertura', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("solicitud_reapertura", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         // No actualizar tickets aquí, solo es una notificación
       });
 
       // Evento de ticket escalado
-      socket.on('ticket_escalado', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("ticket_escalado", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         // No actualizar tickets aquí, solo es una notificación
       });
 
       // Evento de ticket reabierto
-      socket.on('ticket_reabierto', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("ticket_reabierto", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         // No actualizar tickets aquí, solo es una notificación
       });
 
       // Evento de ticket cerrado
-      socket.on('ticket_cerrado', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("ticket_cerrado", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         // Para tickets cerrados, actualizar el estado pero no agregar a la lista activa
         if (data.ticket_id) {
           const ticketData = {
@@ -926,14 +945,14 @@ export const authActions = {
       });
 
       // Evento de ticket asignado específicamente a mí (analista)
-      socket.on('ticket_asignado_a_mi', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
-        dispatch({ type: 'tickets_upsert', payload: data });
+      socket.on("ticket_asignado_a_mi", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
+        dispatch({ type: "tickets_upsert", payload: data });
       });
 
       // Evento específico para actualizaciones de CRUD de administradores
-      socket.on('ticket_crud_update', (data) => {
-        dispatch({ type: 'websocket_notification', payload: data });
+      socket.on("ticket_crud_update", (data) => {
+        dispatch({ type: "websocket_notification", payload: data });
         if (data.ticket) {
           dispatch({ type: "tickets_upsert", payload: data.ticket });
         }
@@ -941,16 +960,16 @@ export const authActions = {
 
       return socket;
     } catch (error) {
-      console.error('Error conectando WebSocket:', error);
+      console.error("Error conectando WebSocket:", error);
       window.websocketConnecting = false;
-      dispatch({ type: 'websocket_disconnected' });
+      dispatch({ type: "websocket_disconnected" });
       return null;
     } finally {
       // Restaurar console.error y console.warn originales
-      if (typeof originalConsoleError !== 'undefined') {
+      if (typeof originalConsoleError !== "undefined") {
         console.error = originalConsoleError;
       }
-      if (typeof originalConsoleWarn !== 'undefined') {
+      if (typeof originalConsoleWarn !== "undefined") {
         console.warn = originalConsoleWarn;
       }
     }
@@ -961,12 +980,12 @@ export const authActions = {
       // Salir de todas las rooms antes de desconectar
       const currentUser = dispatch.getState?.()?.auth?.user;
       if (currentUser) {
-        socket.emit('leave_role_room', {
+        socket.emit("leave_role_room", {
           role: currentUser.role,
-          user_id: currentUser.id
+          user_id: currentUser.id,
         });
       }
-      
+
       // Limpiar todos los listeners antes de desconectar
       socket.removeAllListeners();
       socket.disconnect();
@@ -975,14 +994,15 @@ export const authActions = {
   },
 
   // Función para solicitar sincronización global
-  requestSync: (socket, syncType = 'all', userData = null) => {
+  requestSync: (socket, syncType = "all", userData = null) => {
     if (socket && socket.connected) {
-      const currentUser = userData || (typeof window !== 'undefined' && window.store?.auth?.user);
+      const currentUser =
+        userData || (typeof window !== "undefined" && window.store?.auth?.user);
       if (currentUser) {
-        socket.emit('request_sync', {
+        socket.emit("request_sync", {
           type: syncType,
           user_id: currentUser.id,
-          role: currentUser.role
+          role: currentUser.role,
         });
       }
     }
@@ -991,14 +1011,17 @@ export const authActions = {
   // Función para emitir acción crítica de ticket
   emitCriticalTicketAction: (socket, ticketId, action, userData = null) => {
     if (socket && socket.connected) {
-      const currentUser = userData || (typeof window !== 'undefined' && window.store?.auth?.user);
+      const currentUser =
+        userData || (typeof window !== "undefined" && window.store?.auth?.user);
       if (currentUser) {
-        console.log(`🚨 Emitiendo acción crítica: ${action} en ticket ${ticketId}`);
-        socket.emit('critical_ticket_action', {
+        console.log(
+          `🚨 Emitiendo acción crítica: ${action} en ticket ${ticketId}`
+        );
+        socket.emit("critical_ticket_action", {
           ticket_id: ticketId,
           action: action,
           user_id: currentUser.id,
-          role: currentUser.role
+          role: currentUser.role,
         });
       }
     }
@@ -1007,13 +1030,16 @@ export const authActions = {
   // Función para unirse a rooms críticos
   joinCriticalRooms: (socket, ticketIds = [], userData = null) => {
     if (socket && socket.connected) {
-      const currentUser = userData || (typeof window !== 'undefined' && window.store?.auth?.user);
+      const currentUser =
+        userData || (typeof window !== "undefined" && window.store?.auth?.user);
       if (currentUser) {
-        console.log(`🔐 Uniéndose a rooms críticos para tickets: ${ticketIds.join(', ')}`);
-        socket.emit('join_critical_rooms', {
+        console.log(
+          `🔐 Uniéndose a rooms críticos para tickets: ${ticketIds.join(", ")}`
+        );
+        socket.emit("join_critical_rooms", {
           user_id: currentUser.id,
           role: currentUser.role,
-          ticket_ids: ticketIds
+          ticket_ids: ticketIds,
         });
       }
     }
@@ -1022,9 +1048,9 @@ export const authActions = {
   // Función para unirse a room de rol
   joinRoleRoom: (socket, role, userId) => {
     if (socket && socket.connected) {
-      socket.emit('join_role_room', {
+      socket.emit("join_role_room", {
         role: role,
-        user_id: userId
+        user_id: userId,
       });
     }
   },
@@ -1032,9 +1058,9 @@ export const authActions = {
   // Función para salir de room de rol
   leaveRoleRoom: (socket, role, userId) => {
     if (socket && socket.connected) {
-      socket.emit('leave_role_room', {
+      socket.emit("leave_role_room", {
         role: role,
-        user_id: userId
+        user_id: userId,
       });
     }
   },
@@ -1054,11 +1080,11 @@ export const authActions = {
 
       const {
         endpoint = this.getEndpoint(type),
-        method = 'GET',
+        method = "GET",
         headers = {},
         onError = null,
         retryOnError = true,
-        maxRetries = 3
+        maxRetries = 3,
       } = options;
 
       console.log(`🔄 Iniciando polling para ${type} cada ${interval}ms`);
@@ -1066,15 +1092,15 @@ export const authActions = {
       const pollFunction = async () => {
         try {
           const backendUrl = import.meta.env.VITE_BACKEND_URL;
-          const token = localStorage.getItem('token');
-          
+          const token = localStorage.getItem("token");
+
           const response = await fetch(`${backendUrl}${endpoint}`, {
             method,
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              ...headers
-            }
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              ...headers,
+            },
           });
 
           if (!response.ok) {
@@ -1083,13 +1109,12 @@ export const authActions = {
 
           const data = await response.json();
           callback(data);
-          
+
           // Reset retry count on success
           this.retryCounts.set(type, 0);
-          
         } catch (error) {
           console.error(`❌ Error en polling ${type}:`, error);
-          
+
           if (onError) {
             onError(error);
           }
@@ -1127,7 +1152,7 @@ export const authActions = {
     },
 
     stopAllPolling() {
-      console.log('⏹️ Deteniendo todo el polling');
+      console.log("⏹️ Deteniendo todo el polling");
       this.intervals.forEach((intervalId, type) => {
         clearInterval(intervalId);
         console.log(`⏹️ Polling detenido para ${type}`);
@@ -1139,25 +1164,29 @@ export const authActions = {
 
     getEndpoint(type) {
       const endpoints = {
-        tickets: '/api/tickets',
-        comentarios: '/api/comentarios',
-        asignaciones: '/api/asignaciones',
-        clientes: '/api/clientes',
-        analistas: '/api/analistas',
-        supervisores: '/api/supervisores',
-        administradores: '/api/administradores',
-        gestion: '/api/gestion'
+        tickets: "/api/tickets",
+        comentarios: "/api/comentarios",
+        asignaciones: "/api/asignaciones",
+        clientes: "/api/clientes",
+        analistas: "/api/analistas",
+        supervisores: "/api/supervisores",
+        administradores: "/api/administradores",
+        gestion: "/api/gestion",
       };
-      return endpoints[type] || '/api/tickets';
+      return endpoints[type] || "/api/tickets";
     },
 
     handleRetry(type, error, maxRetries) {
       const currentRetries = this.retryCounts.get(type) || 0;
-      
+
       if (currentRetries < maxRetries) {
         this.retryCounts.set(type, currentRetries + 1);
-        console.log(`🔄 Reintentando polling ${type} (${currentRetries + 1}/${maxRetries})`);
-        
+        console.log(
+          `🔄 Reintentando polling ${type} (${
+            currentRetries + 1
+          }/${maxRetries})`
+        );
+
         const delay = Math.min(1000 * Math.pow(2, currentRetries), 30000);
         setTimeout(() => {
           if (this.intervals.has(type)) {
@@ -1176,34 +1205,34 @@ export const authActions = {
     setupRoleBasedPolling(role, callbacks = {}) {
       const roleConfigs = {
         cliente: {
-          tickets: { interval: 15000, priority: 'high' },
-          comentarios: { interval: 10000, priority: 'high' }
+          tickets: { interval: 15000, priority: "high" },
+          comentarios: { interval: 10000, priority: "high" },
         },
         analista: {
-          tickets: { interval: 20000, priority: 'high' },
-          comentarios: { interval: 15000, priority: 'high' },
-          asignaciones: { interval: 30000, priority: 'medium' }
+          tickets: { interval: 20000, priority: "high" },
+          comentarios: { interval: 15000, priority: "high" },
+          asignaciones: { interval: 30000, priority: "medium" },
         },
         supervisor: {
-          tickets: { interval: 25000, priority: 'high' },
-          asignaciones: { interval: 20000, priority: 'high' },
-          analistas: { interval: 60000, priority: 'low' }
+          tickets: { interval: 25000, priority: "high" },
+          asignaciones: { interval: 20000, priority: "high" },
+          analistas: { interval: 60000, priority: "low" },
         },
         administrador: {
-          tickets: { interval: 30000, priority: 'medium' },
-          clientes: { interval: 120000, priority: 'low' },
-          analistas: { interval: 120000, priority: 'low' },
-          supervisores: { interval: 120000, priority: 'low' }
-        }
+          tickets: { interval: 30000, priority: "medium" },
+          clientes: { interval: 120000, priority: "low" },
+          analistas: { interval: 120000, priority: "low" },
+          supervisores: { interval: 120000, priority: "low" },
+        },
       };
 
       const config = roleConfigs[role] || {};
-      
+
       Object.entries(config).forEach(([type, { interval, priority }]) => {
         if (callbacks[type]) {
           this.startPolling(type, callbacks[type], interval, {
             priority,
-            retryOnError: priority === 'high'
+            retryOnError: priority === "high",
           });
         }
       });
@@ -1214,29 +1243,33 @@ export const authActions = {
         isActive: this.isActive,
         activePolling: Array.from(this.intervals.keys()),
         totalIntervals: this.intervals.size,
-        retryCounts: Object.fromEntries(this.retryCounts)
+        retryCounts: Object.fromEntries(this.retryCounts),
       };
-    }
+    },
   },
 
   // Función para unirse a todas las rooms críticas
   joinAllCriticalRooms: (socket, userData) => {
     if (!socket || !userData) return;
-    
+
     const { role, id } = userData;
-    console.log(`🚨 Uniéndose a todas las rooms críticas para ${role} (ID: ${id})`);
-    
+    console.log(
+      `🚨 Uniéndose a todas las rooms críticas para ${role} (ID: ${id})`
+    );
+
     // Unirse al room del rol
-    socket.emit('join_role_room', { role, user_id: id });
-    
+    socket.emit("join_role_room", { role, user_id: id });
+
     // Unirse a rooms críticas globales
-    socket.emit('join_critical_rooms', { 
-      role, 
+    socket.emit("join_critical_rooms", {
+      role,
       user_id: id,
-      critical_rooms: ['global_tickets', 'global_chats', 'critical_updates']
+      critical_rooms: ["global_tickets", "global_chats", "critical_updates"],
     });
-    
-    console.log(`✅ Unido a rooms críticas: role_${role}, global_tickets, global_chats, critical_updates`);
+
+    console.log(
+      `✅ Unido a rooms críticas: role_${role}, global_tickets, global_chats, critical_updates`
+    );
   },
 
   // Funciones de sincronización en tiempo real integradas
@@ -1244,9 +1277,9 @@ export const authActions = {
     const {
       syncInterval = 30000,
       enablePolling = true,
-      syncTypes = ['tickets', 'comentarios', 'asignaciones'],
+      syncTypes = ["tickets", "comentarios", "asignaciones"],
       onSyncTriggered = null,
-      onSyncRequested = null
+      onSyncRequested = null,
     } = config;
 
     // Intentar obtener el store de diferentes maneras
@@ -1254,7 +1287,7 @@ export const authActions = {
     if (!currentStore) {
       currentStore = dispatch.getState?.();
     }
-    if (!currentStore && typeof window !== 'undefined' && window.store) {
+    if (!currentStore && typeof window !== "undefined" && window.store) {
       currentStore = window.store;
     }
 
@@ -1262,10 +1295,10 @@ export const authActions = {
 
     // Verificar que store esté disponible
     if (!currentStore) {
-      console.error('❌ No se pudo obtener el estado del store');
+      console.error("❌ No se pudo obtener el estado del store");
       return {
-        triggerSync: () => console.warn('⚠️ Store no disponible'),
-        stopSync: () => console.warn('⚠️ Store no disponible')
+        triggerSync: () => console.warn("⚠️ Store no disponible"),
+        stopSync: () => console.warn("⚠️ Store no disponible"),
       };
     }
 
@@ -1273,54 +1306,73 @@ export const authActions = {
     const startPolling = () => {
       if (!enablePolling || pollingService.isActive) return;
 
-      console.log('🔄 Iniciando polling como fallback');
-      
+      console.log("🔄 Iniciando polling como fallback");
+
       if (currentStore.auth.user) {
         const callbacks = {
           tickets: (data) => {
-            console.log('📡 Datos de tickets recibidos por polling:', data);
+            console.log("📡 Datos de tickets recibidos por polling:", data);
             if (onSyncTriggered) {
-              onSyncTriggered({ type: 'tickets', data, source: 'polling' });
+              onSyncTriggered({ type: "tickets", data, source: "polling" });
             }
           },
           comentarios: (data) => {
-            console.log('📡 Datos de comentarios recibidos por polling:', data);
+            console.log("📡 Datos de comentarios recibidos por polling:", data);
             if (onSyncTriggered) {
-              onSyncTriggered({ type: 'comentarios', data, source: 'polling' });
+              onSyncTriggered({ type: "comentarios", data, source: "polling" });
             }
           },
           asignaciones: (data) => {
-            console.log('📡 Datos de asignaciones recibidos por polling:', data);
+            console.log(
+              "📡 Datos de asignaciones recibidos por polling:",
+              data
+            );
             if (onSyncTriggered) {
-              onSyncTriggered({ type: 'asignaciones', data, source: 'polling' });
+              onSyncTriggered({
+                type: "asignaciones",
+                data,
+                source: "polling",
+              });
             }
-          }
+          },
         };
 
-        pollingService.setupRoleBasedPolling(currentStore.auth.user.role, callbacks);
+        pollingService.setupRoleBasedPolling(
+          currentStore.auth.user.role,
+          callbacks
+        );
       }
     };
 
     // Función para detener polling
     const stopPolling = () => {
-      console.log('⏹️ Deteniendo polling');
+      console.log("⏹️ Deteniendo polling");
       pollingService.stopAllPolling();
     };
 
     // Función para solicitar sincronización manual
-    const triggerSync = (type = 'manual') => {
-      if (currentStore.websocket && currentStore.websocket.connected && currentStore.websocket.socket) {
+    const triggerSync = (type = "manual") => {
+      if (
+        currentStore.websocket &&
+        currentStore.websocket.connected &&
+        currentStore.websocket.socket
+      ) {
         console.log(`🔄 Solicitando sincronización: ${type}`);
         authActions.requestSync(currentStore.websocket.socket, type);
       } else {
-        console.log('⚠️ WebSocket no conectado, usando polling');
+        console.log("⚠️ WebSocket no conectado, usando polling");
         startPolling();
       }
     };
 
     // Función para unirse a rooms de sincronización
     const joinSyncRooms = () => {
-      if (currentStore.auth.user && currentStore.websocket && currentStore.websocket.connected && currentStore.websocket.socket) {
+      if (
+        currentStore.auth.user &&
+        currentStore.websocket &&
+        currentStore.websocket.connected &&
+        currentStore.websocket.socket
+      ) {
         const { role, id } = currentStore.auth.user;
         authActions.joinRoleRoom(currentStore.websocket.socket, role, id);
         console.log(`🏠 Unido a rooms de sincronización para ${role} (${id})`);
@@ -1329,10 +1381,17 @@ export const authActions = {
 
     // Función para salir de rooms de sincronización
     const leaveSyncRooms = () => {
-      if (currentStore.auth.user && currentStore.websocket && currentStore.websocket.connected && currentStore.websocket.socket) {
+      if (
+        currentStore.auth.user &&
+        currentStore.websocket &&
+        currentStore.websocket.connected &&
+        currentStore.websocket.socket
+      ) {
         const { role, id } = currentStore.auth.user;
         authActions.leaveRoleRoom(currentStore.websocket.socket, role, id);
-        console.log(`👋 Saliendo de rooms de sincronización para ${role} (${id})`);
+        console.log(
+          `👋 Saliendo de rooms de sincronización para ${role} (${id})`
+        );
       }
     };
 
@@ -1354,7 +1413,7 @@ export const authActions = {
       joinSyncRooms,
       leaveSyncRooms,
       initializeSync,
-      pollingStats: pollingService.getStats()
+      pollingStats: pollingService.getStats(),
     };
   },
 
@@ -1366,25 +1425,25 @@ export const authActions = {
     const lastSync = store.websocket.lastSync || 0;
 
     const getStatusColor = () => {
-      if (isConnected) return 'text-green-500';
-      if (isPolling) return 'text-yellow-500';
-      return 'text-red-500';
+      if (isConnected) return "text-green-500";
+      if (isPolling) return "text-yellow-500";
+      return "text-red-500";
     };
 
     const getStatusText = () => {
-      if (isConnected) return 'Conectado';
-      if (isPolling) return 'Polling';
-      return 'Desconectado';
+      if (isConnected) return "Conectado";
+      if (isPolling) return "Polling";
+      return "Desconectado";
     };
 
     const getStatusIcon = () => {
-      if (isConnected) return '🟢';
-      if (isPolling) return '🟡';
-      return '🔴';
+      if (isConnected) return "🟢";
+      if (isPolling) return "🟡";
+      return "🔴";
     };
 
     const formatLastSync = () => {
-      if (!lastSync) return 'Nunca';
+      if (!lastSync) return "Nunca";
       const diff = Math.floor((Date.now() - lastSync) / 1000);
       if (diff < 60) return `${diff}s`;
       if (diff < 3600) return `${Math.floor(diff / 60)}m`;
@@ -1400,7 +1459,7 @@ export const authActions = {
       statusIcon: getStatusIcon(),
       lastSyncFormatted: formatLastSync(),
       pollingStats: pollingService.getStats(),
-      notifications: store.websocket.notifications.length
+      notifications: store.websocket.notifications.length,
     };
   },
 
@@ -1423,39 +1482,39 @@ export const authActions = {
 
   joinTicketRoom: (socket, ticketId) => {
     if (socket && ticketId) {
-      socket.emit('join_ticket', { ticket_id: ticketId });
+      socket.emit("join_ticket", { ticket_id: ticketId });
     }
   },
 
   leaveTicketRoom: (socket, ticketId) => {
     if (socket && ticketId) {
-      socket.emit('leave_ticket', { ticket_id: ticketId });
+      socket.emit("leave_ticket", { ticket_id: ticketId });
     }
   },
 
   joinChatSupervisorAnalista: (socket, ticketId) => {
     if (socket && ticketId) {
-      socket.emit('join_chat_supervisor_analista', { ticket_id: ticketId });
+      socket.emit("join_chat_supervisor_analista", { ticket_id: ticketId });
     } else {
     }
   },
 
   leaveChatSupervisorAnalista: (socket, ticketId) => {
     if (socket && ticketId) {
-      socket.emit('leave_chat_supervisor_analista', { ticket_id: ticketId });
+      socket.emit("leave_chat_supervisor_analista", { ticket_id: ticketId });
     }
   },
 
   joinChatAnalistaCliente: (socket, ticketId) => {
     if (socket && ticketId) {
-      socket.emit('join_chat_analista_cliente', { ticket_id: ticketId });
+      socket.emit("join_chat_analista_cliente", { ticket_id: ticketId });
     } else {
     }
   },
 
   leaveChatAnalistaCliente: (socket, ticketId) => {
     if (socket && ticketId) {
-      socket.emit('leave_chat_analista_cliente', { ticket_id: ticketId });
+      socket.emit("leave_chat_analista_cliente", { ticket_id: ticketId });
     }
   },
 };
@@ -1509,34 +1568,34 @@ export default function storeReducer(store, action = {}) {
         },
       };
 
-    case 'SET_USER':
+    case "SET_USER":
       return {
         ...store,
         auth: {
           ...store.auth,
-          user: action.payload
-        }
+          user: action.payload,
+        },
       };
 
     // WebSocket cases
-    case 'websocket_connecting':
+    case "websocket_connecting":
       return {
         ...store,
         websocket: {
           ...store.websocket,
-          connecting: true
-        }
+          connecting: true,
+        },
       };
 
-    case 'websocket_connected':
+    case "websocket_connected":
       return {
         ...store,
         websocket: {
           ...store.websocket,
           socket: action.payload,
           connected: true,
-          connecting: false
-        }
+          connecting: false,
+        },
       };
 
     case "websocket_disconnected":
@@ -1546,11 +1605,11 @@ export default function storeReducer(store, action = {}) {
           ...store.websocket,
           socket: null,
           connected: false,
-          connecting: false
-        }
+          connecting: false,
+        },
       };
 
-    case 'websocket_error':
+    case "websocket_error":
       return {
         ...store,
         websocket: {
@@ -1558,8 +1617,8 @@ export default function storeReducer(store, action = {}) {
           socket: null,
           connected: false,
           connecting: false,
-          error: action.payload
-        }
+          error: action.payload,
+        },
       };
 
     case "websocket_notification":
