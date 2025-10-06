@@ -14,7 +14,9 @@ const Layout = () => {
   // Verificamos las rutas
   const navbarmain = 
   location.pathname === "/" || 
-  location.pathname === "/contact";
+  location.pathname === "/contact" ||
+  location.pathname === "/feature/apps" ||
+  location.pathname === "/feature/design";
 
   const footermain = 
   location.pathname === "/cliente" ||

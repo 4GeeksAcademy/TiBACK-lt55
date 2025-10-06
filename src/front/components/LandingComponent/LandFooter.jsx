@@ -68,7 +68,7 @@ export const LandFooter = () => {
                                 <Link className="text-light text-opacity-50" to="/contact">Centro de Ayuda</Link>
                             </li>
                             <li className="mt-2">
-                                <a className="text-light text-opacity-50" href="#layout" >Nuestros Productos</a>
+                                <a className="text-light text-opacity-50" href="#" >Nuestros Productos</a>
                             </li>
                             <li className="mt-2">
                                 <a className="text-light text-opacity-50" href="#">Privacidad</a>

@@ -1,3 +1,5 @@
+import React from "react";
+import { Link } from "react-router-dom";
 
 export const Feature = () => {
 
@@ -28,7 +30,7 @@ export const Feature = () => {
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-primary"></i>Perfil, precios, factura</p>
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-primary"></i>Iniciar sesión, registrarse, olvidar contraseña</p>
                         </div>
-                        <a className="btn btn-lg btn-info-default text-white rounded-pill mt-3" href="#" >Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></a>
+                        <Link className="btn btn-lg btn-info-default text-white rounded-pill mt-3" to="/feature/apps" >Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></Link>
                     </div>
                 </div>
                 <div className="pb-3 pt-5 align-items-center row">
@@ -42,7 +44,7 @@ export const Feature = () => {
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-success"></i>Uso extensivo de variables CSS</p>
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-success"></i>Código bien documentado y estructurado</p>
                             <p className="text-muted"><i className="mdi mdi-circle-medium text-success"></i>Documentación detallada</p></div>
-                        <a className="btn btn-lg btn-info-default text-white rounded-pill mt-3" href="#">Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></a>
+                        <Link className="btn btn-lg btn-info-default text-white rounded-pill mt-3" to="/feature/design" >Leer Mas  <i className="fa-solid fa-arrow-right fs-6 ms-1"></i></Link>
                     </div>
                     <div className="col-lg-5 col-md-6 offset-md-1">
                         <img className="img-fluid" alt="" src="https://res.cloudinary.com/mystoreimg/image/upload/v1759724422/vczgu3pol8s4kzlqbyc8.jpg" />
