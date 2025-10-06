@@ -23,16 +23,12 @@ const Layout = () => {
   location.pathname === "/supervisor" || 
   location.pathname === "/administrador";
 
-
-  const home = location.pathname === "/Home";
-  const isAuthPage = location.pathname === "/auth";
-
   // Elegimos qué navbar mostrar
   const NavbarToShow =
-    navbarmain ? <LandNavbar /> : location.pathname === "/auth" ? <Navbar /> : "";
+    navbarmain ? <LandNavbar /> :  "";
 
   const FooterToShow =
-    navbarmain ? <LandFooter /> : location.pathname === "/auth" ? <Footer /> : footermain ? <Footer /> : "" ;
+    navbarmain ? <LandFooter /> : footermain ? <Footer /> : "" ;
 
   return (
     <>
@@ -51,27 +47,3 @@ const Layout = () => {
 };
 
 export default Layout;
-
-
-
-// import { Outlet, useLocation } from "react-router-dom";
-// import ScrollToTop from "../components/ScrollToTop";
-// import { Navbar } from "../components/Navbar";
-// import { Footer } from "../components/Footer";
-
-// export const Layout = () => {
-//     const location = useLocation();
-
-//     // Ocultar Navbar y Footer en /auth
-//     const hideNavAndFooter = location.pathname.startsWith("/auth");
-
-//     return (
-//         <ScrollToTop>
-//             {!hideNavAndFooter && <Navbar />}
-//             <Outlet />
-//             {!hideNavAndFooter && <Footer />}
-//         </ScrollToTop>
-//     );
-// };
-
-// export default Layout;
