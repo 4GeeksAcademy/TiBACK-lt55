@@ -469,6 +469,8 @@ html body .btn-sidebar-teal:active {
   z-index: 1000;
   transition: width 0.3s ease, transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
   font-size: 0.88rem; /* Aumentado 10% de 0.8rem */
+  display: block !important;
+  visibility: visible !important;
 }
 
 .hyper-sidebar.collapsed {
@@ -479,6 +481,14 @@ html body .btn-sidebar-teal:active {
   transform: translateX(-100%);
   visibility: hidden;
   opacity: 0;
+}
+
+/* Forzar visibilidad del sidebar cuando no está hidden */
+.hyper-sidebar:not(.hidden) {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
 }
 
 .hyper-sidebar-header {

@@ -49,6 +49,12 @@ export function SupervisorPage() {
     const [ticketsCerrados, setTicketsCerrados] = useState([]);
     const [analistas, setAnalistas] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Combinar analistas del store global con los del estado local (prioridad al store global)
+    const analistasCombinados = store.analistas && store.analistas.length > 0 ? store.analistas : analistas;
+
+    // Combinar tickets cerrados del store global con los del estado local (prioridad al store global)
+    const ticketsCerradosCombinados = store.ticketsCerrados && store.ticketsCerrados.length > 0 ? store.ticketsCerrados : ticketsCerrados;
     const [loadingCerrados, setLoadingCerrados] = useState(false);
     const [error, setError] = useState('');
     const [showCerrados, setShowCerrados] = useState(false);
@@ -162,6 +168,8 @@ export function SupervisorPage() {
             if (response.ok) {
                 const ticketsData = await response.json();
                 setTicketsCerrados(ticketsData);
+                // También actualizar el store global
+                dispatch({ type: "tickets_cerrados_set_list", payload: ticketsData });
             }
         } catch (err) {
             // Silently ignore
@@ -646,6 +654,8 @@ export function SupervisorPage() {
                 if (analistasResponse.ok) {
                     const analistasData = await analistasResponse.json();
                     setAnalistas(analistasData);
+                    // También actualizar el store global
+                    dispatch({ type: "analistas_set_list", payload: analistasData });
                 } else {
                     // Silently ignore
                     setError(`Error al cargar la lista de analistas: ${analistasResponse.status} ${analistasResponse.statusText}`);
@@ -2198,7 +2208,7 @@ export function SupervisorPage() {
                                                                                     <button
                                                                                         className="btn btn-sidebar-teal btn-sm"
                                                                                         title="Ver sugerencias disponibles"
-                                                                                        onClick={() => window.open(`/ticket/${ticket.id}/recomendaciones-similares`, '_self')}
+                                                                                        onClick={() => navigate(`/ticket/${ticket.id}/recomendaciones-similares`)}
                                                                                     >
                                                                                         <i className="fas fa-lightbulb"></i>
                                                                                     </button>
@@ -2225,7 +2235,7 @@ export function SupervisorPage() {
                                                                                             <i className="fas fa-user-plus"></i>
                                                                                         </button>
                                                                                         <ul className="dropdown-menu">
-                                                                                            {analistas.map((analista) => (
+                                                                                            {analistasCombinados.map((analista) => (
                                                                                                 <li key={analista.id}>
                                                                                                     <button
                                                                                                         className="dropdown-item"
@@ -2377,7 +2387,7 @@ export function SupervisorPage() {
                                                                                                     className="btn btn-sidebar-teal flex-fill"
                                                                                                     style={{ minWidth: '120px' }}
                                                                                                     title="Ver sugerencias disponibles"
-                                                                                                    onClick={() => window.open(`/ticket/${ticket.id}/recomendaciones-similares`, '_self')}
+                                                                                                    onClick={() => navigate(`/ticket/${ticket.id}/recomendaciones-similares`)}
                                                                                                 >
                                                                                                     <i className="fas fa-lightbulb me-2"></i>
                                                                                                     Sugerencias
@@ -2406,7 +2416,7 @@ export function SupervisorPage() {
                                                                                                             : "Asignar"}
                                                                                                     </button>
                                                                                                     <ul className="dropdown-menu">
-                                                                                                        {analistas.map((analista) => (
+                                                                                                        {analistasCombinados.map((analista) => (
                                                                                                             <li key={analista.id}>
                                                                                                                 <button
                                                                                                                     className="dropdown-item"
@@ -2496,7 +2506,13 @@ export function SupervisorPage() {
                                     </div>
                                     <button
                                         className="btn btn-outline-secondary btn-sm"
-                                        onClick={() => setShowCerrados(!showCerrados)}
+                                        onClick={() => {
+                                            const newShowCerrados = !showCerrados;
+                                            setShowCerrados(newShowCerrados);
+                                            if (newShowCerrados) {
+                                                cargarTicketsCerrados();
+                                            }
+                                        }}
                                         title={showCerrados ? "Ocultar tickets cerrados" : "Mostrar tickets cerrados"}
                                     >
                                         <i className={`fas ${showCerrados ? 'fa-eye-slash' : 'fa-eye'} me-1`}></i>
@@ -2511,7 +2527,7 @@ export function SupervisorPage() {
                                                     <span className="visually-hidden">Cargando tickets cerrados...</span>
                                                 </div>
                                             </div>
-                                        ) : ticketsCerrados.length === 0 ? (
+                                        ) : ticketsCerradosCombinados.length === 0 ? (
                                             <div className="text-center py-4">
                                                 <p className="text-muted">No hay tickets cerrados.</p>
                                             </div>
@@ -2532,7 +2548,7 @@ export function SupervisorPage() {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {ticketsCerrados.map((ticket) => (
+                                                        {ticketsCerradosCombinados.map((ticket) => (
                                                             <tr key={ticket.id}>
                                                                 <td>
                                                                     <div className="d-flex align-items-center">
@@ -2558,9 +2574,9 @@ export function SupervisorPage() {
                                                                         <strong>{ticket.titulo}</strong>
                                                                         <br />
                                                                         <small className="text-muted">
-                                                                            {ticket.descripcion.length > 50
+                                                                            {ticket.descripcion && ticket.descripcion.length > 50
                                                                                 ? `${ticket.descripcion.substring(0, 50)}...`
-                                                                                : ticket.descripcion
+                                                                                : ticket.descripcion || 'Sin descripción'
                                                                             }
                                                                         </small>
                                                                     </div>
@@ -2644,7 +2660,7 @@ export function SupervisorPage() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {analistas.map((analista) => (
+                                                {analistasCombinados.map((analista) => (
                                                     <tr key={analista.id}>
                                                         <td>#{analista.id}</td>
                                                         <td>{analista.nombre} {analista.apellido}</td>
@@ -2802,16 +2818,13 @@ export function SupervisorPage() {
 
                     {/* Vista de Ticket Detallada */}
                     {activeView.startsWith('ticket-') && (
-                        <>
-                            {console.log('SupervisorPage - Rendering VerTicketHDSupervisor with activeView:', activeView)}
-                            <VerTicketHDSupervisor
-                                ticketId={parseInt(activeView.split('-')[1])}
-                                tickets={tickets}
-                                ticketsConRecomendaciones={ticketsConRecomendaciones}
-                                analistas={analistas}
-                                onBack={() => setActiveView('tickets')}
-                            />
-                        </>
+                        <VerTicketHDSupervisor
+                            ticketId={parseInt(activeView.split('-')[1])}
+                            tickets={tickets}
+                            ticketsConRecomendaciones={ticketsConRecomendaciones}
+                            analistas={analistas}
+                            onBack={() => setActiveView('tickets')}
+                        />
                     )}
 
                     {/* Comentarios View */}

@@ -64,12 +64,12 @@ import { ActualizarGestion } from "./pages/ActualizarGestion";
 
 import { AuthForm } from "./authentication/AuthForm";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { ClientePage } from "./protectedViewsRol/cliente/ClientePage";
+import ClientePage from "./protectedViewsRol/cliente/ClientePage";
 import VerTicketCliente from "./protectedViewsRol/cliente/VerTicketCliente";
 import AnalistaPage from "./protectedViewsRol/analista/AnalistaPage";
 import VerTicketAnalista from "./protectedViewsRol/analista/VerTicketAnalista";
 import { SupervisorPage } from "./protectedViewsRol/supervisor/SupervisorPage";
-import { AdministradorPage } from "./protectedViewsRol/administrador/AdministradorPage";
+import AdministradorPage from "./protectedViewsRol/administrador/AdministradorPage";
 import VerTicketSupervisor from "./protectedViewsRol/supervisor/VerTicketSupervisor";
 import RankingAnalista from "./protectedViewsRol/analista/RankingAnalista";
 

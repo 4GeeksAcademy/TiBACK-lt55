@@ -147,6 +147,9 @@ function AnalistaPage() {
             // Actualizar el store global para que se refleje en el SideBarCentral
             dispatch({ type: 'SET_USER', payload: updatedUserData });
 
+            // Actualizar también la lista de analistas en el store global para que se refleje en SupervisorPage
+            dispatch({ type: 'analistas_upsert', payload: updatedUserData });
+
             alert('Información actualizada exitosamente');
             setShowInfoForm(false);
             setError('');
@@ -240,7 +243,7 @@ function AnalistaPage() {
                 const userId = tokenUtils.getUserId(token);
 
                 if (userId) {
-                    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/usuarios/${userId}`, {
+                    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analistas/${userId}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
@@ -250,6 +253,9 @@ function AnalistaPage() {
                     if (response.ok) {
                         const userData = await response.json();
                         setUserData(userData);
+
+                        // Actualizar el store global para que se refleje en el Footer y otros componentes
+                        dispatch({ type: 'SET_USER', payload: userData });
 
                         // Actualizar el formulario de información
                         setInfoData({
@@ -496,7 +502,11 @@ function AnalistaPage() {
 
     return (
         <div className="hyper-layout d-flex">
-            <SideBarCentral sidebarHidden={sidebarHidden} activeView={activeView} changeView={setActiveView} />
+            <SideBarCentral
+                sidebarHidden={sidebarHidden}
+                activeView={activeView}
+                changeView={setActiveView}
+            />
             <div className={`hyper-main-content flex-grow-1 ${sidebarHidden ? 'sidebar-hidden' : ''}`}>
                 <header className="hyper-header bg-white border-bottom p-3">
                     <div className="d-flex align-items-center justify-content-between w-100">
@@ -1121,6 +1131,43 @@ function AnalistaPage() {
                                                                                 >
                                                                                     <i className="fas fa-comments"></i>
                                                                                 </button>
+                                                                                <div className="btn-group" role="group">
+                                                                                    <button
+                                                                                        className="btn btn-sidebar-primary btn-sm dropdown-toggle"
+                                                                                        type="button"
+                                                                                        data-bs-toggle="dropdown"
+                                                                                        aria-expanded="false"
+                                                                                        title="Opciones de IA"
+                                                                                    >
+                                                                                        <i className="fas fa-robot"></i> IA
+                                                                                    </button>
+                                                                                    <ul className="dropdown-menu">
+                                                                                        <li>
+                                                                                            <button
+                                                                                                className="dropdown-item"
+                                                                                                onClick={() => {
+                                                                                                    setModalTicketId(ticket.id);
+                                                                                                    setActiveView(`recomendacion-${ticket.id}`);
+                                                                                                }}
+                                                                                            >
+                                                                                                <i className="fas fa-lightbulb me-2"></i>
+                                                                                                Generar Recomendación
+                                                                                            </button>
+                                                                                        </li>
+                                                                                        <li>
+                                                                                            <button
+                                                                                                className="dropdown-item"
+                                                                                                onClick={() => {
+                                                                                                    setModalTicketId(ticket.id);
+                                                                                                    setActiveView(`identificar-${ticket.id}`);
+                                                                                                }}
+                                                                                            >
+                                                                                                <i className="fas fa-image me-2"></i>
+                                                                                                Identificar Imagen
+                                                                                            </button>
+                                                                                        </li>
+                                                                                    </ul>
+                                                                                </div>
                                                                             </div>
 
                                                                             {/* Fila inferior: Acciones de estado específicas del analista */}
@@ -1209,6 +1256,45 @@ function AnalistaPage() {
                                                                                             <i className="fas fa-comments me-2"></i>
                                                                                             Chat
                                                                                         </button>
+                                                                                        <div className="btn-group flex-fill" role="group">
+                                                                                            <button
+                                                                                                className="btn btn-sidebar-primary dropdown-toggle"
+                                                                                                style={{ minWidth: '120px' }}
+                                                                                                type="button"
+                                                                                                data-bs-toggle="dropdown"
+                                                                                                aria-expanded="false"
+                                                                                                title="Opciones de IA"
+                                                                                            >
+                                                                                                <i className="fas fa-robot me-2"></i>
+                                                                                                IA
+                                                                                            </button>
+                                                                                            <ul className="dropdown-menu">
+                                                                                                <li>
+                                                                                                    <button
+                                                                                                        className="dropdown-item"
+                                                                                                        onClick={() => {
+                                                                                                            setModalTicketId(ticket.id);
+                                                                                                            setActiveView(`recomendacion-${ticket.id}`);
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        <i className="fas fa-lightbulb me-2"></i>
+                                                                                                        Generar Recomendación
+                                                                                                    </button>
+                                                                                                </li>
+                                                                                                <li>
+                                                                                                    <button
+                                                                                                        className="dropdown-item"
+                                                                                                        onClick={() => {
+                                                                                                            setModalTicketId(ticket.id);
+                                                                                                            setActiveView(`identificar-${ticket.id}`);
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        <i className="fas fa-image me-2"></i>
+                                                                                                        Identificar Imagen
+                                                                                                    </button>
+                                                                                                </li>
+                                                                                            </ul>
+                                                                                        </div>
 
                                                                                         {ticketsSolicitudReapertura.has(ticket.id) ? (
                                                                                             <div className="text-center p-2">

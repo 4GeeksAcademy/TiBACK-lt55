@@ -45,9 +45,9 @@ export function DashboardCalidad() {
 
                                     // Calcular métricas
                                     const ticketsAsignados = tickets.length;
-                                    const ticketsSolucionados = tickets.filter(t => t.estado === 'solucionado').length;
+                                    const ticketsSolucionados = tickets.filter(t => t.estado === 'solucionado' || t.estado === 'cerrado').length;
                                     const ticketsReabiertos = tickets.filter(t => t.estado === 'reabierto').length;
-                                    const ticketsCerrados = tickets.filter(t => t.estado === 'cerrado').length;
+                                    const ticketsEscalados = tickets.filter(t => t.estado === 'escalado' || t.estado === 'en_espera').length;
 
                                     // Calcular calificación promedio
                                     const ticketsConCalificacion = tickets.filter(t => t.calificacion && t.calificacion > 0);
@@ -61,8 +61,8 @@ export function DashboardCalidad() {
                                         ? (ticketsConTiempo.reduce((sum, t) => sum + t.tiempo_respuesta, 0) / ticketsConTiempo.length)
                                         : 0;
 
-                                    // Calcular eficiencia (tickets cerrados / tickets asignados)
-                                    const eficiencia = ticketsAsignados > 0 ? (ticketsCerrados / ticketsAsignados) * 100 : 0;
+                                    // Calcular eficiencia (tickets solucionados / tickets asignados)
+                                    const eficiencia = ticketsAsignados > 0 ? (ticketsSolucionados / ticketsAsignados) * 100 : 0;
 
                                     // Calcular promedios por período
                                     const ahora = new Date();
@@ -74,9 +74,9 @@ export function DashboardCalidad() {
                                     const ticketsSemana = tickets.filter(t => new Date(t.fecha_creacion) >= haceUnaSemana);
                                     const ticketsMes = tickets.filter(t => new Date(t.fecha_creacion) >= haceUnMes);
 
-                                    const cerradosHoy = ticketsHoy.filter(t => t.estado === 'cerrado').length;
-                                    const cerradosSemana = ticketsSemana.filter(t => t.estado === 'cerrado').length;
-                                    const cerradosMes = ticketsMes.filter(t => t.estado === 'cerrado').length;
+                                    const solucionadosHoy = ticketsHoy.filter(t => t.estado === 'cerrado' || t.estado === 'solucionado').length;
+                                    const solucionadosSemana = ticketsSemana.filter(t => t.estado === 'cerrado' || t.estado === 'solucionado').length;
+                                    const solucionadosMes = ticketsMes.filter(t => t.estado === 'cerrado' || t.estado === 'solucionado').length;
 
                                     return {
                                         ...analista,
@@ -84,13 +84,13 @@ export function DashboardCalidad() {
                                             ticketsAsignados,
                                             ticketsSolucionados,
                                             ticketsReabiertos,
-                                            ticketsCerrados,
+                                            ticketsEscalados,
                                             calificacionPromedio: Math.round(calificacionPromedio * 10) / 10,
                                             tiempoRespuestaPromedio: Math.round(tiempoRespuestaPromedio),
                                             eficiencia: Math.round(eficiencia * 10) / 10,
-                                            cerradosPorDia: cerradosHoy,
-                                            cerradosPorSemana: cerradosSemana,
-                                            cerradosPorMes: cerradosMes,
+                                            solucionadosPorDia: solucionadosHoy,
+                                            solucionadosPorSemana: solucionadosSemana,
+                                            solucionadosPorMes: solucionadosMes,
                                             satisfaccion: ticketsConCalificacion.length > 0
                                                 ? (ticketsConCalificacion.filter(t => t.calificacion >= 4).length / ticketsConCalificacion.length) * 100
                                                 : 0
@@ -106,13 +106,13 @@ export function DashboardCalidad() {
                                             ticketsAsignados: 0,
                                             ticketsSolucionados: 0,
                                             ticketsReabiertos: 0,
-                                            ticketsCerrados: 0,
+                                            ticketsEscalados: 0,
                                             calificacionPromedio: 0,
                                             tiempoRespuestaPromedio: 0,
                                             eficiencia: 0,
-                                            cerradosPorDia: 0,
-                                            cerradosPorSemana: 0,
-                                            cerradosPorMes: 0,
+                                            solucionadosPorDia: 0,
+                                            solucionadosPorSemana: 0,
+                                            solucionadosPorMes: 0,
                                             satisfaccion: 0
                                         }
                                     };
@@ -125,13 +125,13 @@ export function DashboardCalidad() {
                                         ticketsAsignados: 0,
                                         ticketsSolucionados: 0,
                                         ticketsReabiertos: 0,
-                                        ticketsCerrados: 0,
+                                        ticketsEscalados: 0,
                                         calificacionPromedio: 0,
                                         tiempoRespuestaPromedio: 0,
                                         eficiencia: 0,
-                                        cerradosPorDia: 0,
-                                        cerradosPorSemana: 0,
-                                        cerradosPorMes: 0,
+                                        solucionadosPorDia: 0,
+                                        solucionadosPorSemana: 0,
+                                        solucionadosPorMes: 0,
                                         satisfaccion: 0
                                     }
                                 };
@@ -235,26 +235,6 @@ export function DashboardCalidad() {
 
             {/* Métricas Principales */}
             <div className="row mb-4 g-3">
-                <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
-                    <div className="hyper-widget card border-0 shadow-sm h-100">
-                        <div className="card-body">
-                            <div className="text-center">
-                                <h6 className="card-title text-muted mb-2">Total Analistas</h6>
-                                <div className="d-flex align-items-center justify-content-center mb-2">
-                                    <h3 className="mb-0 text-primary me-2">
-                                        {selectedAnalista ? 1 : analistas.length}
-                                    </h3>
-                                    <div className="bg-primary bg-opacity-10 rounded-circle p-2">
-                                        <i className="fas fa-users text-primary"></i>
-                                    </div>
-                                </div>
-                                <small className="text-muted">
-                                    {selectedAnalista ? 'Analista seleccionado' : 'Equipo completo'}
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
                     <div className="hyper-widget card border-0 shadow-sm h-100">
@@ -308,16 +288,16 @@ export function DashboardCalidad() {
                     <div className="hyper-widget card border-0 shadow-sm h-100">
                         <div className="card-body">
                             <div className="text-center">
-                                <h6 className="card-title text-muted mb-2">Tickets Cerrados</h6>
+                                <h6 className="card-title text-muted mb-2">Tickets Escalados</h6>
                                 <div className="d-flex align-items-center justify-content-center mb-2">
-                                    <h3 className="mb-0 text-success me-2">
+                                    <h3 className="mb-0 text-warning me-2">
                                         {selectedAnalista
-                                            ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsCerrados || 0
-                                            : analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)
+                                            ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsEscalados || 0
+                                            : analistas.reduce((sum, a) => sum + a.metricas.ticketsEscalados, 0)
                                         }
                                     </h3>
-                                    <div className="bg-success bg-opacity-10 rounded-circle p-2">
-                                        <i className="fas fa-check-circle text-success"></i>
+                                    <div className="bg-warning bg-opacity-10 rounded-circle p-2">
+                                        <i className="fas fa-arrow-up text-warning"></i>
                                     </div>
                                 </div>
                                 <small className="text-muted">
@@ -417,13 +397,13 @@ export function DashboardCalidad() {
                                 </div>
                                 <div className="col-xl-3 col-lg-6 col-md-6">
                                     <div className="border-end pe-3">
-                                        <h4 className="text-success">
+                                        <h4 className="text-warning">
                                             {selectedAnalista
-                                                ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsCerrados || 0
-                                                : analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)
+                                                ? analistas.find(a => a.id === selectedAnalista)?.metricas.ticketsEscalados || 0
+                                                : analistas.reduce((sum, a) => sum + a.metricas.ticketsEscalados, 0)
                                             }
                                         </h4>
-                                        <small className="text-muted">Cerrados</small>
+                                        <small className="text-muted">Escalados</small>
                                     </div>
                                 </div>
                                 <div className="col-xl-3 col-lg-6 col-md-6">
@@ -573,7 +553,7 @@ export function DashboardCalidad() {
                                             <div className="text-end">
                                                 <span className="badge bg-success fs-6">{analista.metricas.eficiencia.toFixed(1)}%</span>
                                                 <br />
-                                                <small className="text-muted">{analista.metricas.ticketsCerrados} cerrados</small>
+                                                <small className="text-muted">{analista.metricas.ticketsEscalados} escalados</small>
                                             </div>
                                         </div>
                                     ))}
@@ -604,8 +584,8 @@ export function DashboardCalidad() {
                                         </div>
                                     </div>
                                     <div className="col-4">
-                                        <h4 className="text-info">{analistas.reduce((sum, a) => sum + a.metricas.ticketsCerrados, 0)}</h4>
-                                        <small className="text-muted">Cerrados</small>
+                                        <h4 className="text-warning">{analistas.reduce((sum, a) => sum + a.metricas.ticketsEscalados, 0)}</h4>
+                                        <small className="text-muted">Escalados</small>
                                     </div>
                                 </div>
                             </div>
@@ -646,8 +626,8 @@ export function DashboardCalidad() {
                                             </div>
                                             <div className="col-xl-2 col-lg-3 col-md-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="fw-bold text-success fs-4">{analista.metricas.ticketsCerrados}</div>
-                                                    <div className="text-muted">Tickets Cerrados</div>
+                                                    <div className="fw-bold text-warning fs-4">{analista.metricas.ticketsEscalados}</div>
+                                                    <div className="text-muted">Tickets Escalados</div>
                                                 </div>
                                             </div>
                                             <div className="col-xl-2 col-lg-3 col-md-6 mb-3">

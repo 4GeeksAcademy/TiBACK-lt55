@@ -11,7 +11,7 @@ import ChatAnalistaClienteEmbedded from '../../components/ChatAnalistaClienteEmb
 import RecomendacionVistaEmbedded from '../../components/RecomendacionVistaEmbedded';
 import IdentificarImagenEmbedded from '../../components/IdentificarImagenEmbedded';
 
-export function ClientePage() {
+function ClientePage() {
     // Para modal de imágenes
     const [selectedTicketImages, setSelectedTicketImages] = useState(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -971,6 +971,11 @@ export function ClientePage() {
 
             if (!response.ok) {
                 throw new Error('Error al cerrar ticket');
+            }
+
+            // Emitir acción crítica de ticket cerrado para notificar al supervisor
+            if (store.websocket.socket) {
+                emitCriticalTicketAction(store.websocket.socket, ticketId, 'ticket_cerrado', store.auth.user);
             }
 
             // Actualizar tickets sin recargar la pÃ¡gina
@@ -2185,7 +2190,7 @@ export function ClientePage() {
                                                                                     <button
                                                                                         className="btn btn-sidebar-teal btn-sm"
                                                                                         title="Ver sugerencias disponibles"
-                                                                                        onClick={() => window.open(`/ticket/${ticket.id}/recomendaciones-similares`, '_self')}
+                                                                                        onClick={() => navigate(`/ticket/${ticket.id}/recomendaciones-similares`)}
                                                                                     >
                                                                                         <i className="fas fa-lightbulb"></i>
                                                                                     </button>
@@ -2315,7 +2320,7 @@ export function ClientePage() {
                                                                                                 className="btn btn-sidebar-teal flex-fill"
                                                                                                 style={{ minWidth: '120px' }}
                                                                                                 title="Ver sugerencias disponibles"
-                                                                                                onClick={() => window.open(`/ticket/${ticket.id}/recomendaciones-similares`, '_self')}
+                                                                                                onClick={() => navigate(`/ticket/${ticket.id}/recomendaciones-similares`)}
                                                                                             >
                                                                                                 <i className="fas fa-lightbulb me-2"></i>
                                                                                                 Sugerencias

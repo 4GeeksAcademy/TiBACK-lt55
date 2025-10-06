@@ -5,27 +5,27 @@ import HeatmapComponent from '../../components/HeatmapComponent';
 
 // Utilidades de token seguras
 const tokenUtils = {
-  decodeToken: (token) => {
-    try {
-      if (!token) return null;
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      return JSON.parse(atob(parts[1]));
-    } catch (error) {
-      return null;
+    decodeToken: (token) => {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (error) {
+            return null;
+        }
+    },
+    getUserId: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.user_id : null;
+    },
+    getRole: (token) => {
+        const payload = tokenUtils.decodeToken(token);
+        return payload ? payload.role : null;
     }
-  },
-  getUserId: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.user_id : null;
-  },
-  getRole: (token) => {
-    const payload = tokenUtils.decodeToken(token);
-    return payload ? payload.role : null;
-  }
 };
 
-export function AdministradorPage() {
+function AdministradorPage() {
     const navigate = useNavigate();
     const { store, logout, connectWebSocket, disconnectWebSocket, joinRoom } = useGlobalReducer();
     const [stats, setStats] = useState({
@@ -70,7 +70,7 @@ export function AdministradorPage() {
             if (lastNotification.tipo === 'asignado' || lastNotification.tipo === 'estado_cambiado' || lastNotification.tipo === 'iniciado' || lastNotification.tipo === 'escalado') {
                 // Los datos ya están en el store por el WebSocket - actualización instantánea
             }
-            
+
             // Sincronización con servidor en segundo plano para TODOS los eventos
             cargarEstadisticas();
         }
@@ -297,7 +297,7 @@ export function AdministradorPage() {
                 <div className="col-12">
                     <h4 className="mb-3">Estadísticas del Sistema</h4>
                 </div>
-                
+
                 {loading ? (
                     <div className="col-12 text-center py-4">
                         <div className="spinner-border spinner-ct-primary" role="status">
@@ -428,7 +428,7 @@ export function AdministradorPage() {
                 <div className="col-12">
                     <h4 className="mb-3">Gestión del Sistema</h4>
                 </div>
-                
+
                 <div className="col-md-6 col-lg-3 mb-3">
                     <Link to="/clientes" className="card text-decoration-none h-100">
                         <div className="card-body text-center">
@@ -444,7 +444,7 @@ export function AdministradorPage() {
                         <div className="card-body text-center">
                             <i className="fas fa-user-tie fa-3x mb-3 icon-ct-success"></i>
                             <h5 className="card-title">Gestionar Analistas</h5>
-                            <p className="card-text text-muted">Administrar cuentas de analistas</p> 
+                            <p className="card-text text-muted">Administrar cuentas de analistas</p>
                         </div>
                     </Link>
                 </div>
