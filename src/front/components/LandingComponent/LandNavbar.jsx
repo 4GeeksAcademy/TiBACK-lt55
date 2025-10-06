@@ -31,7 +31,7 @@ export const LandNavbar = () => {
                                     <li><Link className="dropdown-item" to="/auth?role=administrador">Administrador</Link></li>
                                     <li><Link className="dropdown-item" to="/auth?role=supervisor">Supervisor</Link></li>
                                     <li><Link className="dropdown-item" to="/auth?role=analista">Analista</Link></li>
-                                    <li><Link className="dropdown-item" to="/auth?role=clientes">Cliente</Link></li>
+                                    <li><Link className="dropdown-item" to="/auth?role=cliente">Cliente</Link></li>
                                 </ul>
                             </li>
                         </ul>

@@ -26,7 +26,7 @@ const tokenUtils = {
     }
 };
 
-export function AnalistaPage() {
+function AnalistaPage() {
     const navigate = useNavigate();
     const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
@@ -759,6 +759,67 @@ export function AnalistaPage() {
         }
     };
 
+    // // Feedback visual para actualización de tickets
+    // const [feedback, setFeedback] = useState("");
+    // const actualizarTickets = async () => {
+    //     try {
+    //         setLoading(true);
+    //         const token = store.auth.token;
+    //         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/analista`, {
+    //             headers: {
+    // Función para actualizar tickets (comentada temporalmente)
+    // const actualizarTickets = async () => {
+    //     try {
+    //         setLoading(true);
+    //         const token = store.auth.token;
+    //         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analista/tickets`, {
+    //             headers: {
+    //                 'Authorization': `Bearer ${token}`,
+    //                 'Content-Type': 'application/json'
+    //             }
+    //         });
+    //         if (!response.ok) throw new Error('Error al cargar tickets');
+    //         const data = await response.json();
+    //         setTickets(data);
+    //         setFeedback("Lista actualizada correctamente");
+    //         setTimeout(() => setFeedback(""), 2000);
+    //     } catch (err) {
+    //         setError(err.message);
+    //         setFeedback("Error al actualizar la lista");
+    //         setTimeout(() => setFeedback(""), 2000);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
+    // return (
+    //     <div className="container py-4">
+    //         <div className="d-flex justify-content-end mb-3">
+    //         </div>
+    //         {/* Header con información del analista */}
+    //         <div className="row mb-4">
+    //             <div className="col-12">
+    //                 <div className="card">
+    //                     <div className="card-body d-flex justify-content-between align-items-center">
+    //                         <div>
+    //                             <h2 className="mb-1">
+    //                                 Bienvenido, {userData?.nombre === 'Pendiente' ? 'Analista' : userData?.nombre} {userData?.apellido === 'Pendiente' ? '' : userData?.apellido}
+    //                             </h2>
+    //                             <p className="text-muted mb-0">Panel de Analista - Gestión de Tickets</p>
+    //                             <div className="mt-2">
+    //                                 <span className="badge bg-success">
+    //                                     <i className="fas fa-wifi me-1"></i>
+    //                                     Conectado
+    //                                 </span>
+    //                             </div>
+    //                             {userData?.especialidad && userData.especialidad !== 'Pendiente' && (
+    //                                 <div className="mt-2">
+    //                                     <small className="text-info d-flex align-items-center">
+    //                                         <i className="fas fa-cog me-1"></i>
+    //                                         <span className="fw-bold">Especialidad:</span>
+    //                                         <span className="ms-1">{userData.especialidad}</span>
+    //                                     </small>
+    //                                 </div>
     const stats = getStats();
     const filteredTickets = getFilteredTickets();
 
@@ -1706,7 +1767,29 @@ export function AnalistaPage() {
                         </>
                     )}
 
-                    {/* Formulario de informaciÃ³n del analista */}
+                    {/* Lista de tickets asignados - Comentada temporalmente */}
+                    {/* <div className="row">
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-header d-flex align-items-center justify-content-between">
+                            <div>
+                                <h5 className="mb-0">Mis Tickets Asignados</h5>
+                                {feedback && (
+                                    <div className="alert alert-info py-1 px-3 mb-0 mt-2" style={{ display: 'inline-block', fontSize: '0.95em' }} role="alert">
+                                        {feedback}
+                                //                         </div>
+                                //                     )}
+                                //                 </div>
+                                //                 <button className="btn btn-primary" onClick={actualizarTickets}>
+                                //                     <i className="fas fa-refresh"></i> Actualizar Lista
+                                //                 </button>
+                                //             </div>
+                                //             <div className="card-body">
+                                //                 {loading ? (
+                                //                     <div className="text-center py-4">
+                                //                         <div className="spinner-border text-primary" role="status">
+                                //                             <span className="visually-hidden">Cargando tickets...</span>
+                                {/* Formulario de informaciÃ³n del analista */ }
                     {showInfoForm && (
                         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                             <div className="modal-dialog">
@@ -1868,3 +1951,5 @@ const useAnalistaSyncEffects = () => {
     }, []);
 };
 // FIN CAMBIO ANALISTA 1
+
+export default AnalistaPage;
