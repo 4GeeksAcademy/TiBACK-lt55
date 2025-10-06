@@ -1,5 +1,5 @@
-// import { string } from "prop-types"; // No se usa en este archivo
 import { io } from "socket.io-client";
+ 
 
 // Función global para manejar chats activos en localStorage
 window.updateActiveChat = (
@@ -48,7 +48,7 @@ window.updateActiveChat = (
 };
 
 // Utilidades de token seguras - SOLO TOKEN COMO FUENTE DE VERDAD
-const tokenUtils = {
+export const tokenUtils = {
   // Decodifica el token JWT
   decodeToken: (token) => {
     try {
