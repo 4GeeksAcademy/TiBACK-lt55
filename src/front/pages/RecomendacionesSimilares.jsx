@@ -138,38 +138,48 @@ const RecomendacionesSimilares = () => {
                 if (response.ok) {
                     const comentarios = await response.json();
 
-                    // Filtrar comentarios: solo mostrar comentarios de usuarios y recomendaciones de IA
-                    // NO mostrar historial del ticket (transacciones automáticas)
+                    // Filtrar comentarios: SOLO mostrar conversaciones en tiempo real entre usuarios
+                    // NO mostrar mensajes automáticos, historial del ticket, ni recomendaciones de IA
                     const comentariosFiltrados = comentarios.filter(comentario => {
-                        const texto = comentario.texto.toLowerCase();
+                        const texto = comentario.texto;
 
-                        // Excluir transacciones automáticas del historial del ticket
-                        const esTransaccionAutomatica =
-                            texto.includes('ticket asignado') ||
-                            texto.includes('ticket reasignado') ||
-                            texto.includes('ticket solucionado') ||
-                            texto.includes('ticket escalado') ||
-                            texto.includes('ticket iniciado') ||
-                            texto.includes('ticket reabierto') ||
-                            texto.includes('cliente solicita reapertura') ||
-                            texto.includes('ticket cerrado por cliente') ||
-                            texto.includes('ticket cerrado por supervisor') ||
-                            texto.includes('ticket reabierto por cliente') ||
-                            texto.includes('ticket reabierto por supervisor');
+                        // Excluir movimientos automáticos del sistema
+                        const esMovimientoAutomatico =
+                            texto.includes('Ticket asignado') ||
+                            texto.includes('Ticket reasignado') ||
+                            texto.includes('Ticket solucionado') ||
+                            texto.includes('Ticket escalado') ||
+                            texto.includes('Ticket iniciado') ||
+                            texto.includes('Ticket reabierto') ||
+                            texto.includes('Cliente solicita reapertura') ||
+                            texto.includes('Ticket cerrado por cliente') ||
+                            texto.includes('Ticket cerrado por supervisor') ||
+                            texto.includes('Ticket cerrado por administrador') ||
+                            texto.includes('Supervisor aprobó solicitud de reapertura') ||
+                            texto.includes('Listo para nueva asignación') ||
+                            texto.includes('por supervisor') ||
+                            texto.includes('por administrador') ||
+                            texto.includes('Analista inició trabajo en el ticket') ||
+                            texto.includes('Chat iniciado entre') ||
+                            texto.includes('Mensaje de chat:');
 
-                        // Incluir solo comentarios de usuarios y recomendaciones de IA
-                        const esComentarioUsuario = comentario.autor &&
+                        // Excluir recomendaciones de IA y análisis de IA
+                        const esRecomendacionIA =
+                            texto.includes('🤖 RECOMENDACIÓN DE IA GENERADA') ||
+                            texto.includes('🤖 ANÁLISIS DE IMAGEN CON IA:') ||
+                            texto.includes('CHAT_ANALISTA_CLIENTE:') ||
+                            texto.includes('CHAT_SUPERVISOR_ANALISTA:');
+
+                        // Verificar que sea un comentario de usuario real, no del sistema
+                        const esComentarioReal = comentario.autor &&
                             (comentario.autor.rol === 'cliente' ||
                                 comentario.autor.rol === 'analista' ||
-                                comentario.autor.rol === 'supervisor');
+                                comentario.autor.rol === 'supervisor') &&
+                            texto.trim().length > 0 &&
+                            !texto.includes('Sistema:') &&
+                            !texto.includes('Automático:');
 
-                        const esRecomendacionIA = texto.includes('recomendación') ||
-                            texto.includes('diagnóstico') ||
-                            texto.includes('pasos de solución') ||
-                            texto.includes('🤖 recomendación de ia generada') ||
-                            texto.includes('🤖 análisis de imagen con ia:');
-
-                        return !esTransaccionAutomatica && (esComentarioUsuario || esRecomendacionIA);
+                        return !esMovimientoAutomatico && !esRecomendacionIA && esComentarioReal;
                     });
 
                     return { ticketId: ticket.id, comentarios: comentariosFiltrados };
@@ -422,41 +432,7 @@ const RecomendacionesSimilares = () => {
                                                                         aria-controls={`collapse-${ticket.id}`}
                                                                     >
                                                                         <i className="fas fa-comments me-2"></i>
-                                                                        Ver Comentarios ({comentariosPorTicket[ticket.id].filter((comentario) => {
-                                                                            const texto = comentario.texto.toLowerCase();
-
-                                                                            // Excluir transacciones automáticas del historial del ticket
-                                                                            const esTransaccionAutomatica =
-                                                                                texto.includes('ticket asignado') ||
-                                                                                texto.includes('ticket reasignado') ||
-                                                                                texto.includes('ticket solucionado') ||
-                                                                                texto.includes('ticket escalado') ||
-                                                                                texto.includes('ticket iniciado') ||
-                                                                                texto.includes('ticket reabierto') ||
-                                                                                texto.includes('cliente solicita reapertura') ||
-                                                                                texto.includes('ticket cerrado por cliente') ||
-                                                                                texto.includes('ticket cerrado por supervisor') ||
-                                                                                texto.includes('ticket reabierto por cliente') ||
-                                                                                texto.includes('ticket reabierto por supervisor');
-
-                                                                            // Excluir recomendaciones de IA
-                                                                            const esRecomendacionIA = texto.includes('🤖 recomendación de ia generada') ||
-                                                                                texto.includes('🤖 análisis de imagen con ia:') ||
-                                                                                texto.includes('recomendación') ||
-                                                                                texto.includes('diagnóstico') ||
-                                                                                texto.includes('pasos de solución');
-
-                                                                            // Solo incluir comentarios reales entre usuarios (conversaciones reales)
-                                                                            const esComentarioReal = comentario.autor &&
-                                                                                (comentario.autor.rol === 'cliente' ||
-                                                                                    comentario.autor.rol === 'analista' ||
-                                                                                    comentario.autor.rol === 'supervisor') &&
-                                                                                texto.trim().length > 0 &&
-                                                                                !texto.includes('sistema:') &&
-                                                                                !texto.includes('automático:');
-
-                                                                            return !esTransaccionAutomatica && !esRecomendacionIA && esComentarioReal;
-                                                                        }).length})
+                                                                        Ver Comentarios ({comentariosPorTicket[ticket.id].length})
                                                                     </button>
                                                                 </h2>
                                                                 <div
@@ -467,41 +443,6 @@ const RecomendacionesSimilares = () => {
                                                                     <div className="accordion-body">
                                                                         <div className="comentarios-container" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                                                                             {comentariosPorTicket[ticket.id]
-                                                                                .filter((comentario) => {
-                                                                                    const texto = comentario.texto.toLowerCase();
-
-                                                                                    // Excluir transacciones automáticas del historial del ticket
-                                                                                    const esTransaccionAutomatica =
-                                                                                        texto.includes('ticket asignado') ||
-                                                                                        texto.includes('ticket reasignado') ||
-                                                                                        texto.includes('ticket solucionado') ||
-                                                                                        texto.includes('ticket escalado') ||
-                                                                                        texto.includes('ticket iniciado') ||
-                                                                                        texto.includes('ticket reabierto') ||
-                                                                                        texto.includes('cliente solicita reapertura') ||
-                                                                                        texto.includes('ticket cerrado por cliente') ||
-                                                                                        texto.includes('ticket cerrado por supervisor') ||
-                                                                                        texto.includes('ticket reabierto por cliente') ||
-                                                                                        texto.includes('ticket reabierto por supervisor');
-
-                                                                                    // Excluir recomendaciones de IA
-                                                                                    const esRecomendacionIA = texto.includes('🤖 recomendación de ia generada') ||
-                                                                                        texto.includes('🤖 análisis de imagen con ia:') ||
-                                                                                        texto.includes('recomendación') ||
-                                                                                        texto.includes('diagnóstico') ||
-                                                                                        texto.includes('pasos de solución');
-
-                                                                                    // Solo incluir comentarios reales entre usuarios (conversaciones reales)
-                                                                                    const esComentarioReal = comentario.autor &&
-                                                                                        (comentario.autor.rol === 'cliente' ||
-                                                                                            comentario.autor.rol === 'analista' ||
-                                                                                            comentario.autor.rol === 'supervisor') &&
-                                                                                        texto.trim().length > 0 &&
-                                                                                        !texto.includes('sistema:') &&
-                                                                                        !texto.includes('automático:');
-
-                                                                                    return !esTransaccionAutomatica && !esRecomendacionIA && esComentarioReal;
-                                                                                })
                                                                                 .map((comentario, index) => {
                                                                                     return (
                                                                                         <div key={index} className="mb-3">

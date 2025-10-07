@@ -103,12 +103,23 @@ function ClientePage() {
                 setTickets(ticketsData);
                 console.log(`📋 Cliente - Tickets cargados: ${ticketsData.length} tickets`);
 
-                // Limpiar solicitudes de reapertura para tickets que ya no estÃ¡n en estado 'solucionado'
+                // Limpiar solicitudes de reapertura para tickets que ya NO están en estado 'solucionado'
+                // NO restaurar automáticamente solicitudes - solo confiar en el flujo de agregar cuando el cliente hace clic
                 setSolicitudesReapertura(prev => {
-                    const newSet = new Set();
+                    const newSet = new Set(prev);
+                    // Eliminar solicitudes de tickets que ya no están en 'solucionado'
                     ticketsData.forEach(ticket => {
-                        if (ticket.estado && ticket.estado.toLowerCase() === 'solucionado' && prev.has(ticket.id)) {
-                            newSet.add(ticket.id);
+                        if (ticket.estado && ticket.estado.toLowerCase() !== 'solucionado' && newSet.has(ticket.id)) {
+                            console.log(`🧹 Limpiando solicitud de reapertura para ticket ${ticket.id} (estado: ${ticket.estado})`);
+                            newSet.delete(ticket.id);
+                        }
+                    });
+                    // También eliminar solicitudes de tickets que ya no existen
+                    const ticketIds = new Set(ticketsData.map(t => t.id));
+                    Array.from(newSet).forEach(ticketId => {
+                        if (!ticketIds.has(ticketId)) {
+                            console.log(`🧹 Limpiando solicitud de reapertura para ticket inexistente ${ticketId}`);
+                            newSet.delete(ticketId);
                         }
                     });
                     return newSet;
@@ -129,6 +140,18 @@ function ClientePage() {
                 const userId = tokenUtils.getUserId(store.auth.token);
                 const role = tokenUtils.getRole(store.auth.token);
                 joinRoom(socket, role, userId);
+
+                // Unirse EXPLÍCITAMENTE a la room específica del cliente para notificaciones directas
+                if (userId) {
+                    try {
+                        const clienteRoom = `cliente_${userId}`;
+                        console.log(`🔌 CLIENTE - Uniéndose a room específica: ${clienteRoom}`);
+                        socket.emit('join_room', clienteRoom);
+                        console.log(`✅ CLIENTE - Solicitud de unión enviada a: ${clienteRoom}`);
+                    } catch (e) {
+                        console.error('❌ CLIENTE - Error al unirse a room específica:', e);
+                    }
+                }
             }
         }
 
@@ -195,11 +218,39 @@ function ClientePage() {
 
             const handleTicketUpdate = (data) => {
                 console.log('🎫 CLIENTE - ACTUALIZACIÓN DE TICKET:', data);
+
+                // Limpiar solicitudes de reapertura si el ticket cambió a un estado diferente de solucionado
+                if (data.ticket_id && data.ticket_estado) {
+                    const estadoLower = data.ticket_estado.toLowerCase();
+                    // Si el ticket ya no está en solucionado (fue reabierto o cerrado), limpiar solicitudes
+                    if (estadoLower !== 'solucionado') {
+                        setSolicitudesReapertura(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(data.ticket_id);
+                            return newSet;
+                        });
+                    }
+                }
+
                 actualizarTickets();
             };
 
             const handleTicketEstadoChanged = (data) => {
                 console.log('🔄 CLIENTE - ESTADO DE TICKET CAMBIADO:', data);
+
+                // Limpiar solicitudes de reapertura si el ticket cambió a un estado diferente de solucionado
+                if (data.ticket_id && (data.estado || data.ticket_estado)) {
+                    const estadoLower = (data.estado || data.ticket_estado).toLowerCase();
+                    // Si el ticket ya no está en solucionado (fue reabierto o cerrado), limpiar solicitudes
+                    if (estadoLower !== 'solucionado') {
+                        setSolicitudesReapertura(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(data.ticket_id);
+                            return newSet;
+                        });
+                    }
+                }
+
                 // Si el ticket cambió a solucionado, hacer actualización agresiva
                 if (data.estado === 'solucionado' || data.ticket_estado === 'solucionado') {
                     console.log('🎯 CLIENTE - TICKET SOLUCIONADO DETECTADO EN ESTADO_CHANGED');
@@ -219,16 +270,54 @@ function ClientePage() {
 
             const handleTicketAsignado = (data) => {
                 console.log('👤 CLIENTE - TICKET ASIGNADO:', data);
+
+                // Limpiar solicitudes de reapertura cuando el ticket es asignado (después de reapertura)
+                if (data.ticket_id || data.id) {
+                    const ticketId = data.ticket_id || data.id;
+                    setSolicitudesReapertura(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(ticketId);
+                        return newSet;
+                    });
+                }
+
                 actualizarTickets();
             };
 
             const handleTicketEscalado = (data) => {
                 console.log('⬆️ CLIENTE - TICKET ESCALADO:', data);
+
+                // Limpiar solicitudes de reapertura cuando el ticket es escalado
+                if (data.ticket_id) {
+                    setSolicitudesReapertura(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(data.ticket_id);
+                        return newSet;
+                    });
+                }
+
                 actualizarTickets();
             };
 
             const handleTicketSolucionado = (data) => {
                 console.log('✅ CLIENTE - TICKET SOLUCIONADO:', data);
+
+                // Limpiar solicitudes de reapertura pendientes cuando el ticket vuelve a solucionado
+                // Esto permite al cliente volver a cerrar o solicitar reapertura normalmente
+                if (data.ticket_id) {
+                    console.log(`🧹 LIMPIANDO solicitud de reapertura para ticket ${data.ticket_id} (ticket solucionado)`);
+                    setSolicitudesReapertura(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(data.ticket_id)) {
+                            console.log(`✅ Solicitud eliminada del Set para ticket ${data.ticket_id}`);
+                        } else {
+                            console.log(`ℹ️ No había solicitud pendiente para ticket ${data.ticket_id}`);
+                        }
+                        newSet.delete(data.ticket_id);
+                        return newSet;
+                    });
+                }
+
                 // Actualización inmediata y agresiva
                 actualizarTickets();
 
@@ -270,6 +359,17 @@ function ClientePage() {
 
             const handleTicketReabierto = (data) => {
                 console.log('🔄 CLIENTE - TICKET REABIERTO:', data);
+
+                // Limpiar solicitudes de reapertura pendientes cuando el supervisor reabre el ticket
+                // Esto reinicia el ciclo para que el cliente pueda interactuar normalmente después
+                if (data.ticket_id) {
+                    setSolicitudesReapertura(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(data.ticket_id);
+                        return newSet;
+                    });
+                }
+
                 actualizarTickets();
             };
 
@@ -413,6 +513,17 @@ function ClientePage() {
                 // Para tickets solucionados, hacer múltiples actualizaciones
                 if (lastNotification.tipo === 'solucionado') {
                     console.log('🎯 CLIENTE - TICKET SOLUCIONADO DETECTADO EN NOTIFICACIONES');
+
+                    // Limpiar solicitud de reapertura si existe
+                    if (lastNotification.ticket_id) {
+                        console.log(`🧹 LIMPIANDO solicitud de reapertura para ticket ${lastNotification.ticket_id} (notificación solucionado)`);
+                        setSolicitudesReapertura(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(lastNotification.ticket_id);
+                            return newSet;
+                        });
+                    }
+
                     // Actualización inmediata
                     actualizarTickets();
                     // Actualización adicional después de un delay

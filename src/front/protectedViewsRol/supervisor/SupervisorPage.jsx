@@ -239,8 +239,12 @@ export function SupervisorPage() {
             const socket = connectWebSocket(store.auth.token);
             if (socket) {
                 const userId = tokenUtils.getUserId(store.auth.token);
-                const role = tokenUtils.getRole(store.auth.token);
+                // CORRECCIÓN CRÍTICA: El rol SIEMPRE es 'supervisor' en SupervisorPage
+                const role = 'supervisor';
+
+                console.log(`🔧 SUPERVISOR - Conectando con userId: ${userId}, role: ${role}`);
                 joinRoom(socket, role, userId);
+                console.log(`✅ SUPERVISOR - Unido a room con rol: ${role}`);
             }
         }
 
@@ -256,8 +260,10 @@ export function SupervisorPage() {
     // Configurar sincronización crítica en tiempo real y unirse a rooms de tickets
     useEffect(() => {
         if (store.auth.user && store.websocket.connected && store.websocket.socket) {
-            // Unirse a todas las rooms críticas inmediatamente
-            joinAllCriticalRooms(store.websocket.socket, store.auth.user, store.auth.token);
+            // CORRECCIÓN: Unirse a todas las rooms críticas con rol forzado a 'supervisor'
+            const supervisorData = { ...store.auth.user, role: 'supervisor' };
+            console.log('🎯 SUPERVISOR - Uniéndose a rooms críticas con userData:', supervisorData);
+            joinAllCriticalRooms(store.websocket.socket, supervisorData, store.auth.token);
 
             // Configurar sincronización crítica
             const syncConfig = startRealtimeSync({
@@ -324,8 +330,23 @@ export function SupervisorPage() {
             };
 
             const handleTicketEscalado = (data) => {
-                // Removed debug log
+                console.log('⬆️ SUPERVISOR - TICKET ESCALADO RECIBIDO:', data);
+                console.log(`   → Ticket ID: ${data.ticket_id}`);
+                console.log(`   → Estado: ${data.ticket_estado}`);
+                console.log(`   → Analista que escaló: ${data.analista_id}`);
+
+                // Actualización inmediata
                 actualizarTodasLasTablas();
+
+                // Reintentos adicionales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Segunda actualización post-escalación (300ms)');
+                    actualizarTodasLasTablas();
+                }, 300);
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Tercera actualización post-escalación (1000ms)');
+                    actualizarTodasLasTablas();
+                }, 1000);
             };
 
             const handleTicketSolucionado = (data) => {
@@ -359,7 +380,22 @@ export function SupervisorPage() {
 
             const handleNuevoTicketDisponible = (data) => {
                 console.log('🎯 SUPERVISOR - NUEVO TICKET DISPONIBLE PARA ASIGNAR:', data);
+                console.log(`   → Ticket ID: ${data.ticket_id}`);
+                console.log(`   → Tipo: ${data.tipo}`);
+                console.log(`   → Estado: ${data.ticket_estado}`);
+
+                // Actualización inmediata
                 actualizarTodasLasTablas();
+
+                // Reintentos adicionales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Segunda actualización (nuevo_ticket_disponible) - 400ms');
+                    actualizarTodasLasTablas();
+                }, 400);
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Tercera actualización (nuevo_ticket_disponible) - 1200ms');
+                    actualizarTodasLasTablas();
+                }, 1200);
             };
 
             // Agregar listeners COMPLETOS
