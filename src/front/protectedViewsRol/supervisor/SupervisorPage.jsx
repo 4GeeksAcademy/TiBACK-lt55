@@ -353,7 +353,12 @@ export function SupervisorPage() {
             };
 
             const handleNuevoTicket = (data) => {
-                // Removed debug log
+                console.log('🆕 SUPERVISOR - NUEVO TICKET CREADO:', data);
+                actualizarTodasLasTablas();
+            };
+
+            const handleNuevoTicketDisponible = (data) => {
+                console.log('🎯 SUPERVISOR - NUEVO TICKET DISPONIBLE PARA ASIGNAR:', data);
                 actualizarTodasLasTablas();
             };
 
@@ -372,12 +377,14 @@ export function SupervisorPage() {
             socket.on('nuevo_mensaje_chat_analista_cliente', handleChatUpdate);
             socket.on('nuevo_mensaje_chat_supervisor_analista', handleChatUpdate);
             socket.on('nuevo_ticket', handleNuevoTicket);
+            socket.on('nuevo_ticket_disponible', handleNuevoTicketDisponible);
             socket.on('ticket_actualizado', handleTicketUpdate);
 
             // Cleanup COMPLETO
             return () => {
                 socket.off('ticket_created', handleTicketCreated);
                 socket.off('ticket_updated', handleTicketUpdate);
+                socket.off('nuevo_ticket_disponible', handleNuevoTicketDisponible);
                 socket.off('ticket_estado_changed', handleTicketUpdate);
                 socket.off('ticket_asignado', handleTicketAsignado);
                 socket.off('ticket_escalado', handleTicketEscalado);
@@ -1181,30 +1188,27 @@ export function SupervisorPage() {
 
                 // CAMBIO 1: Lógica inteligente según estado actual del ticket
                 const ticket = tickets.find(t => t.id === ticketId) || ticketsCerrados.find(t => t.id === ticketId);
-                let nuevoEstado = 'en_espera'; // Default
+                let nuevoEstado = 'reabierto'; // Siempre enviar 'reabierto' al backend
 
                 if (ticket) {
-                    // Según las reglas del backend para supervisor:
-                    // - 'reabierto' ← solo desde 'solucionado' 
-                    // - 'en_espera' ← solo desde ['creado', 'reabierto']
-                    // - 'cerrado' ← desde ['solucionado', 'reabierto']
-
                     const estadoActual = ticket.estado.toLowerCase();
 
-                    if (estadoActual === 'solucionado') {
-                        // Desde solucionado puede ir a 'en espera' (reapertura)
-                        nuevoEstado = 'en espera';
-                    } else if (['creado', 'reabierto'].includes(estadoActual)) {
-                        // Desde creado o reabierto puede ir a 'en_espera'  
-                        nuevoEstado = 'en espera';
-                    } else {
-                        // Para otros estados (asignado, en_progreso, etc.) no hay transición válida directa
+                    // Validar que el ticket esté en un estado válido para reapertura
+                    // Aceptar 'solucionado', 'cerrado' y variantes como 'cerrado_por_supervisor', 'cerrado_por_cliente'
+                    const esEstadoValido = estadoActual === 'solucionado' ||
+                        estadoActual === 'cerrado' ||
+                        estadoActual.startsWith('cerrado');
+
+                    if (!esEstadoValido) {
                         alert('No se puede reabrir este ticket desde su estado actual. El ticket debe estar solucionado o cerrado.');
                         return;
                     }
+
+                    // El backend espera recibir 'reabierto' y luego cambia internamente a 'en espera'
+                    nuevoEstado = 'reabierto';
                 }
 
-                console.log(`🔄 Reabriendo ticket ${ticketId}: ${ticket?.estado} → ${nuevoEstado}`);
+                console.log(`🔄 Reabriendo ticket ${ticketId}: ${ticket?.estado} → reabierto (backend lo cambiará a 'en espera')`);
 
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/estado`, {
                     method: 'PUT',
