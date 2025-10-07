@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as storeUtils from '../../store';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 
-export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaciones, onBack, analistas }) => {
+export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaciones, onBack, analistas, setActiveView }) => {
     const { store } = useGlobalReducer();
     const [ticket, setTicket] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -40,11 +40,14 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
 
                 const foundTicket = ticketsArray.find(t => t.id === ticketId);
                 console.log('VerTicketHDSupervisor - Ticket encontrado:', foundTicket);
+                console.log('VerTicketHDSupervisor - ticketId buscado:', ticketId, 'tipo:', typeof ticketId);
 
                 if (foundTicket) {
+                    console.log('VerTicketHDSupervisor - Ticket encontrado, ID:', foundTicket.id);
                     setTicket(foundTicket);
                 } else {
                     console.log('VerTicketHDSupervisor - Ticket no encontrado, IDs disponibles:', ticketsArray.map(t => t.id));
+                    console.log('VerTicketHDSupervisor - Comparación de tipos:', ticketsArray.map(t => ({ id: t.id, tipo: typeof t.id })));
                     setError('Ticket no encontrado');
                 }
             } catch (err) {
@@ -462,96 +465,6 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                         </div>
                     )}
 
-                    {/* Acciones de Gestión */}
-                    <div className="card border-0 shadow-sm">
-                        <div className="card-header bg-white border-0">
-                            <h5 className="card-title mb-0">
-                                <i className="fas fa-cogs text-primary me-2"></i>
-                                Acciones de Gestión
-                            </h5>
-                        </div>
-                        <div className="card-body">
-                            <div className="d-grid gap-2">
-                                <button
-                                    className="btn btn-sidebar-teal btn-sm"
-                                    onClick={() => window.open(`/ticket/${ticket.id}/comentarios`, '_blank')}
-                                >
-                                    <i className="fas fa-users me-2"></i>
-                                    Ver Comentarios
-                                </button>
-                                <div className="btn-group" role="group">
-                                    <button
-                                        className="btn btn-sidebar-primary btn-sm dropdown-toggle"
-                                        type="button"
-                                        data-bs-toggle="dropdown"
-                                        aria-expanded="false"
-                                        title="Opciones de IA"
-                                    >
-                                        <i className="fas fa-robot me-2"></i> IA
-                                    </button>
-                                    <ul className="dropdown-menu">
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => setActiveView(`recomendacion-${ticket.id}`)}
-                                            >
-                                                <i className="fas fa-lightbulb me-2"></i>
-                                                Generar Recomendación
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => setActiveView(`identificar-${ticket.id}`)}
-                                            >
-                                                <i className="fas fa-camera me-2"></i>
-                                                Analizar Imagen
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </div>
-                                {ticketsConRecomendaciones && ticketsConRecomendaciones.has(ticket.id) && (
-                                    <button
-                                        className="btn btn-sidebar-teal btn-sm"
-                                        onClick={() => window.open(`/ticket/${ticket.id}/recomendaciones-similares`, '_blank')}
-                                    >
-                                        <i className="fas fa-lightbulb me-2"></i>
-                                        Ver Sugerencias
-                                    </button>
-                                )}
-                                {/* Acciones sincronizadas con SupervisorPage usando getAvailableActions */}
-                                {['asignado', 'en_progreso', 'escalado'].includes(ticket.estado.toLowerCase()) && (
-                                    <button
-                                        className="btn btn-sidebar-warning btn-sm"
-                                        onClick={escalarTicket}
-                                    >
-                                        <i className="fas fa-arrow-up me-2"></i>
-                                        Escalar Ticket
-                                    </button>
-                                )}
-                                {/* Cerrar ticket - solo si está permitido según la lógica de SupervisorPage */}
-                                {['asignado', 'en_progreso', 'escalado', 'solucionado', 'solicitud_reapertura'].includes(ticket.estado.toLowerCase()) && (
-                                    <button
-                                        className="btn btn-outline-danger btn-sm"
-                                        onClick={cerrarTicket}
-                                    >
-                                        <i className="fas fa-times me-2"></i>
-                                        Cerrar Ticket
-                                    </button>
-                                )}
-                                {/* Reabrir ticket - solo para tickets solucionados o en solicitud de reapertura */}
-                                {['solucionado', 'solicitud_reapertura'].includes(ticket.estado.toLowerCase()) && (
-                                    <button
-                                        className="btn btn-outline-success btn-sm"
-                                        onClick={reabrirTicket}
-                                    >
-                                        <i className="fas fa-redo me-2"></i>
-                                        Reabrir Ticket
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
