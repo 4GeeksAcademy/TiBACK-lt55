@@ -333,10 +333,13 @@ function AnalistaPage() {
         if (store.auth.isAuthenticated && store.auth.token && !store.websocket.connected && !store.websocket.connecting) {
             const socket = connectWebSocket(store.auth.token);
             if (socket) {
-                // Obtener userId/role desde token (fallback si store.auth.user no está poblado)
+                // Obtener userId desde token (fallback si store.auth.user no está poblado)
                 const decoded = tokenUtils.decodeToken(store.auth.token) || {};
                 const userId = store.auth.user?.id || decoded.user_id;
-                const role = store.auth.user?.role || decoded.role;
+                // CORRECCIÓN CRÍTICA: El rol SIEMPRE es 'analista' en AnalistaPage
+                const role = 'analista';
+
+                console.log(`🔧 ANALISTA - Conectando con userId: ${userId}, role: ${role}`);
 
                 // Join role room y rooms globales
                 if (joinRoom) {
@@ -346,15 +349,37 @@ function AnalistaPage() {
                         socket.emit('join_room', 'global_system_room');
                         socket.emit('join_room', 'global_tickets');
                         socket.emit('join_room', 'ticket_status_changes');
+                        console.log(`✅ ANALISTA - Unido a rooms generales con rol: ${role}`);
                     } catch (e) {
-                        /* Silently ignore */
+                        console.error('❌ ANALISTA - Error uniendo a rooms generales:', e);
                     }
                 }
 
-                // Unirse también a las rooms críticas globales usando user object si es posible
-                const userData = store.auth.user || (decoded.user_id ? { id: decoded.user_id, role: decoded.role } : null);
+                // Unirse EXPLÍCITAMENTE a la room específica del analista para asignaciones
+                if (userId) {
+                    try {
+                        const analistaRoom = `analista_${userId}`;
+                        console.log(`🔌 ANALISTA - Uniéndose a room específica: ${analistaRoom}`);
+                        socket.emit('join_room', analistaRoom);
+                        console.log(`✅ ANALISTA - Solicitud de unión enviada a: ${analistaRoom}`);
+                    } catch (e) {
+                        console.error('❌ ANALISTA - Error al unirse a room específica:', e);
+                    }
+                }
+
+                // Unirse también a las rooms críticas globales
+                // CORRECCIÓN CRÍTICA: Asegurar que siempre se use rol 'analista'
+                const userData = {
+                    id: userId,
+                    role: 'analista'  // Rol fijo, no dinámico
+                };
                 if (userData && joinAllCriticalRooms) {
-                    try { joinAllCriticalRooms(socket, userData, store.auth.token); } catch (e) { /* Silently ignore */ }
+                    try {
+                        console.log(`🎯 ANALISTA - Uniéndose a rooms críticas con userData:`, userData);
+                        joinAllCriticalRooms(socket, userData, store.auth.token);
+                    } catch (e) {
+                        console.error('❌ ANALISTA - Error uniendo a rooms críticas:', e);
+                    }
                 }
             }
         }
@@ -368,11 +393,23 @@ function AnalistaPage() {
     useEffect(() => {
         // Allow joining even if store.auth.user is not yet populated by using token decode as fallback
         const tokenDecoded = store.auth.token ? tokenUtils.decodeToken(store.auth.token) : null;
-        if (!((store.auth.user || tokenDecoded) && store.websocket.connected && store.websocket.socket)) return;
+        if (!((store.auth.user || tokenDecoded) && store.websocket.connected && store.websocket.socket)) {
+            console.log('⚠️ ANALISTA - No se pueden configurar listeners: websocket no conectado o usuario no disponible');
+            return;
+        }
         const socket = store.websocket.socket;
 
+        console.log('🎧 ANALISTA - Configurando listeners para eventos de tickets');
+        console.log('   → Socket ID:', socket.id);
+        console.log('   → WebSocket conectado:', store.websocket.connected);
+
         // Build a userData object from store.auth.user or decoded token
-        const userData = store.auth.user || (tokenDecoded ? { id: tokenDecoded.user_id, role: tokenDecoded.role } : null);
+        // CORRECCIÓN: Asegurar que el rol siempre sea 'analista'
+        const userData = store.auth.user
+            ? { ...store.auth.user, role: 'analista' }
+            : (tokenDecoded ? { id: tokenDecoded.user_id, role: 'analista' } : null);
+
+        console.log('   → User data para listeners:', userData);
 
         // Join all critical rooms for this user (defensivo)
         try {
@@ -427,25 +464,92 @@ function AnalistaPage() {
         };
 
         const onTicketAsignado = (data) => {
-            if (!data || !data.ticket_id) return;
-            if (data.analista_id === store.auth.user?.id || data.id_analista === store.auth.user?.id) {
-                console.log('🎯 ANALISTA - Ticket asignado a mí:', data);
+            console.log('📨 ANALISTA - Evento ticket_asignado recibido:', data);
+            if (!data || !data.ticket_id) {
+                console.log('⚠️ ANALISTA - Datos incompletos en ticket_asignado');
+                return;
+            }
+
+            // Verificar si el ticket es para este analista
+            const esParaMi = data.analista_id === store.auth.user?.id ||
+                data.id_analista === store.auth.user?.id;
+
+            console.log(`🔍 ANALISTA - ¿Ticket ${data.ticket_id} es para mí? ${esParaMi} (analista_id: ${data.analista_id || data.id_analista}, mi id: ${store.auth.user?.id})`);
+
+            if (esParaMi) {
+                console.log('✅ ANALISTA - Actualizando tickets (asignación para mí)');
+                // Actualización inmediata
                 actualizarTickets();
+                // Actualizaciones adicionales con delays incrementales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 ANALISTA - Segunda actualización post-asignación (300ms)');
+                    actualizarTickets();
+                }, 300);
+                setTimeout(() => {
+                    console.log('🔄 ANALISTA - Tercera actualización post-asignación (800ms)');
+                    actualizarTickets();
+                }, 800);
+                setTimeout(() => {
+                    console.log('🔄 ANALISTA - Cuarta actualización post-asignación (1500ms)');
+                    actualizarTickets();
+                }, 1500);
             }
         };
 
         const onTicketAsignadoAMi = (data) => {
-            console.log('✅ ANALISTA - Ticket específicamente asignado a mí:', data);
+            console.log('✅ ANALISTA - Evento ticket_asignado_a_mi recibido:', data);
+            // Actualización inmediata múltiple para asegurar que el ticket aparezca
             actualizarTickets();
+            setTimeout(() => {
+                console.log('🔄 ANALISTA - Segunda actualización (ticket_asignado_a_mi) - 200ms');
+                actualizarTickets();
+            }, 200);
+            setTimeout(() => {
+                console.log('🔄 ANALISTA - Tercera actualización (ticket_asignado_a_mi) - 500ms');
+                actualizarTickets();
+            }, 500);
+            setTimeout(() => {
+                console.log('🔄 ANALISTA - Cuarta actualización (ticket_asignado_a_mi) - 1000ms');
+                actualizarTickets();
+            }, 1000);
+            setTimeout(() => {
+                console.log('🔄 ANALISTA - Quinta actualización (ticket_asignado_a_mi) - 2000ms');
+                actualizarTickets();
+            }, 2000);
         };
 
-        const onGenericUpdate = () => actualizarTickets();
+        const onGenericUpdate = (data) => {
+            console.log('🔄 ANALISTA - Actualización genérica:', data);
+            actualizarTickets();
+
+            // Si es una asignación, hacer actualizaciones adicionales
+            if (data && (data.tipo === 'asignado' || data.accion === 'asignado' || data.accion === 'reasignado')) {
+                const esParaMi = data.analista_id === store.auth.user?.id || data.id_analista === store.auth.user?.id;
+                if (esParaMi) {
+                    console.log('🎯 ANALISTA - Actualización genérica detectó asignación para mí, reintentos adicionales');
+                    setTimeout(() => actualizarTickets(), 300);
+                    setTimeout(() => actualizarTickets(), 1000);
+                }
+            }
+        };
 
         const onCritical = (data) => {
-            /* Removed debug log */
-            // Validar si el evento afecta a alguno de nuestros tickets
-            if (data && data.ticket_id && tickets.some(t => t.id === data.ticket_id)) {
+            console.log('🚨 ANALISTA - Evento crítico recibido:', data);
+            // SIEMPRE actualizar en eventos críticos, no solo si el ticket ya existe
+            // Esto es importante para nuevas asignaciones
+            if (data && data.ticket_id) {
+                console.log('✅ ANALISTA - Actualizando por evento crítico');
                 actualizarTickets();
+
+                // Si es una asignación para mí, hacer reintentos adicionales
+                if (data.tipo === 'asignado' || data.accion === 'asignado' || data.accion === 'reasignado') {
+                    const esParaMi = data.analista_id === store.auth.user?.id || data.id_analista === store.auth.user?.id;
+                    if (esParaMi) {
+                        console.log('🎯 ANALISTA - Evento crítico de asignación para mí, reintentos adicionales');
+                        setTimeout(() => actualizarTickets(), 400);
+                        setTimeout(() => actualizarTickets(), 1200);
+                    }
+                }
             }
         };
 
@@ -462,6 +566,21 @@ function AnalistaPage() {
         socket.on('ticket_estado_changed', onGenericUpdate);
         // Removed debug log for join_ticket_success
         socket.on('join_ticket_success', () => { });
+
+        console.log('✅ ANALISTA - Todos los listeners configurados correctamente');
+        console.log('   → Listeners activos:', [
+            'solicitud_reapertura',
+            'ticket_reabierto',
+            'ticket_cerrado',
+            'ticket_asignado',
+            'ticket_asignado_a_mi',
+            'ticket_actualizado',
+            'nuevo_comentario',
+            'critical_ticket_update',
+            'critical_ticket_action',
+            'global_ticket_update',
+            'ticket_estado_changed'
+        ]);
 
         return () => {
             socket.off('solicitud_reapertura', onSolicitudReapertura);

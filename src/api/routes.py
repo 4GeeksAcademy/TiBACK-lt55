@@ -1682,7 +1682,7 @@ def test_reapertura(id):
                     "message": "Transición no válida",
                     "estado_actual": estado_actual,
                     "nuevo_estado": nuevo_estado_lower,
-                    "condicion_cumplida": nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado'
+                    "condicion_cumplida": nuevo_estado_lower == 'solicitud reapertura' and estado_actual == 'solucionado'
                 }), 400
         
         return jsonify({"message": "Solo clientes pueden solicitar reapertura"}), 403
@@ -1720,7 +1720,7 @@ def debug_ticket(id):
                 "nuevo_estado": nuevo_estado_lower,
                 "es_cliente": user['role'] == 'cliente',
                 "condicion_cerrado": nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado',
-                "condicion_solicitud_reapertura": nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado',
+                "condicion_solicitud_reapertura": nuevo_estado_lower == 'solicitud reapertura' and estado_actual == 'solucionado',
                 "condicion_reabierto": nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado'
             }
         }), 200
@@ -1778,7 +1778,7 @@ def cambiar_estado_ticket(id):
         print(f"   Cliente del ticket: {ticket.id_cliente}")
         print(f"   ¿Es cliente del ticket?: {user['role'] == 'cliente' and ticket.id_cliente == user['id']}")
         print(f"   ¿Estado es 'solucionado'?: {estado_actual == 'solucionado'}")
-        print(f"   ¿Solicita 'solicitud_reapertura'?: {nuevo_estado_lower == 'solicitud_reapertura'}")
+        print(f"   ¿Solicita 'solicitud reapertura'?: {nuevo_estado_lower == 'solicitud reapertura'}")
         
         # Flujo: En espera → En proceso → Solucionado → Cerrado → Reabierto → En espera
         
@@ -1789,7 +1789,7 @@ def cambiar_estado_ticket(id):
             print(f"   Estado solicitado: '{nuevo_estado_lower}'")
             print(f"   Transiciones válidas para cliente:")
             print(f"     - 'cerrado' desde 'solucionado'")
-            print(f"     - 'solicitud_reapertura' desde 'solucionado'")
+            print(f"     - 'solicitud reapertura' desde 'solucionado'")
             print(f"     - 'reabierto' desde 'cerrado'")
             print(f"   🎯 EVALUANDO CONDICIONES:")
             print(f"     - ¿'cerrado' desde 'solucionado'?: {nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado'}")
@@ -1840,12 +1840,17 @@ def cambiar_estado_ticket(id):
                         ticket_room = f'room_ticket_{ticket.id}'
                         socketio.emit('ticket_cerrado',
                                       cierre_data, room=ticket_room)
+                        
+                        # Emitir eventos de actualización genérica para sincronización completa
+                        socketio.emit('ticket_actualizado', cierre_data, room=ticket_room)
+                        socketio.emit('ticket_actualizado', cierre_data, room='supervisores')
+                        socketio.emit('global_ticket_update', cierre_data)
 
                         print(f"📤 TICKET CERRADO NOTIFICADO: {cierre_data}")
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de cierre: {ws_error}")
             elif nuevo_estado_lower == 'solicitud reapertura' and estado_actual == 'solucionado':
-                print(f"✅ CONDICIÓN CUMPLIDA: solicitud_reapertura desde solucionado")
+                print(f"✅ CONDICIÓN CUMPLIDA: solicitud reapertura desde solucionado")
                 print(f"   🎯 ENTRANDO A LÓGICA DE SOLICITUD DE REAPERTURA")
                 # Cliente solicita reapertura de ticket solucionado - queda en "solucionado" hasta decisión del supervisor
                 print(f"✅ CLIENTE SOLICITANDO REAPERTURA: {id}")
@@ -1885,6 +1890,11 @@ def cambiar_estado_ticket(id):
                         ticket_room = f'room_ticket_{ticket.id}'
                         socketio.emit('solicitud_reapertura',
                                       solicitud_data, room=ticket_room)
+                        
+                        # Emitir eventos de actualización genérica para sincronización completa
+                        socketio.emit('ticket_actualizado', solicitud_data, room=ticket_room)
+                        socketio.emit('ticket_actualizado', solicitud_data, room='supervisores')
+                        socketio.emit('global_ticket_update', solicitud_data)
 
                         print(
                             f"📤 SOLICITUD DE REAPERTURA NOTIFICADA: {solicitud_data}")
@@ -1984,6 +1994,10 @@ def cambiar_estado_ticket(id):
                         socketio.emit('ticket_actualizado', inicio_data, room='supervisores')
                         socketio.emit('ticket_actualizado', inicio_data, room='administradores')
                         
+                        # Emitir evento de estado cambiado específico
+                        socketio.emit('ticket_estado_changed', inicio_data, room=ticket_room)
+                        socketio.emit('global_ticket_update', inicio_data)
+                        
                         print(f"📤 TICKET INICIADO POR ANALISTA NOTIFICADO: {inicio_data}")
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de inicio: {ws_error}")
@@ -2021,6 +2035,18 @@ def cambiar_estado_ticket(id):
                         socketio.emit('ticket_solucionado', solucion_data, room=ticket_room)
                         socketio.emit('ticket_solucionado', solucion_data, room='supervisores')
                         socketio.emit('ticket_solucionado', solucion_data, room='administradores')
+                        
+                        # Emitir eventos de actualización genérica para sincronización completa
+                        socketio.emit('ticket_actualizado', solucion_data, room=ticket_room)
+                        socketio.emit('ticket_estado_changed', solucion_data, room=ticket_room)
+                        socketio.emit('global_ticket_update', solucion_data)
+                        
+                        # Notificar específicamente al cliente si existe
+                        if ticket.id_cliente:
+                            cliente_room = f'cliente_{ticket.id_cliente}'
+                            socketio.emit('ticket_solucionado', solucion_data, room=cliente_room)
+                            socketio.emit('ticket_actualizado', solucion_data, room=cliente_room)
+                            print(f"📤 NOTIFICACIÓN ENVIADA AL CLIENTE: room {cliente_room}")
                         
                         print(f"📤 TICKET SOLUCIONADO POR ANALISTA NOTIFICADO: {solucion_data}")
                     except Exception as ws_error:
@@ -2081,6 +2107,15 @@ def cambiar_estado_ticket(id):
                         ticket_room = f'room_ticket_{ticket.id}'
                         socketio.emit('ticket_escalado',
                                       escalacion_data, room=ticket_room)
+                        
+                        # Emitir eventos de actualización genérica para sincronización completa
+                        socketio.emit('ticket_actualizado', escalacion_data, room=ticket_room)
+                        socketio.emit('ticket_actualizado', escalacion_data, room='supervisores')
+                        socketio.emit('ticket_estado_changed', escalacion_data, room=ticket_room)
+                        socketio.emit('global_ticket_update', escalacion_data)
+                        
+                        # Notificar como nuevo ticket disponible para que aparezca en la bandeja del supervisor
+                        socketio.emit('nuevo_ticket_disponible', escalacion_data, room='supervisores')
 
                         print(
                             f"📤 TICKET ESCALADO NOTIFICADO: {escalacion_data}")
@@ -2145,6 +2180,12 @@ def cambiar_estado_ticket(id):
                         socketio.emit('ticket_cerrado', cierre_data, room='supervisores')
                         socketio.emit('ticket_cerrado', cierre_data, room='administradores')
                         
+                        # Emitir eventos de actualización genérica para sincronización completa
+                        socketio.emit('ticket_actualizado', cierre_data, room=ticket_room)
+                        socketio.emit('ticket_actualizado', cierre_data, room='supervisores')
+                        socketio.emit('ticket_estado_changed', cierre_data, room=ticket_room)
+                        socketio.emit('global_ticket_update', cierre_data)
+                        
                         print(f"📤 TICKET CERRADO POR SUPERVISOR NOTIFICADO: {cierre_data}")
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de cierre: {ws_error}")
@@ -2194,6 +2235,19 @@ def cambiar_estado_ticket(id):
                         socketio.emit('ticket_reabierto', reapertura_data, room=ticket_room)
                         socketio.emit('ticket_reabierto', reapertura_data, room='supervisores')
                         socketio.emit('ticket_reabierto', reapertura_data, room='administradores')
+                        
+                        # Emitir eventos de actualización genérica para sincronización completa
+                        socketio.emit('ticket_actualizado', reapertura_data, room=ticket_room)
+                        socketio.emit('ticket_actualizado', reapertura_data, room='supervisores')
+                        socketio.emit('ticket_estado_changed', reapertura_data, room=ticket_room)
+                        socketio.emit('global_ticket_update', reapertura_data)
+                        
+                        # Notificar específicamente al cliente si existe
+                        if ticket.id_cliente:
+                            cliente_room = f'cliente_{ticket.id_cliente}'
+                            socketio.emit('ticket_reabierto', reapertura_data, room=cliente_room)
+                            socketio.emit('ticket_actualizado', reapertura_data, room=cliente_room)
+                            print(f"📤 NOTIFICACIÓN ENVIADA AL CLIENTE: room {cliente_room}")
                         
                         print(f"📤 TICKET REABIERTO POR SUPERVISOR NOTIFICADO: {reapertura_data}")
                     except Exception as ws_error:
@@ -2418,6 +2472,11 @@ def asignar_ticket(id):
             db.session.add(nuevo_comentario)
 
         db.session.commit()
+        
+        # Pequeño delay para asegurar que la transacción se complete completamente en la BD
+        # Esto previene race conditions donde el analista recibe el evento antes de que la BD esté lista
+        import time
+        time.sleep(0.1)  # 100ms de espera
 
         # Emitir evento WebSocket para notificar asignación
         socketio = get_socketio()
@@ -2434,28 +2493,45 @@ def asignar_ticket(id):
                     'fecha_creacion': ticket.fecha_creacion.isoformat() if ticket.fecha_creacion else None,
                     'id_cliente': ticket.id_cliente,
                     'id_analista': id_analista,
+                    'analista_id': id_analista,  # Campo adicional para compatibilidad
                     'analista_nombre': f"{analista.nombre} {analista.apellido}",
                     'tipo': 'asignado',
                     'accion': "reasignado" if es_reasignacion else "asignado",
                     'timestamp': datetime.now().isoformat()
                 }
+                
+                analista_room = f'analista_{id_analista}'
+                ticket_room = f'room_ticket_{ticket.id}'
+                
+                print(f"📤 ASIGNACIÓN - Notificando:")
+                print(f"   → Analista room: {analista_room}")
+                print(f"   → Ticket room: {ticket_room}")
+                print(f"   → Ticket ID: {ticket.id}")
+                print(f"   → Analista ID: {id_analista}")
 
-                # Notificar específicamente al analista asignado
-                socketio.emit('ticket_asignado_a_mi',
-                              asignacion_data, room=f'analista_{id_analista}')
+                # Notificar específicamente al analista asignado (room individual)
+                socketio.emit('ticket_asignado_a_mi', asignacion_data, room=analista_room)
+                print(f"   ✅ Evento 'ticket_asignado_a_mi' enviado a {analista_room}")
+
+                # CORRECCIÓN CRÍTICA: Notificar también a las rooms de role
+                socketio.emit('ticket_asignado_a_mi', asignacion_data, room='role_analista')
+                socketio.emit('ticket_asignado', asignacion_data, room='role_analista')
+                print(f"   ✅ Eventos enviados a role_analista")
 
                 # Notificar a todos los usuarios conectados al room del ticket
-                ticket_room = f'room_ticket_{ticket.id}'
-                socketio.emit('ticket_asignado',
-                              asignacion_data, room=ticket_room)
+                socketio.emit('ticket_asignado', asignacion_data, room=ticket_room)
+                print(f"   ✅ Evento 'ticket_asignado' enviado a {ticket_room}")
 
                 # Notificar a supervisores y administradores sobre la asignación
-                socketio.emit('ticket_asignado', asignacion_data,
-                              room='supervisores')
-                socketio.emit('ticket_asignado', asignacion_data,
-                              room='administradores')
-
-                print(f"📤 Asignación de ticket notificada: {asignacion_data}")
+                socketio.emit('ticket_asignado', asignacion_data, room='supervisores')
+                socketio.emit('ticket_asignado', asignacion_data, room='administradores')
+                print(f"   ✅ Eventos enviados a supervisores y administradores")
+                
+                # Emitir evento de actualización genérica para asegurar sincronización
+                socketio.emit('ticket_actualizado', asignacion_data, room=ticket_room)
+                socketio.emit('ticket_actualizado', asignacion_data, room='role_analista')
+                socketio.emit('global_ticket_update', asignacion_data)
+                print(f"   ✅ Eventos de actualización genérica enviados")
 
             except Exception as e:
                 print(f"Error enviando WebSocket: {e}")
