@@ -83,7 +83,7 @@ const ActualizarSupervisor = () => {
             <div className="card">
                 <div className="card-body">
                    <form onSubmit={(e) => { e.preventDefault(); actualizarSupervisor(); }}>
-                        {["nombre", "apellido", "email", "contraseña_hash", "area_responsable"].map((field, idx) => (
+                        {["nombre", "apellido", "email", "contraseña", "area_responsable"].map((field, idx) => (
                             <div className="mb-3" key={idx}>
                                 <label className="form-label text-capitalize">{field.replace("_", " ")}</label>
                                 <input
