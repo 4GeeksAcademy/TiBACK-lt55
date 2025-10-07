@@ -2836,6 +2836,7 @@ export function SupervisorPage() {
                             ticketsConRecomendaciones={ticketsConRecomendaciones}
                             analistas={analistas}
                             onBack={() => setActiveView('tickets')}
+                            setActiveView={setActiveView}
                         />
                     )}
 
@@ -2858,7 +2859,12 @@ export function SupervisorPage() {
                     {/* Recomendación IA View */}
                     {activeView.startsWith('recomendacion-') && (
                         <RecomendacionVistaEmbedded
-                            ticketId={parseInt(activeView.split('-')[1])}
+                            ticketId={(() => {
+                                const ticketId = parseInt(activeView.split('-')[1]);
+                                console.log('SupervisorPage - activeView:', activeView);
+                                console.log('SupervisorPage - ticketId extraído:', ticketId);
+                                return ticketId;
+                            })()}
                             onBack={() => setActiveView('tickets')}
                         />
                     )}

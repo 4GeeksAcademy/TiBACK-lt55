@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as storeUtils from '../../store';
 import useGlobalReducer from '../../hooks/useGlobalReducer';
 
-export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaciones, onBack, analistas }) => {
+export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaciones, onBack, analistas, setActiveView }) => {
     const { store } = useGlobalReducer();
     const [ticket, setTicket] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -40,11 +40,14 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
 
                 const foundTicket = ticketsArray.find(t => t.id === ticketId);
                 console.log('VerTicketHDSupervisor - Ticket encontrado:', foundTicket);
+                console.log('VerTicketHDSupervisor - ticketId buscado:', ticketId, 'tipo:', typeof ticketId);
 
                 if (foundTicket) {
+                    console.log('VerTicketHDSupervisor - Ticket encontrado, ID:', foundTicket.id);
                     setTicket(foundTicket);
                 } else {
                     console.log('VerTicketHDSupervisor - Ticket no encontrado, IDs disponibles:', ticketsArray.map(t => t.id));
+                    console.log('VerTicketHDSupervisor - Comparación de tipos:', ticketsArray.map(t => ({ id: t.id, tipo: typeof t.id })));
                     setError('Ticket no encontrado');
                 }
             } catch (err) {
@@ -493,7 +496,15 @@ export const VerTicketHDSupervisor = ({ ticketId, tickets, ticketsConRecomendaci
                                         <li>
                                             <button
                                                 className="dropdown-item"
-                                                onClick={() => setActiveView(`recomendacion-${ticket.id}`)}
+                                                onClick={() => {
+                                                    console.log('verTicketHDsupervisor - ticket completo:', ticket);
+                                                    console.log('verTicketHDsupervisor - ticket.id:', ticket.id);
+                                                    console.log('verTicketHDsupervisor - ticket.id tipo:', typeof ticket.id);
+                                                    console.log('verTicketHDsupervisor - setActiveView disponible:', typeof setActiveView);
+                                                    const newView = `recomendacion-${ticket.id}`;
+                                                    console.log('verTicketHDsupervisor - estableciendo activeView a:', newView);
+                                                    setActiveView(newView);
+                                                }}
                                             >
                                                 <i className="fas fa-lightbulb me-2"></i>
                                                 Generar Recomendación

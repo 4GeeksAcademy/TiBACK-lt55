@@ -19,8 +19,19 @@ export function RecomendacionVistaEmbedded({ ticketId, onBack }) {
             setLoading(true);
             setError('');
 
+            // Debug: verificar ticketId
+            console.log('RecomendacionVistaEmbedded - ticketId recibido:', ticketId);
+            console.log('RecomendacionVistaEmbedded - tipo de ticketId:', typeof ticketId);
+
+            if (!ticketId || isNaN(ticketId)) {
+                throw new Error(`ID de ticket inválido: ${ticketId}`);
+            }
+
             const token = store.auth.token;
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/recomendacion-ia`, {
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/tickets/${ticketId}/recomendacion-ia`;
+            console.log('RecomendacionVistaEmbedded - URL de la petición:', url);
+
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -29,14 +40,28 @@ export function RecomendacionVistaEmbedded({ ticketId, onBack }) {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+                // Verificar si la respuesta es JSON antes de intentar parsearla
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+                } else {
+                    // Si no es JSON, probablemente es HTML (página de error)
+                    throw new Error(`Error ${response.status}: ${response.statusText}. El servidor no está disponible o el endpoint no existe.`);
+                }
             }
 
             const data = await response.json();
             setRecomendacion(data.recomendacion);
         } catch (err) {
-            setError(`Error al cargar recomendación: ${err.message}`);
+            // Manejar diferentes tipos de errores
+            if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+                setError('Error de conexión: No se pudo conectar con el servidor. Verifique su conexión a internet.');
+            } else if (err.message.includes('Unexpected token')) {
+                setError('Error del servidor: El servidor devolvió una respuesta inválida. Contacte al administrador.');
+            } else {
+                setError(`Error al cargar recomendación: ${err.message}`);
+            }
         } finally {
             setLoading(false);
         }
