@@ -362,15 +362,44 @@ export function SupervisorPage() {
             };
 
             const handleTicketReabierto = (data) => {
-                // Removed debug log
+                console.log('🔄 SUPERVISOR - TICKET REABIERTO RECIBIDO:', data);
+                console.log(`   → Ticket ID: ${data.ticket_id}`);
+                console.log(`   → Estado: ${data.ticket_estado}`);
+
                 // Mover de cerrados a activos
                 moveTicketToActive(data.ticket_id);
+
+                // Actualización inmediata
                 actualizarTodasLasTablas();
+
+                // Reintentos adicionales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Segunda actualización post-reapertura (300ms)');
+                    actualizarTodasLasTablas();
+                }, 300);
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Tercera actualización post-reapertura (1000ms)');
+                    actualizarTodasLasTablas();
+                }, 1000);
             };
 
             const handleSolicitudReapertura = (data) => {
-                // Removed debug log
+                console.log('📩 SUPERVISOR - SOLICITUD DE REAPERTURA RECIBIDA:', data);
+                console.log(`   → Ticket ID: ${data.ticket_id}`);
+                console.log(`   → Estado: ${data.ticket_estado}`);
+
+                // Actualización inmediata
                 actualizarTodasLasTablas();
+
+                // Reintentos adicionales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Segunda actualización post-solicitud (300ms)');
+                    actualizarTodasLasTablas();
+                }, 300);
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Tercera actualización post-solicitud (1000ms)');
+                    actualizarTodasLasTablas();
+                }, 1000);
             };
 
             const handleNuevoTicket = (data) => {
