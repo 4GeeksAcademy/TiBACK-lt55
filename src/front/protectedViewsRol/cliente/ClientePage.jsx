@@ -2311,6 +2311,15 @@ function ClientePage() {
                                                                                                 </button>
                                                                                             </>
                                                                                         )}
+
+                                                                                        {/* Mensaje de solicitud de reapertura pendiente en vista expandida */}
+                                                                                        {['solucionado', 'asignado', 'en_progreso', 'escalado'].includes(ticket.estado.toLowerCase()) && solicitudesReapertura.has(ticket.id) && (
+                                                                                            <div className="alert alert-warning py-3 px-4 mb-0 flex-fill text-center" role="alert" style={{ minWidth: '250px' }}>
+                                                                                                <i className="fas fa-clock me-2"></i>
+                                                                                                <strong>Solicitud de reapertura enviada</strong>
+                                                                                                <p className="mb-0 mt-1 small">El supervisor revisará tu solicitud pronto</p>
+                                                                                            </div>
+                                                                                        )}
                                                                                     </div>
                                                                                 </div>
                                                                             </div>

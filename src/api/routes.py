@@ -1793,7 +1793,7 @@ def cambiar_estado_ticket(id):
             print(f"     - 'reabierto' desde 'cerrado'")
             print(f"   🎯 EVALUANDO CONDICIONES:")
             print(f"     - ¿'cerrado' desde 'solucionado'?: {nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado'}")
-            print(f"     - ¿'solicitud_reapertura' desde 'solucionado'?: {nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado'}")
+            print(f"     - ¿'solicitud reapertura' desde 'solucionado'?: {nuevo_estado_lower == 'solicitud reapertura' and estado_actual == 'solucionado'}")
             print(f"     - ¿'reabierto' desde 'cerrado'?: {nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado'}")
             if nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado':
                 ticket.estado = 'cerrado'
@@ -1843,12 +1843,8 @@ def cambiar_estado_ticket(id):
 
                         print(f"📤 TICKET CERRADO NOTIFICADO: {cierre_data}")
                     except Exception as ws_error:
-            #             print(
-            #                 f"Error enviando WebSocket de cierre: {ws_error}")
-            # elif nuevo_estado_lower == 'solicitar_reapertura' and estado_actual == 'solucionado':
-            #     # No cambiar estado, solo crear comentario de solicitud
                         print(f"Error enviando WebSocket de cierre: {ws_error}")
-            elif nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado':
+            elif nuevo_estado_lower == 'solicitud reapertura' and estado_actual == 'solucionado':
                 print(f"✅ CONDICIÓN CUMPLIDA: solicitud_reapertura desde solucionado")
                 print(f"   🎯 ENTRANDO A LÓGICA DE SOLICITUD DE REAPERTURA")
                 # Cliente solicita reapertura de ticket solucionado - queda en "solucionado" hasta decisión del supervisor
@@ -1944,17 +1940,19 @@ def cambiar_estado_ticket(id):
                 print(f"   Estado solicitado: '{nuevo_estado_lower}'")
                 print(f"   Transiciones válidas para cliente:")
                 print(f"     - 'cerrado' desde 'solucionado'")
-                print(f"     - 'solicitud_reapertura' desde 'solucionado'")
+                print(f"     - 'solicitud reapertura' desde 'solucionado'")
                 print(f"     - 'reabierto' desde 'cerrado'")
                 print(f"   CONDICIONES VERIFICADAS:")
                 print(f"     - ¿'cerrado' desde 'solucionado'?: {nuevo_estado_lower == 'cerrado' and estado_actual == 'solucionado'}")
-                print(f"     - ¿'solicitud_reapertura' desde 'solucionado'?: {nuevo_estado_lower == 'solicitud_reapertura' and estado_actual == 'solucionado'}")
+                print(f"     - ¿'solicitud reapertura' desde 'solucionado'?: {nuevo_estado_lower == 'solicitud reapertura' and estado_actual == 'solucionado'}")
                 print(f"     - ¿'reabierto' desde 'cerrado'?: {nuevo_estado_lower == 'reabierto' and estado_actual == 'cerrado'}")
                 return jsonify({"message": "Transición de estado no válida para cliente"}), 400
         
         # Analista puede: cambiar a en proceso, solucionado, o escalar (en espera)
         elif user['role'] == 'analista':
             if nuevo_estado_lower == 'en proceso' and estado_actual == 'en espera':
+                print(f"✅ ANALISTA INICIANDO TICKET: {id}")
+                print(f"   Estado actual: '{estado_actual}' → Estado nuevo: 'en proceso'")
                 ticket.estado = 'en proceso'
                 
                 # Crear comentario automático de inicio de trabajo
@@ -1965,7 +1963,34 @@ def cambiar_estado_ticket(id):
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_inicio)
+                
+                # Notificar inicio del trabajo
+                socketio = get_socketio()
+                if socketio:
+                    try:
+                        inicio_data = {
+                            'ticket_id': ticket.id,
+                            'ticket_estado': ticket.estado,
+                            'ticket_titulo': ticket.titulo,
+                            'ticket_prioridad': ticket.prioridad,
+                            'analista_id': user['id'],
+                            'tipo': 'en_proceso',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        # Notificar a todos los usuarios del ticket
+                        ticket_room = f'room_ticket_{ticket.id}'
+                        socketio.emit('ticket_actualizado', inicio_data, room=ticket_room)
+                        socketio.emit('ticket_actualizado', inicio_data, room='supervisores')
+                        socketio.emit('ticket_actualizado', inicio_data, room='administradores')
+                        
+                        print(f"📤 TICKET INICIADO POR ANALISTA NOTIFICADO: {inicio_data}")
+                    except Exception as ws_error:
+                        print(f"Error enviando WebSocket de inicio: {ws_error}")
+                        
             elif nuevo_estado_lower == 'solucionado' and estado_actual == 'en proceso':
+                print(f"✅ ANALISTA SOLUCIONANDO TICKET: {id}")
+                print(f"   Estado actual: '{estado_actual}' → Estado nuevo: 'solucionado'")
                 ticket.estado = 'solucionado'
                 
                 # Crear comentario automático de solución
@@ -1976,6 +2001,30 @@ def cambiar_estado_ticket(id):
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_solucion)
+                
+                # Notificar solución del ticket
+                socketio = get_socketio()
+                if socketio:
+                    try:
+                        solucion_data = {
+                            'ticket_id': ticket.id,
+                            'ticket_estado': ticket.estado,
+                            'ticket_titulo': ticket.titulo,
+                            'ticket_prioridad': ticket.prioridad,
+                            'analista_id': user['id'],
+                            'tipo': 'solucionado',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        # Notificar a todos los usuarios del ticket
+                        ticket_room = f'room_ticket_{ticket.id}'
+                        socketio.emit('ticket_solucionado', solucion_data, room=ticket_room)
+                        socketio.emit('ticket_solucionado', solucion_data, room='supervisores')
+                        socketio.emit('ticket_solucionado', solucion_data, room='administradores')
+                        
+                        print(f"📤 TICKET SOLUCIONADO POR ANALISTA NOTIFICADO: {solucion_data}")
+                    except Exception as ws_error:
+                        print(f"Error enviando WebSocket de solución: {ws_error}")
             # # Escalar al supervisor
             # elif nuevo_estado_lower == 'en_espera' and estado_actual in ['en_proceso', 'en_espera']:
             #     # Si está escalando desde 'en_espera', significa que no puede resolverlo sin iniciarlo
@@ -2099,7 +2148,7 @@ def cambiar_estado_ticket(id):
                         print(f"📤 TICKET CERRADO POR SUPERVISOR NOTIFICADO: {cierre_data}")
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de cierre: {ws_error}")
-            elif nuevo_estado_lower == 'reabierto' and estado_actual in ['cerrado', 'solucionado']:
+            elif nuevo_estado_lower == 'reabierto' and (estado_actual in ['cerrado', 'solucionado'] or estado_actual.startswith('cerrado')):
                 # Supervisor reabre un ticket cerrado o aprueba solicitud de reapertura
                 print(f"✅ SUPERVISOR REABRIENDO TICKET: {id}")
                 print(f"   Estado actual: '{estado_actual}' → Estado nuevo: 'en espera'")

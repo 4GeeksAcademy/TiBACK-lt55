@@ -428,7 +428,15 @@ function AnalistaPage() {
 
         const onTicketAsignado = (data) => {
             if (!data || !data.ticket_id) return;
-            if (data.analista_id === store.auth.user?.id) actualizarTickets();
+            if (data.analista_id === store.auth.user?.id || data.id_analista === store.auth.user?.id) {
+                console.log('🎯 ANALISTA - Ticket asignado a mí:', data);
+                actualizarTickets();
+            }
+        };
+
+        const onTicketAsignadoAMi = (data) => {
+            console.log('✅ ANALISTA - Ticket específicamente asignado a mí:', data);
+            actualizarTickets();
         };
 
         const onGenericUpdate = () => actualizarTickets();
@@ -445,6 +453,7 @@ function AnalistaPage() {
         socket.on('ticket_reabierto', onTicketReabierto);
         socket.on('ticket_cerrado', onTicketCerrado);
         socket.on('ticket_asignado', onTicketAsignado);
+        socket.on('ticket_asignado_a_mi', onTicketAsignadoAMi);
         socket.on('ticket_actualizado', onGenericUpdate);
         socket.on('nuevo_comentario', onGenericUpdate);
         socket.on('critical_ticket_update', onCritical);
@@ -459,6 +468,7 @@ function AnalistaPage() {
             socket.off('ticket_reabierto', onTicketReabierto);
             socket.off('ticket_cerrado', onTicketCerrado);
             socket.off('ticket_asignado', onTicketAsignado);
+            socket.off('ticket_asignado_a_mi', onTicketAsignadoAMi);
             socket.off('ticket_actualizado', onGenericUpdate);
             socket.off('nuevo_comentario', onGenericUpdate);
             socket.off('critical_ticket_update', onCritical);
