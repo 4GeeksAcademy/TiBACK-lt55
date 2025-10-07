@@ -1083,8 +1083,13 @@ export function SupervisorPage() {
     };
 
     const generarRecomendacion = (ticket) => {
-        // Usar el sistema de vistas integradas
+        if (!ticket || !ticket.id) {
+            console.error('Se requiere un ticket válido con ID');
+            return;
+        }
+        // Usar el sistema de vistas integradas y asegurar que el ID sea válido
         setActiveView(`recomendacion-${ticket.id}`);
+        console.log('Vista cambiada a recomendacion para ticket:', ticket.id);
     };
 
     const asignarAnalista = (ticketId) => {
@@ -2197,7 +2202,7 @@ export function SupervisorPage() {
                                                                                         <li>
                                                                                             <button
                                                                                                 className="dropdown-item"
-                                                                                                onClick={() => generarRecomendacion(ticket.id)}
+                                                                                                onClick={() => generarRecomendacion(ticket)}
                                                                                             >
                                                                                                 <i className="fas fa-lightbulb me-2"></i>
                                                                                                 Generar Recomendación

@@ -228,6 +228,7 @@ function AnalistaPage() {
             /* Silently ignore */
         }
         setModalTicketId(ticketId);
+        setActiveView(`ticket-${ticketId}`);
     };
 
     const actualizarTickets = async () => {
@@ -1608,9 +1609,23 @@ function AnalistaPage() {
                         />
                     )
                 }
+
+                {/* Ticket View */}
+                {
+                    activeView.startsWith('ticket-') && modalTicketId && (
+                        <VerTicketHDanalista
+                            ticketId={modalTicketId}
+                            tickets={tickets}
+                            onBack={() => {
+                                setActiveView('tickets');
+                                setModalTicketId(null);
+                            }}
+                        />
+                    )
+                }
             </div>
 
-            {modalTicketId && !activeView.startsWith('chat-') && !activeView.startsWith('supervisor-chat-') && !activeView.startsWith('comentarios-') && !activeView.startsWith('recomendacion-') && !activeView.startsWith('identificar-') && (
+            {modalTicketId && !activeView.startsWith('chat-') && !activeView.startsWith('supervisor-chat-') && !activeView.startsWith('comentarios-') && !activeView.startsWith('recomendacion-') && !activeView.startsWith('identificar-') && !activeView.startsWith('ticket-') && (
                 <div className="analista-modal-overlay">
                     <div className="analista-modal-content">
                         <button className="btn btn-sm btn-outline-secondary mb-2" onClick={() => setModalTicketId(null)}>Cerrar</button>
