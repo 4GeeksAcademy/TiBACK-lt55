@@ -1524,8 +1524,13 @@ export const authActions = {
 
   joinChatSupervisorAnalista: (socket, ticketId) => {
     if (socket && ticketId) {
+      console.log(`🔌 STORE - Emitiendo join_chat_supervisor_analista para ticket: ${ticketId}`);
       socket.emit("join_chat_supervisor_analista", { ticket_id: ticketId });
     } else {
+      console.log(`⚠️ STORE - No se pudo unir a chat supervisor-analista:`, {
+        hasSocket: !!socket,
+        hasTicketId: !!ticketId
+      });
     }
   },
 

@@ -110,8 +110,21 @@ const ChatSupervisorAnalistaEmbedded = ({ ticketId, onBack }) => {
             // Escuchar nuevos mensajes del chat específico
             const handleNuevoMensaje = (data) => {
                 if (data.ticket_id === parseInt(ticketId)) {
+                    console.log('💬 CHAT SUPERVISOR-ANALISTA - NUEVO MENSAJE RECIBIDO:', data);
+
+                    // Actualización inmediata
                     setSincronizando(true);
                     cargarMensajes(false).finally(() => setSincronizando(false));
+
+                    // Reintentos adicionales para asegurar sincronización
+                    setTimeout(() => {
+                        console.log('🔄 CHAT SUPERVISOR-ANALISTA - Segunda actualización (300ms)');
+                        cargarMensajes(false);
+                    }, 300);
+                    setTimeout(() => {
+                        console.log('🔄 CHAT SUPERVISOR-ANALISTA - Tercera actualización (1000ms)');
+                        cargarMensajes(false);
+                    }, 1000);
                 }
             };
 
@@ -268,12 +281,27 @@ const ChatSupervisorAnalistaEmbedded = ({ ticketId, onBack }) => {
             // Silently ignore
         };
 
+        // Escuchar eventos en tiempo real de las páginas principales
+        const handleRealtimeChat = (event) => {
+            const data = event.detail;
+            if (data.ticket_id === parseInt(ticketId)) {
+                console.log('💬 CHAT SUPERVISOR-ANALISTA EMBEBIDO - Evento realtime recibido desde página principal');
+                setSincronizando(true);
+                cargarMensajes(false).finally(() => setSincronizando(false));
+
+                // Reintentos adicionales
+                setTimeout(() => cargarMensajes(false), 300);
+                setTimeout(() => cargarMensajes(false), 1000);
+            }
+        };
+
         // Escuchar eventos de sincronización
         window.addEventListener('totalSyncTriggered', handleTotalSync);
         window.addEventListener('sync_completed', handleSyncCompleted);
         window.addEventListener('sync_error', handleSyncError);
         window.addEventListener('refresh_chats', handleTotalSync);
         window.addEventListener('sync_comentarios', handleTotalSync);
+        window.addEventListener('nuevo_mensaje_chat_realtime', handleRealtimeChat);
 
         return () => {
             window.removeEventListener('totalSyncTriggered', handleTotalSync);
@@ -281,8 +309,9 @@ const ChatSupervisorAnalistaEmbedded = ({ ticketId, onBack }) => {
             window.removeEventListener('sync_error', handleSyncError);
             window.removeEventListener('refresh_chats', handleTotalSync);
             window.removeEventListener('sync_comentarios', handleTotalSync);
+            window.removeEventListener('nuevo_mensaje_chat_realtime', handleRealtimeChat);
         };
-    }, []);
+    }, [ticketId]);
 
     if (loading) {
         return (

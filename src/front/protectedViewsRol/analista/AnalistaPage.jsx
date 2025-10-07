@@ -518,6 +518,50 @@ function AnalistaPage() {
             }, 2000);
         };
 
+        const onComentarioUpdate = (data) => {
+            console.log('💬 ANALISTA - NUEVO COMENTARIO RECIBIDO:', data);
+            console.log(`   → Ticket ID: ${data.ticket_id}`);
+            console.log(`   → Usuario: ${data.usuario_nombre || 'Desconocido'}`);
+
+            // Emitir evento para componentes embebidos
+            window.dispatchEvent(new CustomEvent('nuevo_comentario_realtime', { detail: data }));
+
+            // Actualización inmediata
+            actualizarTickets();
+
+            // Reintentos adicionales para asegurar sincronización
+            setTimeout(() => {
+                console.log('🔄 ANALISTA - Segunda actualización post-comentario (300ms)');
+                actualizarTickets();
+            }, 300);
+            setTimeout(() => {
+                console.log('🔄 ANALISTA - Tercera actualización post-comentario (1000ms)');
+                actualizarTickets();
+            }, 1000);
+        };
+
+        const onChatUpdate = (data) => {
+            console.log('💬 ANALISTA - NUEVO MENSAJE CHAT RECIBIDO:', data);
+            console.log(`   → Tipo: ${data.tipo || 'chat'}`);
+            console.log(`   → De: ${data.de || 'Desconocido'}`);
+
+            // Emitir evento para componentes embebidos
+            window.dispatchEvent(new CustomEvent('nuevo_mensaje_chat_realtime', { detail: data }));
+
+            // Actualización inmediata
+            actualizarTickets();
+
+            // Reintentos adicionales para asegurar sincronización
+            setTimeout(() => {
+                console.log('🔄 ANALISTA - Segunda actualización post-chat (300ms)');
+                actualizarTickets();
+            }, 300);
+            setTimeout(() => {
+                console.log('🔄 ANALISTA - Tercera actualización post-chat (1000ms)');
+                actualizarTickets();
+            }, 1000);
+        };
+
         const onGenericUpdate = (data) => {
             console.log('🔄 ANALISTA - Actualización genérica:', data);
             actualizarTickets();
@@ -559,7 +603,9 @@ function AnalistaPage() {
         socket.on('ticket_asignado', onTicketAsignado);
         socket.on('ticket_asignado_a_mi', onTicketAsignadoAMi);
         socket.on('ticket_actualizado', onGenericUpdate);
-        socket.on('nuevo_comentario', onGenericUpdate);
+        socket.on('nuevo_comentario', onComentarioUpdate);
+        socket.on('nuevo_mensaje_chat_analista_cliente', onChatUpdate);
+        socket.on('nuevo_mensaje_chat_supervisor_analista', onChatUpdate);
         socket.on('critical_ticket_update', onCritical);
         socket.on('critical_ticket_action', onCritical);
         socket.on('global_ticket_update', onGenericUpdate);
@@ -589,7 +635,9 @@ function AnalistaPage() {
             socket.off('ticket_asignado', onTicketAsignado);
             socket.off('ticket_asignado_a_mi', onTicketAsignadoAMi);
             socket.off('ticket_actualizado', onGenericUpdate);
-            socket.off('nuevo_comentario', onGenericUpdate);
+            socket.off('nuevo_comentario', onComentarioUpdate);
+            socket.off('nuevo_mensaje_chat_analista_cliente', onChatUpdate);
+            socket.off('nuevo_mensaje_chat_supervisor_analista', onChatUpdate);
             socket.off('critical_ticket_update', onCritical);
             socket.off('critical_ticket_action', onCritical);
             socket.off('global_ticket_update', onGenericUpdate);

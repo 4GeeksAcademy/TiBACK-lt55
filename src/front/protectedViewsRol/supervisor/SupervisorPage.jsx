@@ -13,7 +13,7 @@ import { tokenUtils } from '../../store';
 
 export function SupervisorPage() {
     const navigate = useNavigate();
-    const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms } = useGlobalReducer();
+    const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms, joinChatSupervisorAnalista } = useGlobalReducer();
 
     // Helper resilient fetch that tries configured BACKEND then same-origin then relative
     const backendRequest = async (path, options = {}) => {
@@ -138,6 +138,71 @@ export function SupervisorPage() {
         closeSearchResults();
     };
 
+    // FUNCIONES PARA UNIRSE A SALAS DE WEBSOCKET ANTES DE ABRIR VISTAS
+    const openComments = (ticketId) => {
+        try {
+            const socket = store.websocket.socket;
+            if (socket && joinTicketRoom) {
+                joinTicketRoom(socket, ticketId);
+            }
+        } catch (e) {
+            /* Silently ignore */
+        }
+        setActiveView(`comentarios-${ticketId}`);
+    };
+
+    const openSupervisorChat = (ticketId) => {
+        console.log(`🔗 SUPERVISOR - Abriendo chat supervisor-analista para ticket: ${ticketId}`);
+        console.log(`   → Estado WebSocket:`, {
+            connected: store.websocket.connected,
+            hasSocket: !!store.websocket.socket,
+            socketId: store.websocket.socket?.id
+        });
+
+        try {
+            const socket = store.websocket.socket;
+
+            // Verificar que el socket esté conectado Y disponible
+            if (socket && socket.connected && joinChatSupervisorAnalista) {
+                console.log(`✅ SUPERVISOR - Llamando joinChatSupervisorAnalista para ticket: ${ticketId}`);
+                joinChatSupervisorAnalista(socket, ticketId);
+            } else {
+                console.log(`⚠️ SUPERVISOR - No se pudo unir al chat:`, {
+                    hasSocket: !!socket,
+                    socketConnected: socket?.connected,
+                    storeConnected: store.websocket.connected,
+                    hasFunction: !!joinChatSupervisorAnalista
+                });
+
+                // Intentar reconectar si el socket no está conectado
+                if (!socket || !socket.connected) {
+                    console.log(`🔄 SUPERVISOR - Intentando reconectar WebSocket...`);
+                    // El socket debería reconectarse automáticamente
+                    // Intentaremos unir al chat después de un pequeño delay
+                    setTimeout(() => {
+                        const retrySocket = store.websocket.socket;
+                        if (retrySocket && retrySocket.connected && joinChatSupervisorAnalista) {
+                            console.log(`✅ SUPERVISOR - Reintento exitoso, uniéndose al chat`);
+                            joinChatSupervisorAnalista(retrySocket, ticketId);
+                            if (joinTicketRoom) {
+                                joinTicketRoom(retrySocket, ticketId);
+                            }
+                        } else {
+                            console.log(`⚠️ SUPERVISOR - Reintento fallido, socket aún no conectado`);
+                        }
+                    }, 1000);
+                }
+            }
+
+            if (socket && socket.connected && joinTicketRoom) {
+                joinTicketRoom(socket, ticketId);
+            }
+        } catch (e) {
+            console.error('❌ SUPERVISOR - Error al abrir chat:', e);
+        }
+        setActiveView(`supervisor-chat-${ticketId}`);
+    };
+
     // Función helper para actualizar tickets sin recargar la página
     const actualizarTickets = async () => {
         try {
@@ -244,6 +309,29 @@ export function SupervisorPage() {
 
                 console.log(`🔧 SUPERVISOR - Conectando con userId: ${userId}, role: ${role}`);
                 joinRoom(socket, role, userId);
+
+                // Unirse a rooms globales
+                try {
+                    socket.emit('join_room', 'global_system_room');
+                    socket.emit('join_room', 'global_tickets');
+                    socket.emit('join_room', 'ticket_status_changes');
+                    console.log(`✅ SUPERVISOR - Unido a rooms generales con rol: ${role}`);
+                } catch (e) {
+                    console.error('❌ SUPERVISOR - Error uniendo a rooms generales:', e);
+                }
+
+                // Unirse EXPLÍCITAMENTE a la room específica del supervisor para notificaciones directas
+                if (userId) {
+                    try {
+                        const supervisorRoom = `supervisor_${userId}`;
+                        console.log(`🔌 SUPERVISOR - Uniéndose a room específica: ${supervisorRoom}`);
+                        socket.emit('join_room', supervisorRoom);
+                        console.log(`✅ SUPERVISOR - Solicitud de unión enviada a: ${supervisorRoom}`);
+                    } catch (e) {
+                        console.error('❌ SUPERVISOR - Error al unirse a room específica:', e);
+                    }
+                }
+
                 console.log(`✅ SUPERVISOR - Unido a room con rol: ${role}`);
             }
         }
@@ -259,7 +347,19 @@ export function SupervisorPage() {
     // CAMBIO 4: Sistema de Rooms y Sincronización en Tiempo Real
     // Configurar sincronización crítica en tiempo real y unirse a rooms de tickets
     useEffect(() => {
+        console.log('🔍 SUPERVISOR - useEffect listeners ejecutándose:', {
+            hasUser: !!store.auth.user,
+            connected: store.websocket.connected,
+            hasSocket: !!store.websocket.socket
+        });
+
         if (store.auth.user && store.websocket.connected && store.websocket.socket) {
+            console.log('✅ SUPERVISOR - Condición cumplida, configurando listeners...');
+            console.log('🎧 SUPERVISOR - Configurando listeners para eventos de tickets');
+            console.log(`   → Socket ID: ${store.websocket.socket?.id}`);
+            console.log(`   → WebSocket conectado: ${store.websocket.connected}`);
+            console.log(`   → User data para listeners:`, store.auth.user);
+
             // CORRECCIÓN: Unirse a todas las rooms críticas con rol forzado a 'supervisor'
             const supervisorData = { ...store.auth.user, role: 'supervisor' };
             console.log('🎯 SUPERVISOR - Uniéndose a rooms críticas con userData:', supervisorData);
@@ -309,13 +409,47 @@ export function SupervisorPage() {
             };
 
             const handleComentarioUpdate = (data) => {
-                // Removed debug log
+                console.log('💬 SUPERVISOR - NUEVO COMENTARIO RECIBIDO:', data);
+                console.log(`   → Ticket ID: ${data.ticket_id}`);
+                console.log(`   → Usuario: ${data.usuario_nombre || 'Desconocido'}`);
+
+                // Emitir evento para componentes embebidos
+                window.dispatchEvent(new CustomEvent('nuevo_comentario_realtime', { detail: data }));
+
+                // Actualización inmediata
                 actualizarTodasLasTablas();
+
+                // Reintentos adicionales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Segunda actualización post-comentario (300ms)');
+                    actualizarTodasLasTablas();
+                }, 300);
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Tercera actualización post-comentario (1000ms)');
+                    actualizarTodasLasTablas();
+                }, 1000);
             };
 
             const handleChatUpdate = (data) => {
-                // Removed debug log
-                // Actualizar si es necesario
+                console.log('💬 SUPERVISOR - NUEVO MENSAJE CHAT RECIBIDO:', data);
+                console.log(`   → Tipo: ${data.tipo || 'chat'}`);
+                console.log(`   → De: ${data.de || 'Desconocido'}`);
+
+                // Emitir evento para componentes embebidos
+                window.dispatchEvent(new CustomEvent('nuevo_mensaje_chat_realtime', { detail: data }));
+
+                // Actualización inmediata
+                actualizarTodasLasTablas();
+
+                // Reintentos adicionales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Segunda actualización post-chat (300ms)');
+                    actualizarTodasLasTablas();
+                }, 300);
+                setTimeout(() => {
+                    console.log('🔄 SUPERVISOR - Tercera actualización post-chat (1000ms)');
+                    actualizarTodasLasTablas();
+                }, 1000);
             };
 
             // EVENTOS CRÍTICOS PARA FLUJO COMPLETO
@@ -445,6 +579,26 @@ export function SupervisorPage() {
             socket.on('nuevo_ticket_disponible', handleNuevoTicketDisponible);
             socket.on('ticket_actualizado', handleTicketUpdate);
 
+            console.log('✅ SUPERVISOR - Todos los listeners configurados correctamente');
+            console.log('   → Listeners activos:', [
+                'ticket_created',
+                'ticket_updated',
+                'ticket_estado_changed',
+                'ticket_asignado',
+                'ticket_escalado',
+                'ticket_solucionado',
+                'ticket_cerrado',
+                'ticket_reabierto',
+                'solicitud_reapertura',
+                'reapertura_aprobada',
+                'nuevo_comentario',
+                'nuevo_mensaje_chat_analista_cliente',
+                'nuevo_mensaje_chat_supervisor_analista',
+                'nuevo_ticket',
+                'nuevo_ticket_disponible',
+                'ticket_actualizado'
+            ]);
+
             // Cleanup COMPLETO
             return () => {
                 socket.off('ticket_created', handleTicketCreated);
@@ -464,8 +618,15 @@ export function SupervisorPage() {
                 socket.off('nuevo_ticket', handleNuevoTicket);
                 socket.off('ticket_actualizado', handleTicketUpdate);
             };
+        } else {
+            console.log('⚠️ SUPERVISOR - No se pueden configurar listeners:', {
+                hasUser: !!store.auth.user,
+                connected: store.websocket.connected,
+                hasSocket: !!store.websocket.socket,
+                reason: !store.auth.user ? 'no user' : !store.websocket.connected ? 'not connected' : 'no socket'
+            });
         }
-    }, [store.auth.user, store.websocket.connected]);
+    }, [store.auth.user, store.websocket.connected, tickets, ticketsCerrados, joinTicketRoom, joinCriticalRooms, joinAllCriticalRooms]);
     // FIN CAMBIO 4
 
     // CAMBIO 4B: Funciones auxiliares para movimiento de tickets entre listas
@@ -2241,7 +2402,7 @@ export function SupervisorPage() {
                                                                                 <button
                                                                                     className="btn btn-sidebar-accent btn-sm"
                                                                                     title="Ver y agregar comentarios"
-                                                                                    onClick={() => setActiveView(`comentarios-${ticket.id}`)}
+                                                                                    onClick={() => openComments(ticket.id)}
                                                                                 >
                                                                                     <i className="fas fa-users"></i>
                                                                                 </button>
@@ -2250,7 +2411,7 @@ export function SupervisorPage() {
                                                                                 <button
                                                                                     className="btn btn-sidebar-warning btn-sm"
                                                                                     title="Chat con analista"
-                                                                                    onClick={() => setActiveView(`supervisor-chat-${ticket.id}`)}
+                                                                                    onClick={() => openSupervisorChat(ticket.id)}
                                                                                 >
                                                                                     <i className="fas fa-user-cog"></i>
                                                                                 </button>
@@ -2422,7 +2583,7 @@ export function SupervisorPage() {
                                                                                                 className="btn btn-sidebar-accent flex-fill"
                                                                                                 style={{ minWidth: '120px' }}
                                                                                                 title="Ver y agregar comentarios"
-                                                                                                onClick={() => setActiveView(`comentarios-${ticket.id}`)}
+                                                                                                onClick={() => openComments(ticket.id)}
                                                                                             >
                                                                                                 <i className="fas fa-comments me-2"></i>
                                                                                                 Comentarios
@@ -2431,7 +2592,7 @@ export function SupervisorPage() {
                                                                                                 className="btn btn-sidebar-warning flex-fill"
                                                                                                 style={{ minWidth: '120px' }}
                                                                                                 title="Chat con analista"
-                                                                                                onClick={() => setActiveView(`supervisor-chat-${ticket.id}`)}
+                                                                                                onClick={() => openSupervisorChat(ticket.id)}
                                                                                             >
                                                                                                 <i className="fas fa-user-cog me-2"></i>
                                                                                                 Chat Analista

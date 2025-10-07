@@ -195,8 +195,21 @@ const ComentariosTicketEmbedded = ({ ticketId, onBack }) => {
             // Escuchar nuevos comentarios del room del ticket
             const handleNuevoComentario = (data) => {
                 if (data.comentario && data.comentario.id_ticket === parseInt(ticketId)) {
+                    console.log('💬 COMENTARIOS - NUEVO COMENTARIO RECIBIDO:', data);
+
+                    // Actualización inmediata
                     setSincronizando(true);
                     cargarDatos(false).finally(() => setSincronizando(false));
+
+                    // Reintentos adicionales para asegurar sincronización
+                    setTimeout(() => {
+                        console.log('🔄 COMENTARIOS - Segunda actualización (300ms)');
+                        cargarDatos(false);
+                    }, 300);
+                    setTimeout(() => {
+                        console.log('🔄 COMENTARIOS - Tercera actualización (1000ms)');
+                        cargarDatos(false);
+                    }, 1000);
                 }
             };
 
@@ -241,6 +254,20 @@ const ComentariosTicketEmbedded = ({ ticketId, onBack }) => {
             // Silently ignore
         };
 
+        // Escuchar eventos en tiempo real de las páginas principales
+        const handleRealtimeComentario = (event) => {
+            const data = event.detail;
+            if (data.ticket_id === parseInt(ticketId) || data.comentario?.id_ticket === parseInt(ticketId)) {
+                console.log('💬 COMENTARIOS EMBEBIDO - Evento realtime recibido desde página principal');
+                setSincronizando(true);
+                cargarDatos(false).finally(() => setSincronizando(false));
+
+                // Reintentos adicionales
+                setTimeout(() => cargarDatos(false), 300);
+                setTimeout(() => cargarDatos(false), 1000);
+            }
+        };
+
         // Escuchar eventos de sincronización
         window.addEventListener('totalSyncTriggered', handleTotalSync);
         window.addEventListener('sync_completed', handleSyncCompleted);
@@ -248,6 +275,7 @@ const ComentariosTicketEmbedded = ({ ticketId, onBack }) => {
         window.addEventListener('refresh_comentarios', handleTotalSync);
         window.addEventListener('sync_comentarios', handleTotalSync);
         window.addEventListener('refresh_tickets', handleTotalSync);
+        window.addEventListener('nuevo_comentario_realtime', handleRealtimeComentario);
 
         return () => {
             window.removeEventListener('totalSyncTriggered', handleTotalSync);
@@ -256,8 +284,9 @@ const ComentariosTicketEmbedded = ({ ticketId, onBack }) => {
             window.removeEventListener('refresh_comentarios', handleTotalSync);
             window.removeEventListener('sync_comentarios', handleTotalSync);
             window.removeEventListener('refresh_tickets', handleTotalSync);
+            window.removeEventListener('nuevo_comentario_realtime', handleRealtimeComentario);
         };
-    }, []);
+    }, [ticketId]);
 
     const cargarDatos = async (showLoading = true) => {
         try {

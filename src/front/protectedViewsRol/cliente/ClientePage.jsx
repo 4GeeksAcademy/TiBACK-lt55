@@ -25,7 +25,7 @@ function ClientePage() {
 
     // (Cloudinary widget code removed — use ImageUpload component instead)
     const navigate = useNavigate();
-    const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms } = useGlobalReducer();
+    const { store, logout, dispatch, connectWebSocket, disconnectWebSocket, joinRoom, joinTicketRoom, startRealtimeSync, emitCriticalTicketAction, joinCriticalRooms, joinAllCriticalRooms, joinChatAnalistaCliente } = useGlobalReducer();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -130,6 +130,36 @@ function ClientePage() {
             setTimeout(() => setError(""), 2000);
             console.error('Error al actualizar tickets:', err);
         }
+    };
+
+    // FUNCIONES PARA UNIRSE A SALAS DE WEBSOCKET ANTES DE ABRIR VISTAS
+    const openComments = (ticketId) => {
+        try {
+            const socket = store.websocket.socket;
+            if (socket && joinTicketRoom) {
+                joinTicketRoom(socket, ticketId);
+            }
+        } catch (e) {
+            /* Silently ignore */
+        }
+        setSelectedTicketId(ticketId);
+        changeView(`comentarios-${ticketId}`);
+    };
+
+    const openChat = (ticketId) => {
+        try {
+            const socket = store.websocket.socket;
+            if (socket && joinChatAnalistaCliente) {
+                joinChatAnalistaCliente(socket, ticketId);
+            }
+            if (socket && joinTicketRoom) {
+                joinTicketRoom(socket, ticketId);
+            }
+        } catch (e) {
+            /* Silently ignore */
+        }
+        setSelectedTicketId(ticketId);
+        changeView(`chat-${ticketId}`);
     };
 
     // Conectar WebSocket cuando el usuario estÃ© autenticado
@@ -264,8 +294,47 @@ function ClientePage() {
             };
 
             const handleComentarioUpdate = (data) => {
-                console.log('💬 CLIENTE - NUEVO COMENTARIO:', data);
+                console.log('💬 CLIENTE - NUEVO COMENTARIO RECIBIDO:', data);
+                console.log(`   → Ticket ID: ${data.ticket_id}`);
+                console.log(`   → Usuario: ${data.usuario_nombre || 'Desconocido'}`);
+
+                // Emitir evento para componentes embebidos
+                window.dispatchEvent(new CustomEvent('nuevo_comentario_realtime', { detail: data }));
+
+                // Actualización inmediata
                 actualizarTickets();
+
+                // Reintentos adicionales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 CLIENTE - Segunda actualización post-comentario (300ms)');
+                    actualizarTickets();
+                }, 300);
+                setTimeout(() => {
+                    console.log('🔄 CLIENTE - Tercera actualización post-comentario (1000ms)');
+                    actualizarTickets();
+                }, 1000);
+            };
+
+            const handleChatUpdate = (data) => {
+                console.log('💬 CLIENTE - NUEVO MENSAJE CHAT RECIBIDO:', data);
+                console.log(`   → Tipo: ${data.tipo || 'chat'}`);
+                console.log(`   → De: ${data.de || 'Desconocido'}`);
+
+                // Emitir evento para componentes embebidos
+                window.dispatchEvent(new CustomEvent('nuevo_mensaje_chat_realtime', { detail: data }));
+
+                // Actualización inmediata
+                actualizarTickets();
+
+                // Reintentos adicionales para asegurar sincronización
+                setTimeout(() => {
+                    console.log('🔄 CLIENTE - Segunda actualización post-chat (300ms)');
+                    actualizarTickets();
+                }, 300);
+                setTimeout(() => {
+                    console.log('🔄 CLIENTE - Tercera actualización post-chat (1000ms)');
+                    actualizarTickets();
+                }, 1000);
             };
 
             const handleTicketAsignado = (data) => {
@@ -382,6 +451,7 @@ function ClientePage() {
             socket.on('ticket_actualizado', handleTicketUpdate);
             socket.on('ticket_estado_changed', handleTicketEstadoChanged);
             socket.on('nuevo_comentario', handleComentarioUpdate);
+            socket.on('nuevo_mensaje_chat_analista_cliente', handleChatUpdate);
             socket.on('ticket_asignado', handleTicketAsignado);
             socket.on('ticket_escalado', handleTicketEscalado);
             socket.on('ticket_solucionado', handleTicketSolucionado);
@@ -396,6 +466,7 @@ function ClientePage() {
                 socket.off('ticket_actualizado', handleTicketUpdate);
                 socket.off('ticket_estado_changed', handleTicketEstadoChanged);
                 socket.off('nuevo_comentario', handleComentarioUpdate);
+                socket.off('nuevo_mensaje_chat_analista_cliente', handleChatUpdate);
                 socket.off('ticket_asignado', handleTicketAsignado);
                 socket.off('ticket_escalado', handleTicketEscalado);
                 socket.off('ticket_solucionado', handleTicketSolucionado);
@@ -406,7 +477,7 @@ function ClientePage() {
                 socket.off('nuevo_ticket', handleNuevoTicket);
             };
         }
-    }, [store.auth.user, store.websocket.connected, tickets.length]);
+    }, [store.auth.user, store.websocket.connected, tickets, joinTicketRoom, joinCriticalRooms, joinAllCriticalRooms]);
 
     // Efecto para manejar sincronizaciÃ³n manual desde Footer
     useEffect(() => {
@@ -2203,20 +2274,14 @@ function ClientePage() {
                                                                                 <button
                                                                                     className="btn btn-sidebar-accent btn-sm"
                                                                                     title="Ver y agregar comentarios"
-                                                                                    onClick={() => {
-                                                                                        setSelectedTicketId(ticket.id);
-                                                                                        changeView(`comentarios-${ticket.id}`);
-                                                                                    }}
+                                                                                    onClick={() => openComments(ticket.id)}
                                                                                 >
                                                                                     <i className="fas fa-users"></i>
                                                                                 </button>
                                                                                 <button
                                                                                     className="btn btn-sidebar-secondary btn-sm"
                                                                                     title={tieneAnalistaAsignado(ticket) ? `Chat con ${getAnalistaAsignado(ticket)}` : "Chat con analista"}
-                                                                                    onClick={() => {
-                                                                                        setSelectedTicketId(ticket.id);
-                                                                                        changeView(`chat-${ticket.id}`);
-                                                                                    }}
+                                                                                    onClick={() => openChat(ticket.id)}
                                                                                 >
                                                                                     <i className={`fas ${tieneAnalistaAsignado(ticket) ? 'fa-signal' : 'fa-comments'}`}></i>
                                                                                 </button>
@@ -2332,10 +2397,7 @@ function ClientePage() {
                                                                                             className="btn btn-sidebar-accent flex-fill"
                                                                                             style={{ minWidth: '120px' }}
                                                                                             title="Ver y agregar comentarios"
-                                                                                            onClick={() => {
-                                                                                                setSelectedTicketId(ticket.id);
-                                                                                                changeView(`comentarios-${ticket.id}`);
-                                                                                            }}
+                                                                                            onClick={() => openComments(ticket.id)}
                                                                                         >
                                                                                             <i className="fas fa-comments me-2"></i>
                                                                                             Comentarios
@@ -2344,10 +2406,7 @@ function ClientePage() {
                                                                                             className="btn btn-sidebar-secondary flex-fill"
                                                                                             style={{ minWidth: '120px' }}
                                                                                             title={tieneAnalistaAsignado(ticket) ? `Chat con ${getAnalistaAsignado(ticket)}` : "Chat con analista"}
-                                                                                            onClick={() => {
-                                                                                                setSelectedTicketId(ticket.id);
-                                                                                                changeView(`chat-${ticket.id}`);
-                                                                                            }}
+                                                                                            onClick={() => openChat(ticket.id)}
                                                                                         >
                                                                                             <i className={`fas ${tieneAnalistaAsignado(ticket) ? 'fa-signal' : 'fa-comments'} me-2`}></i>
                                                                                             Chat
