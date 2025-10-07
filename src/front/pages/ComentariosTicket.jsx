@@ -351,13 +351,25 @@ const ComentariosTicket = () => {
                     texto.includes('Ticket escalado') ||
                     texto.includes('Ticket iniciado') ||
                     texto.includes('Ticket reabierto') ||
-                    texto.includes('Cliente solicita reapertura');
+                    texto.includes('Cliente solicita reapertura') ||
+                    texto.includes('Ticket cerrado por cliente') ||
+                    texto.includes('Ticket cerrado por supervisor') ||
+                    texto.includes('Ticket cerrado por administrador') ||
+                    texto.includes('Supervisor aprobó solicitud de reapertura') ||
+                    texto.includes('Listo para nueva asignación') ||
+                    texto.includes('por supervisor') ||
+                    texto.includes('por administrador') ||
+                    texto.includes('Analista inició trabajo en el ticket') ||
+                    texto.includes('Chat iniciado entre') ||
+                    texto.includes('Mensaje de chat:');
 
                 if (esMovimiento) {
                     movimientos.push(comentario);
                 } else if (!texto.includes('🤖 RECOMENDACIÓN DE IA GENERADA') &&
-                    !texto.includes('🤖 ANÁLISIS DE IMAGEN CON IA:')) {
-                    // Incluir tanto comentarios normales como mensajes de chat
+                    !texto.includes('🤖 ANÁLISIS DE IMAGEN CON IA:') &&
+                    !texto.includes('CHAT_ANALISTA_CLIENTE:') &&
+                    !texto.includes('CHAT_SUPERVISOR_ANALISTA:')) {
+                    // Incluir solo comentarios normales, excluir chats y análisis de IA
                     comentariosUsuarios.push(comentario);
                 }
             });

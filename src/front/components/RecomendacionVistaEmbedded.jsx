@@ -104,20 +104,11 @@ ${recomendacion.recomendaciones_adicionales || 'N/A'}
     };
 
     return (
-        <div className="hyper-layout d-flex">
-            {/* Contenido principal */}
-            <div className="hyper-main-content flex-grow-1">
-                {/* Header superior */}
-                <header className="hyper-header bg-white border-bottom p-3">
-                    <div className="d-flex align-items-center justify-content-between w-100">
-                        <div className="d-flex align-items-center gap-3">
-                            <div>
-                                <h1 className="mb-0 fw-semibold">
-                                    <i className="fas fa-robot me-2"></i>
-                                    Recomendación de IA - Ticket #{ticketId}
-                                </h1>
-                            </div>
-                        </div>
+        <div className="container-fluid py-4">
+            {/* Header del componente */}
+            <div className="row mb-4">
+                <div className="col-12">
+                    <div className="d-flex align-items-center justify-content-between mb-3">
                         <div className="d-flex align-items-center gap-3">
                             <button
                                 className="btn btn-outline-secondary"
@@ -126,12 +117,20 @@ ${recomendacion.recomendaciones_adicionales || 'N/A'}
                                 <i className="fas fa-arrow-left me-2"></i>
                                 Volver
                             </button>
+                            <div>
+                                <h1 className="mb-0 fw-bold">
+                                    <i className="fas fa-robot me-2"></i>
+                                    Recomendación de IA - Ticket #{ticketId}
+                                </h1>
+                                <p className="text-muted mb-0">Análisis inteligente del ticket</p>
+                            </div>
                         </div>
                     </div>
-                </header>
+                </div>
+            </div>
 
-                {/* Contenido del dashboard */}
-                <div className="p-4">
+            <div className="row justify-content-center">
+                <div className="col-12">
 
                     {loading && (
                         <div className="card">
