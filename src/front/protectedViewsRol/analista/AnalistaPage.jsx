@@ -29,6 +29,7 @@ function AnalistaPage() {
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [userData, setUserData] = useState(null);
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     // Estados para perfil del analista
     const [showInfoForm, setShowInfoForm] = useState(false);
@@ -79,6 +80,11 @@ function AnalistaPage() {
 
     const toggleSidebar = () => {
         setSidebarHidden(!sidebarHidden);
+    };
+
+    const toggleTheme = () => {
+        setIsDarkMode(!isDarkMode);
+        document.body.classList.toggle('dark-theme');
     };
 
     // Función para manejar cambios en el formulario de información
@@ -311,6 +317,15 @@ function AnalistaPage() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showUserDropdown, showSearchResults]);
+
+    // Aplicar tema al body
+    useEffect(() => {
+        if (isDarkMode) {
+            document.body.classList.add('dark-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+        }
+    }, [isDarkMode]);
 
     // WebSocket connect + join rooms
     useEffect(() => {
@@ -698,6 +713,18 @@ function AnalistaPage() {
                                                 <i className="fas fa-home"></i>
                                                 <span>Ir al inicio</span>
                                             </button>
+                                            <div className="d-flex align-items-center justify-content-between p-2">
+                                                <span className="small">Modo Oscuro</span>
+                                                <div className="form-check form-switch">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        checked={isDarkMode}
+                                                        onChange={toggleTheme}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <hr className="my-2" />
                                             <button
                                                 className="btn btn-link w-100 text-start d-flex align-items-center gap-2 text-danger"
                                                 style={{ textDecoration: 'none' }}
