@@ -1974,6 +1974,14 @@ def cambiar_estado_ticket(id):
                 )
                 db.session.add(comentario_inicio)
                 
+                # CORRECCIÓN: Hacer commit ANTES de emitir eventos WebSocket
+                db.session.commit()
+                print(f"✅ COMMIT realizado para inicio del ticket {id}")
+                
+                # Pequeño delay para asegurar sincronización completa de BD
+                import time
+                time.sleep(0.1)
+                
                 # Notificar inicio del trabajo
                 socketio = get_socketio()
                 if socketio:
@@ -1992,6 +2000,7 @@ def cambiar_estado_ticket(id):
                         ticket_room = f'room_ticket_{ticket.id}'
                         socketio.emit('ticket_actualizado', inicio_data, room=ticket_room)
                         socketio.emit('ticket_actualizado', inicio_data, room='supervisores')
+                        socketio.emit('ticket_actualizado', inicio_data, room='role_supervisor')
                         socketio.emit('ticket_actualizado', inicio_data, room='administradores')
                         
                         # Emitir evento de estado cambiado específico
@@ -2001,6 +2010,9 @@ def cambiar_estado_ticket(id):
                         print(f"📤 TICKET INICIADO POR ANALISTA NOTIFICADO: {inicio_data}")
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de inicio: {ws_error}")
+                
+                # CORRECCIÓN: Retornar inmediatamente
+                return jsonify(ticket.serialize()), 200
                         
             elif nuevo_estado_lower == 'solucionado' and estado_actual == 'en proceso':
                 print(f"✅ ANALISTA SOLUCIONANDO TICKET: {id}")
@@ -2015,6 +2027,14 @@ def cambiar_estado_ticket(id):
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_solucion)
+                
+                # CORRECCIÓN: Hacer commit ANTES de emitir eventos WebSocket
+                db.session.commit()
+                print(f"✅ COMMIT realizado para solución del ticket {id}")
+                
+                # Pequeño delay para asegurar sincronización completa de BD
+                import time
+                time.sleep(0.1)
                 
                 # Notificar solución del ticket
                 socketio = get_socketio()
@@ -2034,10 +2054,12 @@ def cambiar_estado_ticket(id):
                         ticket_room = f'room_ticket_{ticket.id}'
                         socketio.emit('ticket_solucionado', solucion_data, room=ticket_room)
                         socketio.emit('ticket_solucionado', solucion_data, room='supervisores')
+                        socketio.emit('ticket_solucionado', solucion_data, room='role_supervisor')
                         socketio.emit('ticket_solucionado', solucion_data, room='administradores')
                         
                         # Emitir eventos de actualización genérica para sincronización completa
                         socketio.emit('ticket_actualizado', solucion_data, room=ticket_room)
+                        socketio.emit('ticket_actualizado', solucion_data, room='role_supervisor')
                         socketio.emit('ticket_estado_changed', solucion_data, room=ticket_room)
                         socketio.emit('global_ticket_update', solucion_data)
                         
@@ -2051,6 +2073,9 @@ def cambiar_estado_ticket(id):
                         print(f"📤 TICKET SOLUCIONADO POR ANALISTA NOTIFICADO: {solucion_data}")
                     except Exception as ws_error:
                         print(f"Error enviando WebSocket de solución: {ws_error}")
+                
+                # CORRECCIÓN: Retornar inmediatamente
+                return jsonify(ticket.serialize()), 200
             # # Escalar al supervisor
             # elif nuevo_estado_lower == 'en_espera' and estado_actual in ['en_proceso', 'en_espera']:
             #     # Si está escalando desde 'en_espera', significa que no puede resolverlo sin iniciarlo
@@ -2081,6 +2106,14 @@ def cambiar_estado_ticket(id):
                     fecha_comentario=datetime.now()
                 )
                 db.session.add(comentario_escalacion)
+                
+                # CORRECCIÓN: Hacer commit ANTES de emitir eventos WebSocket
+                db.session.commit()
+                print(f"✅ COMMIT realizado para escalación del ticket {id}")
+                
+                # Pequeño delay para asegurar sincronización completa de BD
+                import time
+                time.sleep(0.1)
 
                 # Notificar inmediatamente a supervisores sobre la escalación
                 socketio = get_socketio()
@@ -2097,31 +2130,50 @@ def cambiar_estado_ticket(id):
                             'timestamp': datetime.now().isoformat()
                         }
 
+                        print(f"📤 ESCALACIÓN - Notificando a supervisores:")
+                        print(f"   → Ticket ID: {ticket.id}")
+                        print(f"   → Estado: {ticket.estado}")
+                        print(f"   → Analista que escaló: {user['id']}")
+
                         # Notificar a supervisores y administradores sobre la escalación
                         socketio.emit('ticket_escalado',
                                       escalacion_data, room='supervisores')
                         socketio.emit('ticket_escalado',
                                       escalacion_data, room='administradores')
+                        print(f"   ✅ Eventos 'ticket_escalado' enviados a supervisores y administradores")
+
+                        # CORRECCIÓN: Notificar también a room de role
+                        socketio.emit('ticket_escalado', escalacion_data, room='role_supervisor')
+                        print(f"   ✅ Evento 'ticket_escalado' enviado a role_supervisor")
 
                         # También notificar al room del ticket
                         ticket_room = f'room_ticket_{ticket.id}'
                         socketio.emit('ticket_escalado',
                                       escalacion_data, room=ticket_room)
+                        print(f"   ✅ Evento 'ticket_escalado' enviado a {ticket_room}")
                         
                         # Emitir eventos de actualización genérica para sincronización completa
                         socketio.emit('ticket_actualizado', escalacion_data, room=ticket_room)
                         socketio.emit('ticket_actualizado', escalacion_data, room='supervisores')
+                        socketio.emit('ticket_actualizado', escalacion_data, room='role_supervisor')
                         socketio.emit('ticket_estado_changed', escalacion_data, room=ticket_room)
                         socketio.emit('global_ticket_update', escalacion_data)
+                        print(f"   ✅ Eventos de actualización genérica enviados")
                         
                         # Notificar como nuevo ticket disponible para que aparezca en la bandeja del supervisor
                         socketio.emit('nuevo_ticket_disponible', escalacion_data, room='supervisores')
+                        socketio.emit('nuevo_ticket_disponible', escalacion_data, room='role_supervisor')
+                        print(f"   ✅ Eventos 'nuevo_ticket_disponible' enviados")
 
                         print(
-                            f"📤 TICKET ESCALADO NOTIFICADO: {escalacion_data}")
+                            f"📤 TICKET ESCALADO NOTIFICADO COMPLETAMENTE")
                     except Exception as ws_error:
                         print(
-                            f"Error enviando WebSocket de escalación: {ws_error}")
+                            f"❌ Error enviando WebSocket de escalación: {ws_error}")
+                
+                # CORRECCIÓN: Retornar inmediatamente después de la escalación
+                # No esperar al commit general al final que podría causar conflictos
+                return jsonify(ticket.serialize()), 200
             else:
                 print(f"❌ TRANSICIÓN NO VÁLIDA PARA ANALISTA:")
                 print(f"   Estado actual: '{estado_actual}'")
