@@ -302,17 +302,19 @@ const ComentariosTicketEmbedded = ({ ticketId, onBack }) => {
                     texto.includes('Listo para nueva asignación') ||
                     texto.includes('por supervisor') ||
                     texto.includes('por administrador') ||
-                    texto.includes('🤖 RECOMENDACIÓN DE IA GENERADA') ||
-                    texto.includes('🤖 ANÁLISIS DE IMAGEN CON IA:') ||
-                    texto.includes('CHAT_ANALISTA_CLIENTE:') ||
-                    texto.includes('CHAT_SUPERVISOR_ANALISTA:') ||
                     texto.includes('Analista inició trabajo en el ticket') ||
                     texto.includes('Chat iniciado entre') ||
                     texto.includes('Mensaje de chat:');
 
-                if (esMovimientoAutomatico) {
+                // Excluir recomendaciones de IA y análisis de IA del historial
+                const esRecomendacionIA = texto.includes('🤖 RECOMENDACIÓN DE IA GENERADA') ||
+                    texto.includes('🤖 ANÁLISIS DE IMAGEN CON IA:') ||
+                    texto.includes('CHAT_ANALISTA_CLIENTE:') ||
+                    texto.includes('CHAT_SUPERVISOR_ANALISTA:');
+
+                if (esMovimientoAutomatico && !esRecomendacionIA) {
                     movimientos.push(comentario);
-                } else {
+                } else if (!esRecomendacionIA) {
                     // Solo incluir comentarios reales entre usuarios (conversaciones reales)
                     // Verificar que sea un comentario de usuario real, no del sistema
                     const esComentarioReal = comentario.autor &&
