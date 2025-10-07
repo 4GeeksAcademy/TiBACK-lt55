@@ -35,7 +35,7 @@ export const Feature = () => {
                 </div>
                 <div className="pb-3 pt-5 align-items-center row">
                     <div className="col-lg-6 col-md-5">
-                        <h3 className="fw-normal">Diseño simplemente y hermoso</h3>
+                        <h3 className="fw-normal">Diseño simple y hermoso</h3>
                         <p className="text-muted mt-3">La forma más sencilla y rápida de crear un panel de control o de administración. 
                             TiBACK está desarrollado con la tecnología y las herramientas más avanzadas y ofrece una forma sencilla de 
                             personalizar cualquier elemento, incluyendo la paleta de colores, el diseño, etc.</p>
